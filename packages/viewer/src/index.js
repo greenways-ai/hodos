@@ -3,6 +3,7 @@ import "./world-placement.css";
 import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph } from "./github-worlds.js";
 import { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
 import { WorldDraftPanel } from "./world-draft-panel.js";
+import { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
 import { WorldRenderer } from "./world-renderer.js";
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
@@ -53,6 +54,7 @@ export function createHodosViewer({
   id = sessionId(),
   onEffect,
   onCameraChange,
+  onDraftImport,
 } = {}) {
   if (!root) throw new Error("Hodos viewer requires a root element");
   if (!invoke) throw new Error("Hodos viewer requires a kernel dispatcher");
@@ -61,6 +63,7 @@ export function createHodosViewer({
   let state;
   let surfaceHost;
   let draftPanel;
+  let draftReviewPanel;
   let sessionOpened = false;
 
   const navigate = (next) => {
@@ -78,6 +81,7 @@ export function createHodosViewer({
       <div class="world-touchpoints" aria-label="World touchpoints"></div>
       <div class="world-audio-sources" aria-label="Spatial audio sources"></div>
       <aside class="world-draft-root" aria-label="Hara world draft editor"></aside>
+      <aside class="world-draft-review-root" aria-label="World draft review and publication"></aside>
       <div class="world-overlay"><div class="world-status" role="status"><strong>Reading world…</strong><span>${escapeHtml(next.repository)}${next.ref ? ` @ ${escapeHtml(next.ref)}` : ""}</span></div>
       <nav class="world-controls" aria-label="World controls"><button data-action="reset">Reset view</button><button data-action="mode">${next.mode === "strict" ? "Dev mode" : "Strict mode"}</button><button data-action="change">Change world</button></nav></div>
       <div class="diagnostic-slot"></div>
@@ -90,6 +94,10 @@ export function createHodosViewer({
     draftPanel = new WorldDraftPanel(root.querySelector(".world-draft-root"), {
       dispatch,
       getRenderer: () => renderer,
+    });
+    draftReviewPanel = new WorldDraftReviewPanel(root.querySelector(".world-draft-review-root"), {
+      dispatch,
+      importDraft: onDraftImport,
     });
     return {
       canvas: root.querySelector("canvas"),
@@ -106,6 +114,7 @@ export function createHodosViewer({
   };
 
   const fatal = (error) => {
+    draftReviewPanel?.destroy();
     draftPanel?.destroy();
     surfaceHost?.destroy();
     renderer?.destroy();
@@ -144,6 +153,7 @@ export function createHodosViewer({
     }
     surfaceHost?.update(result?.state);
     draftPanel?.update(result?.state);
+    draftReviewPanel?.update(result?.state);
     return result;
   };
 
@@ -237,6 +247,7 @@ export function createHodosViewer({
   }
 
   const destroy = () => {
+    draftReviewPanel?.destroy();
     draftPanel?.destroy();
     surfaceHost?.destroy();
     renderer?.destroy();
@@ -260,6 +271,7 @@ export function createHodosViewer({
 
 export { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
 export { WorldDraftPanel } from "./world-draft-panel.js";
+export { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
 export {
   nudgePosition,
   sourcePosition,
