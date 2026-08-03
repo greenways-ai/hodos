@@ -87,6 +87,53 @@
     assets
     (conj assets asset)))
 
+(defn map-vector [values update-fn]
+  (loop [index 0 output []]
+    (if (= index (count values))
+      output
+      (recur (+ index 1)
+             (conj output (update-fn (nth values index)))))))
+
+(defn update-track [project track-id update-fn]
+  (assoc project "tracks"
+         (map-vector
+          (or (get project "tracks") [])
+          (fn [track]
+            (if (= (get track "id") track-id)
+              (update-fn track)
+              track)))))
+
+(defn update-track-clip [track clip-id update-fn]
+  (assoc track "clips"
+         (map-vector
+          (or (get track "clips") [])
+          (fn [clip]
+            (if (= (get clip "id") clip-id)
+              (update-fn clip)
+              clip)))))
+
+(defn update-clip [project clip-id update-fn]
+  (assoc project "tracks"
+         (map-vector
+          (or (get project "tracks") [])
+          (fn [track]
+            (update-track-clip track clip-id update-fn)))))
+
+(defn nonnegative [value]
+  (if (< value 0) 0 value))
+
+(defn project-change [session project]
+  (let [studio (get session "studio")
+        next-studio (assoc studio "project" project)
+        next (next-revision (assoc session "studio" next-studio))
+        transport (get next-studio "transport")]
+    {"session" next
+     "effects" (if (= (get transport "status") "playing")
+                 [{"effect" "audio"
+                   "method" "apply-transport"
+                   "args" [transport project]}]
+                 [])}))
+
 (defn import-track [session event]
   (let [studio (get session "studio")
         project (get studio "project")
@@ -96,21 +143,47 @@
         tracks (or (get project "tracks") [])
         next-project (assoc
                       (assoc project "assets" (add-asset assets asset))
-                      "tracks" (conj tracks track))
-        next-studio (assoc studio "project" next-project)
-        next (next-revision (assoc session "studio" next-studio))]
-    {"session" next
-     "effects" []}))
+                      "tracks" (conj tracks track))]
+    (project-change session next-project)))
 
 (defn restore-project [session event]
   (let [project (get event "project")]
     (if (get project "id")
-      (let [studio (get session "studio")
-            next-studio (assoc studio "project" project)
-            next (next-revision (assoc session "studio" next-studio))]
-        {"session" next
-         "effects" []})
+      (project-change session project)
       (throw "Restored studio project requires an id"))))
+
+(defn move-clip [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        clip-id (get event "clip")
+        start-seconds (nonnegative (get event "startSeconds"))
+        next-project (update-clip
+                      project clip-id
+                      (fn [clip]
+                        (assoc clip "startSeconds" start-seconds)))]
+    (project-change session next-project)))
+
+(defn set-track-gain [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        track-id (get event "track")
+        gain-db (get event "gainDb")
+        next-project (update-track
+                      project track-id
+                      (fn [track]
+                        (assoc track "gainDb" gain-db)))]
+    (project-change session next-project)))
+
+(defn set-track-mute [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        track-id (get event "track")
+        mute (get event "mute")
+        next-project (update-track
+                      project track-id
+                      (fn [track]
+                        (assoc track "mute" mute)))]
+    (project-change session next-project)))
 
 (defn apply-transport [session event]
   (let [studio (get session "studio")
@@ -133,9 +206,15 @@
           (import-track session event)
           (if (= event-type "studio/restore")
             (restore-project session event)
-            (if (= event-type "studio/transport")
-              (apply-transport session event)
-              (throw (str "Unknown Hodos session event: " event-type)))))))))
+            (if (= event-type "studio/clip-move")
+              (move-clip session event)
+              (if (= event-type "studio/track-gain")
+                (set-track-gain session event)
+                (if (= event-type "studio/track-mute")
+                  (set-track-mute session event)
+                  (if (= event-type "studio/transport")
+                    (apply-transport session event)
+                    (throw (str "Unknown Hodos session event: " event-type))))))))))))
 
 (defn event [session-id input]
   (let [current (session-value session-id)
