@@ -6,8 +6,8 @@ packages, and the viewer renders its Gaussian-splat scene.
 
 The repository deliberately separates reusable technology from presentation:
 
-- `packages/kernel` owns the `gw.hodos.*` HAL surface, bundling, persistent
-  browser sessions, package plans, and scene commands.
+- `packages/kernel` owns the `gw.hodos.*` HAL surface, bundling, long-lived
+  page sessions, package plans, and scene commands.
 - `packages/viewer` is an embeddable browser viewer with no featured-world or
   landing-page policy. It projects spatial touchpoints into the scene and
   mounts only trusted, host-registered 2D application surfaces.
