@@ -1,5 +1,14 @@
 export const FEATURED_WORLDS = Object.freeze([
   Object.freeze({
+    id: "studio",
+    title: "Music Studio",
+    description: "A Hodos touchpoint opens a classical multitrack surface while Hara carries the studio session state.",
+    repository: "https://github.com/greenways-worlds/apartment",
+    experience: "studio",
+    format: "HODOS SURFACE",
+    attribution: "https://github.com/greenways-worlds/apartment/blob/main/ATTRIBUTION.md",
+  }),
+  Object.freeze({
     id: "apartment",
     title: "Apartment",
     description: "A minimal world built from one compact SOG asset.",

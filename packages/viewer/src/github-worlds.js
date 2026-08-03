@@ -2,7 +2,7 @@ import { readWorldProject, WORLD_LIMITS } from "./world-manifest.js";
 
 export const GITHUB_ORIGINS = Object.freeze([
   "https://api.github.com/*",
-  "https://raw.githubusercontent.com/*"
+  "https://raw.githubusercontent.com/*",
 ]);
 
 let catalogCache;
@@ -94,7 +94,7 @@ export class PublicGitHubClient {
 
   async json(url, label) {
     const response = await this.request(url, {
-      headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" }
+      headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" },
     });
     if (!response.ok) throw responseError(response, label);
     return response.json();
@@ -109,7 +109,7 @@ export class PublicGitHubClient {
   async defaultBranch(repository) {
     const metadata = await this.json(
       `https://api.github.com/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}`,
-      `${repository.owner}/${repository.repo} metadata`
+      `${repository.owner}/${repository.repo} metadata`,
     );
     if (!metadata.default_branch) throw new Error(`${repository.owner}/${repository.repo} has no default branch`);
     return metadata.default_branch;
@@ -122,7 +122,7 @@ export class PublicGitHubClient {
     if (!this.refCache.has(key)) {
       this.refCache.set(key, this.json(
         `https://api.github.com/repos/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.repo)}/commits/${encodeURIComponent(requestedRef)}`,
-        `${key} resolution`
+        `${key} resolution`,
       ).then((commit) => {
         if (!commitPattern.test(commit.sha ?? "")) throw new Error(`${key} did not resolve to a commit`);
         return commit.sha.toLowerCase();
@@ -185,7 +185,7 @@ function diagnostic(path, error) {
 }
 
 export async function resolveWorldGraph({ repository, ref = "", mode = "dev", client = new PublicGitHubClient() }) {
-  if (!['dev', 'strict'].includes(mode)) throw new Error("Viewer mode must be dev or strict");
+  if (!["dev", "strict"].includes(mode)) throw new Error("Viewer mode must be dev or strict");
   const rootRepository = typeof repository === "string" ? parseGitHubRepository(repository) : repository;
   if (mode === "strict" && !commitPattern.test(ref)) {
     throw new Error("Strict mode requires the root ref to be a full 40-character commit SHA");
@@ -193,6 +193,7 @@ export async function resolveWorldGraph({ repository, ref = "", mode = "dev", cl
   const rootCommit = await client.resolveCommit(rootRepository, ref);
   const diagnostics = [];
   const layers = [];
+  const touchpoints = [];
   const projects = new Set();
 
   async function visit(source, commit, transformChain, ancestry, displayPath, depth) {
@@ -238,11 +239,24 @@ export async function resolveWorldGraph({ repository, ref = "", mode = "dev", cl
         asset: layer.asset,
         assetUrl,
         source: { ...source, commit },
-        transformChain: [...transformChain, layer.transform]
+        transformChain: [...transformChain, layer.transform],
       });
     }
 
-    await Promise.all(project.imports.map(async (entry) => {
+    for (const touchpoint of project.touchpoints ?? []) {
+      if (touchpoints.length >= WORLD_LIMITS.touchpoints) {
+        diagnostics.push(diagnostic(displayPath, new Error(`world graph exceeds ${WORLD_LIMITS.touchpoints} touchpoints`)));
+        break;
+      }
+      touchpoints.push({
+        ...touchpoint,
+        id: [...displayPath, touchpoint.id].join("/"),
+        source: { ...source, commit },
+        transformChain: [...transformChain],
+      });
+    }
+
+    await Promise.all((project.imports ?? []).map(async (entry) => {
       const childPath = [...displayPath, entry.id];
       let childRepository;
       try {
@@ -252,8 +266,12 @@ export async function resolveWorldGraph({ repository, ref = "", mode = "dev", cl
         }
         const childCommit = await client.resolveCommit(childRepository, entry.ref);
         await visit(
-          childRepository, childCommit, [...transformChain, entry.transform],
-          [...ancestry, identity], childPath, depth + 1
+          childRepository,
+          childCommit,
+          [...transformChain, entry.transform],
+          [...ancestry, identity],
+          childPath,
+          depth + 1,
         );
       } catch (error) {
         diagnostics.push(diagnostic(childPath, error));
@@ -270,7 +288,8 @@ export async function resolveWorldGraph({ repository, ref = "", mode = "dev", cl
     commit: rootCommit,
     project: rootProject,
     layers,
+    touchpoints,
     diagnostics,
-    complete: diagnostics.length === 0
+    complete: diagnostics.length === 0,
   };
 }

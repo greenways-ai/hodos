@@ -1,0 +1,17 @@
+.studio-app{--studio-track-header:154px}
+.studio-ruler{position:sticky;z-index:2;top:0;display:block;min-width:100%;padding-left:0;overflow:hidden}
+.studio-ruler:before{content:"TIME";position:absolute;left:14px;top:12px;color:#d6ba70;font:700 8px var(--mono,ui-monospace,monospace);letter-spacing:.14em}
+.studio-ruler span{position:absolute;top:0;height:34px;padding:12px 0 0 6px;border-left:1px solid rgba(244,241,232,.15);color:#858d86;font:8px var(--mono,ui-monospace,monospace);white-space:nowrap}
+.studio-track{min-width:0;grid-template-columns:var(--studio-track-header) minmax(0,1fr)}
+.studio-track header{position:sticky;z-index:1;left:0;grid-template-columns:auto 1fr;min-width:var(--studio-track-header)}
+.studio-track-controls{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;margin-top:8px}
+.studio-track-controls button{min-height:24px;padding:4px 7px;border:1px solid rgba(244,241,232,.18);background:transparent;color:#9da49d;font:700 7px var(--mono,ui-monospace,monospace);letter-spacing:.07em;text-transform:uppercase}
+.studio-track-controls button:hover{border-color:#d6ba70;color:#d6ba70}
+.studio-track-controls input{width:100%;accent-color:#d6ba70}
+.studio-lane{position:relative;min-height:112px;background-image:linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:42px 100%}
+.studio-clip{position:absolute;top:14px;align-self:auto;height:82px;margin:0;cursor:grab;touch-action:none;user-select:none;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.studio-clip:focus-visible{outline:2px solid #f0d58a;outline-offset:2px}
+.studio-clip[data-dragging="true"]{z-index:3;cursor:grabbing;border-color:#f0d58a;background:rgba(214,186,112,.24);box-shadow:0 16px 40px rgba(0,0,0,.34)}
+.studio-clip:after{content:attr(data-start);position:absolute;right:7px;bottom:6px;padding:2px 4px;background:rgba(8,11,9,.75);color:#c8cfc8;font:700 7px var(--mono,ui-monospace,monospace)}
+.studio-toolbar button:disabled{opacity:.35;cursor:not-allowed;border-color:rgba(244,241,232,.12);color:#697069}
+@media(max-width:720px){.studio-app{--studio-track-header:110px}}

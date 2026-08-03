@@ -4,17 +4,20 @@ export const WORLD_LIMITS = Object.freeze({
   manifestBytes: 1024 * 1024,
   importDepth: 8,
   projects: 24,
-  layers: 64
+  layers: 64,
+  touchpoints: 128,
 });
 
 const REQUIRED_PROJECT_KEYS = [
   "hara/type", "hara/version", "project/id", "project/version",
   "project/source-paths", "project/test-paths", "project/extension-paths",
-  "project/capabilities", "project/world"
+  "project/capabilities", "project/world",
 ];
 
 const semver = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const hexColor = /^#[0-9a-f]{6}$/i;
+const TOUCHPOINT_PRESENTATIONS = new Set(["focus-overlay", "overlay", "panel", "modal"]);
+const TOUCHPOINT_ANCHORS = new Set(["world", "scene-center"]);
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value) || value instanceof Set) {
@@ -79,19 +82,19 @@ export function normalizeTransform(value = {}, label = "world transform") {
   return {
     position: vector3(input["world/position"], `${label} :world/position`, [0, 0, 0]),
     rotation: vector3(input["world/rotation"], `${label} :world/rotation`, [0, 0, 0]),
-    scale
+    scale,
   };
 }
 
-function normalizeCamera(value) {
+function normalizeCamera(value, label = ":world/camera") {
   if (value === undefined) return null;
-  const input = object(value, ":world/camera");
-  const fov = input["world/fov"] === undefined ? 60 : number(input["world/fov"], ":world/camera :world/fov");
-  if (fov < 10 || fov > 120) throw new Error(":world/camera :world/fov must be between 10 and 120");
+  const input = object(value, label);
+  const fov = input["world/fov"] === undefined ? 60 : number(input["world/fov"], `${label} :world/fov`);
+  if (fov < 10 || fov > 120) throw new Error(`${label} :world/fov must be between 10 and 120`);
   return {
-    position: vector3(input["world/position"], ":world/camera :world/position", [0, 1.5, 4]),
-    target: vector3(input["world/target"], ":world/camera :world/target", [0, 1, 0]),
-    fov
+    position: vector3(input["world/position"], `${label} :world/position`, [0, 1.5, 4]),
+    target: vector3(input["world/target"], `${label} :world/target`, [0, 1, 0]),
+    fov,
   };
 }
 
@@ -100,7 +103,7 @@ function normalizeLayer(value, index) {
   return {
     id: identifier(layer["world/id"], `:world/layers[${index}] :world/id`),
     asset: relativeAsset(layer["world/asset"], `:world/layers[${index}] :world/asset`),
-    transform: normalizeTransform(layer["world/transform"] ?? {}, `:world/layers[${index}] :world/transform`)
+    transform: normalizeTransform(layer["world/transform"] ?? {}, `:world/layers[${index}] :world/transform`),
   };
 }
 
@@ -110,7 +113,44 @@ function normalizeImport(value, index) {
     id: identifier(entry["world/id"], `:world/imports[${index}] :world/id`),
     repository: string(entry["world/repository"], `:world/imports[${index}] :world/repository`),
     ref: string(entry["world/ref"], `:world/imports[${index}] :world/ref`).trim(),
-    transform: normalizeTransform(entry["world/transform"] ?? {}, `:world/imports[${index}] :world/transform`)
+    transform: normalizeTransform(entry["world/transform"] ?? {}, `:world/imports[${index}] :world/transform`),
+  };
+}
+
+function normalizeTouchpoint(value, index) {
+  const label = `:world/touchpoints[${index}]`;
+  const entry = object(value, label);
+  const id = identifier(entry["touchpoint/id"], `${label} :touchpoint/id`);
+  const presentation = entry["touchpoint/presentation"] === undefined
+    ? "focus-overlay"
+    : scalar(entry["touchpoint/presentation"], `${label} :touchpoint/presentation`);
+  if (!TOUCHPOINT_PRESENTATIONS.has(presentation)) {
+    throw new Error(`${label} :touchpoint/presentation must be focus-overlay, overlay, panel, or modal`);
+  }
+  const anchor = entry["touchpoint/anchor"] === undefined
+    ? "world"
+    : scalar(entry["touchpoint/anchor"], `${label} :touchpoint/anchor`);
+  if (!TOUCHPOINT_ANCHORS.has(anchor)) {
+    throw new Error(`${label} :touchpoint/anchor must be world or scene-center`);
+  }
+  const radius = entry["touchpoint/radius"] === undefined
+    ? 0.5
+    : number(entry["touchpoint/radius"], `${label} :touchpoint/radius`);
+  if (radius <= 0) throw new Error(`${label} :touchpoint/radius must be greater than zero`);
+  return {
+    id,
+    label: entry["touchpoint/label"] === undefined
+      ? id
+      : string(entry["touchpoint/label"], `${label} :touchpoint/label`),
+    surface: identifier(entry["touchpoint/surface"], `${label} :touchpoint/surface`),
+    presentation,
+    anchor,
+    position: vector3(entry["touchpoint/position"], `${label} :touchpoint/position`, [0, 0, 0]),
+    radius,
+    camera: normalizeCamera(entry["touchpoint/camera"], `${label} :touchpoint/camera`),
+    config: entry["touchpoint/config"] === undefined
+      ? {}
+      : object(entry["touchpoint/config"], `${label} :touchpoint/config`),
   };
 }
 
@@ -121,7 +161,7 @@ export function parseProjectEdn(source) {
   try {
     return parseEDNString(String(source), {
       mapAs: "object", setAs: "array", listAs: "array",
-      keywordAs: "string", charAs: "string", objectKeysAs: "string"
+      keywordAs: "string", charAs: "string", objectKeysAs: "string",
     });
   } catch (error) {
     throw new Error(`project.edn is not valid EDN: ${error.message}`);
@@ -137,9 +177,18 @@ export function validateWorldProject(value) {
   if (project["hara/version"] !== "1.0.0") throw new Error("project.edn requires :hara/version \"1.0.0\"");
   const version = string(project["project/version"], ":project/version");
   if (!semver.test(version)) throw new Error(":project/version must be SemVer");
-  for (const key of ["project/source-paths", "project/test-paths", "project/extension-paths"]) {
-    array(project[key], `:${key}`).forEach((path) => string(path, `:${key} entry`));
+
+  const sourcePaths = array(project["project/source-paths"], ":project/source-paths");
+  const testPaths = array(project["project/test-paths"], ":project/test-paths");
+  const extensionPaths = array(project["project/extension-paths"], ":project/extension-paths");
+  for (const [key, paths] of [
+    ["project/source-paths", sourcePaths],
+    ["project/test-paths", testPaths],
+    ["project/extension-paths", extensionPaths],
+  ]) {
+    paths.forEach((path) => string(path, `:${key} entry`));
   }
+
   const capabilities = array(project["project/capabilities"], ":project/capabilities");
   for (const required of ["canvas/webgl2", "input/pointer"]) {
     if (!capabilities.includes(required)) throw new Error(`project.edn requires capability :${required}`);
@@ -149,21 +198,41 @@ export function validateWorldProject(value) {
   if (world["world/version"] !== "1.0.0") throw new Error(":project/world requires :world/version \"1.0.0\"");
   const layers = array(world["world/layers"] ?? [], ":world/layers").map(normalizeLayer);
   const imports = array(world["world/imports"] ?? [], ":world/imports").map(normalizeImport);
+  const touchpoints = array(world["world/touchpoints"] ?? [], ":world/touchpoints").map(normalizeTouchpoint);
   if (!layers.length && !imports.length) throw new Error(":project/world must declare at least one layer or import");
+  if (touchpoints.length > WORLD_LIMITS.touchpoints) {
+    throw new Error(`:world/touchpoints exceeds ${WORLD_LIMITS.touchpoints} entries`);
+  }
+  if (touchpoints.length && !capabilities.includes("ui/dom-surface")) {
+    throw new Error("project.edn touchpoints require capability :ui/dom-surface");
+  }
+
   const ids = [...layers, ...imports].map(({ id }) => id);
   if (new Set(ids).size !== ids.length) throw new Error(":world/id values must be unique within a project");
+  const touchpointIds = touchpoints.map(({ id }) => id);
+  if (new Set(touchpointIds).size !== touchpointIds.length) {
+    throw new Error(":touchpoint/id values must be unique within a project");
+  }
+
   const background = world["world/background"] ?? "#08110e";
   if (typeof background !== "string" || !hexColor.test(background)) throw new Error(":world/background must be a six-digit hex colour");
 
   return {
     id: identifier(project["project/id"], ":project/id"),
     version,
-    title: world["world/title"] === undefined ? identifier(project["project/id"], ":project/id") : string(world["world/title"], ":world/title"),
+    title: world["world/title"] === undefined
+      ? identifier(project["project/id"], ":project/id")
+      : string(world["world/title"], ":world/title"),
     layers,
     imports,
+    touchpoints,
     camera: normalizeCamera(world["world/camera"]),
     background,
-    dependencies: project["project/dependencies"] ?? {}
+    capabilities: [...capabilities],
+    sourcePaths: [...sourcePaths],
+    testPaths: [...testPaths],
+    extensionPaths: [...extensionPaths],
+    dependencies: project["project/dependencies"] ?? {},
   };
 }
 
