@@ -77,6 +77,16 @@ test("Hara carries session and studio state across touchpoint events", async () 
   assert.match(edited, /"gainDb" -6/);
   assert.match(edited, /"mute" true/);
   assert.match(edited, /"revision" 6/);
+
+  const undoMute = dispatch("session/event", ["session-test", { "event/type": "studio/history-undo" }]);
+  assert.match(undoMute, /"mute" false/);
+  assert.match(undoMute, /"revision" 7/);
+  const undoGain = dispatch("session/event", ["session-test", { "event/type": "studio/history-undo" }]);
+  assert.match(undoGain, /"gainDb" 0/);
+  assert.match(undoGain, /"revision" 8/);
+  const redoGain = dispatch("session/event", ["session-test", { "event/type": "studio/history-redo" }]);
+  assert.match(redoGain, /"gainDb" -6/);
+  assert.match(redoGain, /"revision" 9/);
 });
 
 test("Hara restores a durable browser project into the active session", async () => {
