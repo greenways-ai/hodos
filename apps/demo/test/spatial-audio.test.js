@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { projectForWorldSource } from "../src/spatial-audio.js";
+import { projectForWorldSource, SpatialAudioRuntime } from "../src/spatial-audio.js";
 
 const project = {
   id: "local/current",
@@ -44,6 +44,44 @@ test("spatial clip projects one source range from zero", () => {
     id: "clip-b", asset: "asset-b", startSeconds: 0, sourceStartSeconds: 0, duration: 2,
   });
   assert.deepEqual(selected.assets.map(({ id }) => id), ["asset-b"]);
+});
+
+test("editable source values update the existing HRTF graph", () => {
+  const parameter = () => ({
+    value: 0,
+    setValueAtTime(value) { this.value = value; },
+  });
+  const runtime = new SpatialAudioRuntime({ AudioContextClass: class {} });
+  runtime.context = { currentTime: 2 };
+  const entry = {
+    node: { loop: false },
+    gain: { gain: parameter() },
+    panner: {
+      positionX: parameter(), positionY: parameter(), positionZ: parameter(),
+      panningModel: "equalpower", distanceModel: "linear",
+      refDistance: 0, maxDistance: 0, rolloffFactor: 0,
+    },
+  };
+  runtime.configureEntry(entry, {
+    id: "world-1",
+    position: [4, 1, -3],
+    loop: true,
+    gainDb: -6,
+    refDistance: 2,
+    maxDistance: 75,
+    rolloffFactor: 0.5,
+  });
+  assert.equal(entry.node.loop, true);
+  assert.ok(Math.abs(entry.gain.gain.value - (10 ** (-6 / 20))) < 1e-9);
+  assert.equal(entry.panner.panningModel, "HRTF");
+  assert.equal(entry.panner.distanceModel, "inverse");
+  assert.equal(entry.panner.refDistance, 2);
+  assert.equal(entry.panner.maxDistance, 75);
+  assert.equal(entry.panner.rolloffFactor, 0.5);
+  assert.deepEqual(
+    [entry.panner.positionX.value, entry.panner.positionY.value, entry.panner.positionZ.value],
+    [4, 1, -3],
+  );
 });
 
 test("spatial sources fail closed for missing references", () => {

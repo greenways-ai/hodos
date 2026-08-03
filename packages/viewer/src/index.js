@@ -2,6 +2,7 @@ import "./viewer.css";
 import "./world-placement.css";
 import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph } from "./github-worlds.js";
 import { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
+import { WorldDraftPanel } from "./world-draft-panel.js";
 import { WorldRenderer } from "./world-renderer.js";
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
@@ -59,6 +60,7 @@ export function createHodosViewer({
   let renderer;
   let state;
   let surfaceHost;
+  let draftPanel;
   let sessionOpened = false;
 
   const navigate = (next) => {
@@ -75,6 +77,7 @@ export function createHodosViewer({
       <div class="world-canvas"><canvas aria-label="Gaussian splat world"></canvas></div>
       <div class="world-touchpoints" aria-label="World touchpoints"></div>
       <div class="world-audio-sources" aria-label="Spatial audio sources"></div>
+      <aside class="world-draft-root" aria-label="Hara world draft editor"></aside>
       <div class="world-overlay"><div class="world-status" role="status"><strong>Reading world…</strong><span>${escapeHtml(next.repository)}${next.ref ? ` @ ${escapeHtml(next.ref)}` : ""}</span></div>
       <nav class="world-controls" aria-label="World controls"><button data-action="reset">Reset view</button><button data-action="mode">${next.mode === "strict" ? "Dev mode" : "Strict mode"}</button><button data-action="change">Change world</button></nav></div>
       <div class="diagnostic-slot"></div>
@@ -84,6 +87,10 @@ export function createHodosViewer({
     root.querySelector('[data-action="mode"]').addEventListener("click", () => navigate({ ...next, mode: next.mode === "strict" ? "dev" : "strict" }));
     root.querySelector('[data-action="reset"]').addEventListener("click", () => renderer?.resetCamera());
     surfaceHost = new SurfaceHost(root.querySelector(".hodos-surface-layer"), { registry });
+    draftPanel = new WorldDraftPanel(root.querySelector(".world-draft-root"), {
+      dispatch,
+      getRenderer: () => renderer,
+    });
     return {
       canvas: root.querySelector("canvas"),
       title: root.querySelector(".world-status strong"),
@@ -99,6 +106,7 @@ export function createHodosViewer({
   };
 
   const fatal = (error) => {
+    draftPanel?.destroy();
     surfaceHost?.destroy();
     renderer?.destroy();
     renderer = undefined;
@@ -135,6 +143,7 @@ export function createHodosViewer({
       }
     }
     surfaceHost?.update(result?.state);
+    draftPanel?.update(result?.state);
     return result;
   };
 
@@ -228,6 +237,7 @@ export function createHodosViewer({
   }
 
   const destroy = () => {
+    draftPanel?.destroy();
     surfaceHost?.destroy();
     renderer?.destroy();
     if (sessionOpened) {
@@ -249,6 +259,12 @@ export function createHodosViewer({
 }
 
 export { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
+export { WorldDraftPanel } from "./world-draft-panel.js";
+export {
+  nudgePosition,
+  sourcePosition,
+  WORLD_DRAFT_NUDGE_STEP,
+} from "./world-draft-model.js";
 export {
   HODOS_WORLD_DRAG_TYPE,
   hasHodosWorldDrag,

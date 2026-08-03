@@ -1,0 +1,361 @@
+(ns gw.hodos.session-draft
+  (:require [gw.hodos.session :as base]))
+
+(def ^:private *drafts* (atom {}))
+
+(defn empty-history []
+  {"undo" [] "redo" []})
+
+(defn normalize-source [source]
+  (assoc
+   (assoc
+    (assoc source
+           "refDistance" (or (get source "refDistance") 1))
+    "maxDistance" (or (get source "maxDistance") 30))
+   "rolloffFactor" (or (get source "rolloffFactor") 1)))
+
+(defn normalize-sources [sources]
+  (base/map-vector (or sources []) normalize-source))
+
+(defn normalize-draft [value]
+  (let [draft (or value {})]
+    {"format" "hodos-world-draft"
+     "version" "0.1.0"
+     "revision" (or (get draft "revision") 0)
+     "dirty" false
+     "audioSources" (normalize-sources (get draft "audioSources"))
+     "history" (empty-history)}))
+
+(defn initial-draft [world]
+  (normalize-draft
+   (or (get world "draft")
+       {"audioSources" (or (get world "audioSources") [])})))
+
+(defn draft-value [session-id]
+  (let [draft (get (deref *drafts*) session-id)]
+    (if draft
+      draft
+      (throw (str "Unknown Hodos world draft: " session-id)))))
+
+(defn store-draft [session-id draft]
+  (do
+    (swap! *drafts* (fn [drafts]
+                      (assoc drafts session-id draft)))
+    draft))
+
+(defn draft-snapshot [draft]
+  {"format" "hodos-world-draft"
+   "version" "0.1.0"
+   "revision" (or (get draft "revision") 0)
+   "audioSources" (or (get draft "audioSources") [])})
+
+(defn world-identity [state]
+  (let [world (get state "world")
+        project (get world "project")]
+    {"repository" (get world "repository")
+     "commit" (get world "commit")
+     "project" {"id" (get project "id")
+                "version" (get project "version")}}))
+
+(defn merge-state [state draft]
+  (let [world (get state "world")
+        sources (or (get draft "audioSources") [])
+        next-world (assoc (assoc world "audioSources" sources) "draft" draft)]
+    (assoc
+     (assoc state "world" next-world)
+     "revision" (+ (or (get state "revision") 0)
+                   (or (get draft "revision") 0)))))
+
+(defn merge-result [result draft]
+  (assoc result "state" (merge-state (get result "state") draft)))
+
+(defn open [session-id world]
+  (let [result (base/open session-id world)
+        draft (store-draft session-id (initial-draft world))]
+    (merge-result result draft)))
+
+(defn get-session [session-id]
+  (merge-result (base/get-session session-id)
+                (draft-value session-id)))
+
+(defn close [session-id]
+  (do
+    (swap! *drafts* (fn [drafts]
+                      (dissoc drafts session-id)))
+    (base/close session-id)))
+
+(defn project-value [state]
+  (get (get state "studio") "project"))
+
+(defn draft-effects [state draft persist]
+  (let [sources (or (get draft "audioSources") [])
+        project (project-value state)
+        effects [{"effect" "scene"
+                  "method" "sync-audio-sources"
+                  "args" [sources]}
+                 {"effect" "audio"
+                  "method" "sync-world-sources"
+                  "args" [sources project]}]]
+    (if persist
+      (conj effects
+            {"effect" "storage"
+             "method" "save-world-draft"
+             "args" [(world-identity state) (draft-snapshot draft)]})
+      effects)))
+
+(defn world-response [session-id state draft persist]
+  (let [next-draft (store-draft session-id draft)]
+    {"state" (merge-state state next-draft)
+     "effects" (draft-effects state next-draft persist)}))
+
+(defn draft-change [session-id state sources]
+  (let [draft (draft-value session-id)
+        history (or (get draft "history") (empty-history))
+        next-history {"undo" (conj (or (get history "undo") [])
+                                    (or (get draft "audioSources") []))
+                      "redo" []}
+        next-draft (assoc
+                    (assoc
+                     (assoc
+                      (assoc draft "audioSources" sources)
+                      "history" next-history)
+                     "dirty" true)
+                    "revision" (+ 1 (or (get draft "revision") 0)))]
+    (world-response session-id state next-draft true)))
+
+(defn restore-draft [session-id state event]
+  (let [input (get event "draft")]
+    (if (not (= (get input "format") "hodos-world-draft"))
+      (throw "Stored world draft has an unsupported format")
+      (if (not (= (get input "version") "0.1.0"))
+        (throw "Stored world draft has an unsupported version")
+        (world-response session-id state (normalize-draft input) false)))))
+
+(defn mark-draft-saved [session-id state event]
+  (let [draft (draft-value session-id)
+        revision (get event "revision")
+        next-draft (if (= revision (get draft "revision"))
+                     (assoc draft "dirty" false)
+                     draft)]
+    (store-draft session-id next-draft)
+    {"state" (merge-state state next-draft)
+     "effects" []}))
+
+(defn export-draft [session-id state]
+  (let [draft (draft-value session-id)]
+    {"state" (merge-state state draft)
+     "effects" [{"effect" "export"
+                 "method" "world-draft"
+                 "args" [(world-identity state) (draft-snapshot draft)]}]}))
+
+(defn place-world-audio [session-id state event]
+  (let [payload (get event "payload")
+        payload-type (get payload "type")
+        source-id (get payload "id")
+        track-id (get payload "track")
+        clip-id (get payload "clip")
+        project (project-value state)
+        draft (draft-value session-id)
+        sources (or (get draft "audioSources") [])
+        actual-track (if (= payload-type "studio/clip")
+                       (base/project-clip-track-id project clip-id)
+                       track-id)]
+    (cond
+      (nil? source-id) (throw "World audio source requires an id")
+      (base/source-present? sources source-id)
+      (throw (str "World audio source id already exists: " source-id))
+      (and (= payload-type "studio/track")
+           (not (base/project-track-present? project track-id)))
+      (throw (str "Unknown studio track: " track-id))
+      (and (= payload-type "studio/clip")
+           (nil? actual-track))
+      (throw (str "Unknown studio clip: " clip-id))
+      (not (or (= payload-type "studio/track")
+               (= payload-type "studio/clip")))
+      (throw (str "Unsupported world payload type: " payload-type))
+      :else
+      (let [source {"id" source-id
+                    "kind" payload-type
+                    "track" actual-track
+                    "clip" (if (= payload-type "studio/clip") clip-id nil)
+                    "label" (or (get payload "label") source-id)
+                    "position" (or (get event "position") [0 0 0])
+                    "playing" true
+                    "loop" (not (= (get payload "loop") false))
+                    "gainDb" (or (get payload "gainDb") 0)
+                    "refDistance" (or (get payload "refDistance") 1)
+                    "maxDistance" (or (get payload "maxDistance") 30)
+                    "rolloffFactor" (or (get payload "rolloffFactor") 1)}]
+        (draft-change session-id state (conj sources source))))))
+
+(defn update-world-source [session-id state event update-fn]
+  (let [source-id (get event "source")
+        draft (draft-value session-id)
+        sources (or (get draft "audioSources") [])]
+    (if (base/source-present? sources source-id)
+      (draft-change session-id state
+                    (base/update-source sources source-id update-fn))
+      (throw (str "Unknown world audio source: " source-id)))))
+
+(defn move-world-audio [session-id state event]
+  (update-world-source
+   session-id state event
+   (fn [source]
+     (assoc source "position" (or (get event "position")
+                                  (get source "position"))))))
+
+(defn gain-world-audio [session-id state event]
+  (update-world-source
+   session-id state event
+   (fn [source]
+     (assoc source "gainDb" (or (get event "gainDb")
+                                (get source "gainDb"))))))
+
+(defn range-world-audio [session-id state event]
+  (update-world-source
+   session-id state event
+   (fn [source]
+     (assoc
+      (assoc
+       (assoc source
+              "refDistance" (or (get event "refDistance")
+                                (get source "refDistance")))
+       "maxDistance" (or (get event "maxDistance")
+                         (get source "maxDistance")))
+      "rolloffFactor" (or (get event "rolloffFactor")
+                          (get source "rolloffFactor"))))))
+
+(defn loop-world-audio [session-id state event]
+  (update-world-source
+   session-id state event
+   (fn [source]
+     (assoc source "loop" (get event "loop")))))
+
+(defn toggle-world-audio [session-id state event]
+  (update-world-source
+   session-id state event
+   (fn [source]
+     (assoc source "playing" (not (get source "playing"))))))
+
+(defn remove-world-audio [session-id state event]
+  (let [source-id (get event "source")
+        draft (draft-value session-id)
+        sources (or (get draft "audioSources") [])]
+    (if (base/source-present? sources source-id)
+      (draft-change
+       session-id state
+       (vec (filter
+             (fn [source]
+               (not (= (get source "id") source-id)))
+             sources)))
+      (throw (str "Unknown world audio source: " source-id)))))
+
+(defn undo-world [session-id state]
+  (let [draft (draft-value session-id)
+        current (or (get draft "audioSources") [])
+        history (or (get draft "history") (empty-history))
+        undo (or (get history "undo") [])]
+    (if (= (count undo) 0)
+      {"state" (merge-state state draft) "effects" []}
+      (let [previous (nth undo (- (count undo) 1))
+            next-history {"undo" (base/without-last undo)
+                          "redo" (conj (or (get history "redo") []) current)}
+            next-draft (assoc
+                        (assoc
+                         (assoc
+                          (assoc draft "audioSources" previous)
+                          "history" next-history)
+                         "dirty" true)
+                        "revision" (+ 1 (or (get draft "revision") 0)))]
+        (world-response session-id state next-draft true)))))
+
+(defn redo-world [session-id state]
+  (let [draft (draft-value session-id)
+        current (or (get draft "audioSources") [])
+        history (or (get draft "history") (empty-history))
+        redo (or (get history "redo") [])]
+    (if (= (count redo) 0)
+      {"state" (merge-state state draft) "effects" []}
+      (let [next-sources (nth redo (- (count redo) 1))
+            next-history {"undo" (conj (or (get history "undo") []) current)
+                          "redo" (base/without-last redo)}
+            next-draft (assoc
+                        (assoc
+                         (assoc
+                          (assoc draft "audioSources" next-sources)
+                          "history" next-history)
+                         "dirty" true)
+                        "revision" (+ 1 (or (get draft "revision") 0)))]
+        (world-response session-id state next-draft true)))))
+
+(defn studio-project-event? [event-type]
+  (or (= event-type "studio/import")
+      (= event-type "studio/track-create")
+      (= event-type "studio/restore")
+      (= event-type "studio/clip-move")
+      (= event-type "studio/clip-move-track")
+      (= event-type "studio/clip-replace")
+      (= event-type "studio/clip-split")
+      (= event-type "studio/clip-insert-after")
+      (= event-type "studio/clip-delete")
+      (= event-type "studio/track-gain")
+      (= event-type "studio/track-mute")
+      (= event-type "studio/history-undo")
+      (= event-type "studio/history-redo")))
+
+(defn append-spatial-project-effect [result draft event-type]
+  (let [sources (or (get draft "audioSources") [])]
+    (if (and (studio-project-event? event-type)
+             (> (count sources) 0))
+      (assoc result "effects"
+             (conj (or (get result "effects") [])
+                   {"effect" "audio"
+                    "method" "sync-world-sources"
+                    "args" [sources (project-value (get result "state"))]}))
+      result)))
+
+(defn event [session-id input]
+  (let [event-type (get input "event/type")
+        state (get (base/get-session session-id) "state")]
+    (cond
+      (= event-type "world/drop")
+      (place-world-audio session-id state input)
+
+      (= event-type "world/audio-move")
+      (move-world-audio session-id state input)
+
+      (= event-type "world/audio-gain")
+      (gain-world-audio session-id state input)
+
+      (= event-type "world/audio-range")
+      (range-world-audio session-id state input)
+
+      (= event-type "world/audio-loop")
+      (loop-world-audio session-id state input)
+
+      (= event-type "world/audio-toggle")
+      (toggle-world-audio session-id state input)
+
+      (= event-type "world/audio-remove")
+      (remove-world-audio session-id state input)
+
+      (= event-type "world/history-undo")
+      (undo-world session-id state)
+
+      (= event-type "world/history-redo")
+      (redo-world session-id state)
+
+      (= event-type "world/draft-restore")
+      (restore-draft session-id state input)
+
+      (= event-type "world/draft-saved")
+      (mark-draft-saved session-id state input)
+
+      (= event-type "world/draft-export")
+      (export-draft session-id state)
+
+      :else
+      (let [draft (draft-value session-id)
+            result (base/event session-id input)
+            updated (append-spatial-project-effect result draft event-type)]
+        (merge-result updated draft)))))

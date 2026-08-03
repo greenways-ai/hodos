@@ -63,6 +63,15 @@ function setParam(param, value, time = 0) {
   else param.value = value;
 }
 
+function renderSignature(source, spatialProject) {
+  return JSON.stringify({
+    kind: source.kind,
+    track: source.track,
+    clip: source.clip,
+    project: spatialProject,
+  });
+}
+
 export class SpatialAudioRuntime {
   constructor({
     store = createStudioStore(),
@@ -131,6 +140,23 @@ export class SpatialAudioRuntime {
     }
   }
 
+  configureEntry(entry, source) {
+    const context = this.audioContext();
+    const time = context.currentTime;
+    entry.source = source;
+    entry.node.loop = source.loop !== false;
+    setParam(entry.gain.gain, decibels(source.gainDb), time);
+    entry.panner.panningModel = "HRTF";
+    entry.panner.distanceModel = "inverse";
+    entry.panner.refDistance = Math.max(0.1, Number(source.refDistance || 1));
+    entry.panner.maxDistance = Math.max(
+      entry.panner.refDistance,
+      Number(source.maxDistance || 30),
+    );
+    entry.panner.rolloffFactor = Math.max(0, Number(source.rolloffFactor ?? 1));
+    this.setPannerPosition(entry.panner, source.position);
+  }
+
   stopSource(id) {
     const entry = this.sources.get(id);
     if (!entry) return;
@@ -143,10 +169,10 @@ export class SpatialAudioRuntime {
 
   async upsertSource(source, project, generation) {
     const spatialProject = projectForWorldSource(source, project);
-    const signature = JSON.stringify({ source, project: spatialProject });
+    const signature = renderSignature(source, spatialProject);
     const current = this.sources.get(source.id);
     if (current?.signature === signature) {
-      this.setPannerPosition(current.panner, source.position);
+      this.configureEntry(current, source);
       return;
     }
 
@@ -159,21 +185,18 @@ export class SpatialAudioRuntime {
     const context = this.audioContext();
     await context.resume?.().catch(() => {});
     this.stopSource(source.id);
-    const node = context.createBufferSource();
-    const gain = context.createGain();
-    const panner = context.createPanner();
-    node.buffer = rendered;
-    node.loop = source.loop !== false;
-    gain.gain.value = decibels(source.gainDb);
-    panner.panningModel = "HRTF";
-    panner.distanceModel = "inverse";
-    panner.refDistance = 1;
-    panner.maxDistance = 100;
-    panner.rolloffFactor = 1;
-    this.setPannerPosition(panner, source.position);
-    node.connect(gain).connect(panner).connect(context.destination);
-    node.start();
-    this.sources.set(source.id, { source, node, gain, panner, signature });
+    const entry = {
+      source,
+      node: context.createBufferSource(),
+      gain: context.createGain(),
+      panner: context.createPanner(),
+      signature,
+    };
+    entry.node.buffer = rendered;
+    this.configureEntry(entry, source);
+    entry.node.connect(entry.gain).connect(entry.panner).connect(context.destination);
+    entry.node.start();
+    this.sources.set(source.id, entry);
   }
 
   async sync(sources = [], project) {
