@@ -14,7 +14,9 @@
    "transport" {"status" "stopped"
                  "position" 0}
    "selection" {"tracks" []
-                "clips" []}})
+                "clips" []}
+   "history" {"undo" []
+              "redo" []}})
 
 (defn initial-session [session-id world]
   {"id" session-id
@@ -122,9 +124,16 @@
 (defn nonnegative [value]
   (if (< value 0) 0 value))
 
-(defn project-change [session project]
+(defn without-last [values]
+  (let [limit (- (count values) 1)]
+    (loop [index 0 output []]
+      (if (= index limit)
+        output
+        (recur (+ index 1) (conj output (nth values index)))))))
+
+(defn project-response [session project history]
   (let [studio (get session "studio")
-        next-studio (assoc studio "project" project)
+        next-studio (assoc (assoc studio "project" project) "history" history)
         next (next-revision (assoc session "studio" next-studio))
         transport (get next-studio "transport")]
     {"session" next
@@ -133,6 +142,17 @@
                    "method" "apply-transport"
                    "args" [transport project]}]
                  [])}))
+
+(defn project-change [session project]
+  (let [studio (get session "studio")
+        current (get studio "project")
+        history (or (get studio "history") {"undo" [] "redo" []})
+        next-history {"undo" (conj (or (get history "undo") []) current)
+                      "redo" []}]
+    (project-response session project next-history)))
+
+(defn project-restore [session project]
+  (project-response session project {"undo" [] "redo" []}))
 
 (defn import-track [session event]
   (let [studio (get session "studio")
@@ -149,7 +169,7 @@
 (defn restore-project [session event]
   (let [project (get event "project")]
     (if (get project "id")
-      (project-change session project)
+      (project-restore session project)
       (throw "Restored studio project requires an id"))))
 
 (defn move-clip [session event]
@@ -185,6 +205,30 @@
                         (assoc track "mute" mute)))]
     (project-change session next-project)))
 
+(defn undo-project [session]
+  (let [studio (get session "studio")
+        current (get studio "project")
+        history (or (get studio "history") {"undo" [] "redo" []})
+        undo (or (get history "undo") [])]
+    (if (= (count undo) 0)
+      {"session" session "effects" []}
+      (let [previous (nth undo (- (count undo) 1))
+            next-history {"undo" (without-last undo)
+                          "redo" (conj (or (get history "redo") []) current)}]
+        (project-response session previous next-history)))))
+
+(defn redo-project [session]
+  (let [studio (get session "studio")
+        current (get studio "project")
+        history (or (get studio "history") {"undo" [] "redo" []})
+        redo (or (get history "redo") [])]
+    (if (= (count redo) 0)
+      {"session" session "effects" []}
+      (let [next-project (nth redo (- (count redo) 1))
+            next-history {"undo" (conj (or (get history "undo") []) current)
+                          "redo" (without-last redo)}]
+        (project-response session next-project next-history)))))
+
 (defn apply-transport [session event]
   (let [studio (get session "studio")
         transport (assoc (or (get studio "transport") {})
@@ -212,9 +256,13 @@
                 (set-track-gain session event)
                 (if (= event-type "studio/track-mute")
                   (set-track-mute session event)
-                  (if (= event-type "studio/transport")
-                    (apply-transport session event)
-                    (throw (str "Unknown Hodos session event: " event-type))))))))))))
+                  (if (= event-type "studio/history-undo")
+                    (undo-project session)
+                    (if (= event-type "studio/history-redo")
+                      (redo-project session)
+                      (if (= event-type "studio/transport")
+                        (apply-transport session event)
+                        (throw (str "Unknown Hodos session event: " event-type))))))))))))))
 
 (defn event [session-id input]
   (let [current (session-value session-id)
