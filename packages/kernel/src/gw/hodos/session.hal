@@ -21,7 +21,7 @@
 (defn initial-session [session-id world]
   {"id" session-id
    "revision" 0
-   "world" world
+   "world" (assoc world "audioSources" (or (get world "audioSources") []))
    "surface" nil
    "studio" (initial-studio)})
 
@@ -111,6 +111,19 @@
               (update-fn track)
               track)))))
 
+(defn project-track [project track-id]
+  (let [tracks (or (get project "tracks") [])]
+    (loop [index 0]
+      (if (= index (count tracks))
+        nil
+        (let [track (nth tracks index)]
+          (if (= (get track "id") track-id)
+            track
+            (recur (+ index 1))))))))
+
+(defn project-track-present? [project track-id]
+  (not (nil? (project-track project track-id))))
+
 (defn update-track-clip [track clip-id update-fn]
   (assoc track "clips"
          (map-vector
@@ -127,23 +140,41 @@
           (fn [track]
             (update-track-clip track clip-id update-fn)))))
 
-(defn track-clip-present? [track clip-id]
+(defn track-clip [track clip-id]
   (let [clips (or (get track "clips") [])]
     (loop [index 0]
       (if (= index (count clips))
-        false
-        (if (= (get (nth clips index) "id") clip-id)
-          true
-          (recur (+ index 1)))))))
+        nil
+        (let [clip (nth clips index)]
+          (if (= (get clip "id") clip-id)
+            clip
+            (recur (+ index 1))))))))
 
-(defn project-clip-present? [project clip-id]
+(defn track-clip-present? [track clip-id]
+  (not (nil? (track-clip track clip-id))))
+
+(defn project-clip [project clip-id]
   (let [tracks (or (get project "tracks") [])]
     (loop [index 0]
       (if (= index (count tracks))
-        false
-        (if (track-clip-present? (nth tracks index) clip-id)
-          true
-          (recur (+ index 1)))))))
+        nil
+        (let [clip (track-clip (nth tracks index) clip-id)]
+          (if clip
+            clip
+            (recur (+ index 1))))))))
+
+(defn project-clip-track-id [project clip-id]
+  (let [tracks (or (get project "tracks") [])]
+    (loop [index 0]
+      (if (= index (count tracks))
+        nil
+        (let [track (nth tracks index)]
+          (if (track-clip-present? track clip-id)
+            (get track "id")
+            (recur (+ index 1))))))))
+
+(defn project-clip-present? [project clip-id]
+  (not (nil? (project-clip project clip-id))))
 
 (defn rewrite-track-clips [track target rewrite-fn]
   (let [clips (or (get track "clips") [])]
@@ -165,6 +196,31 @@
               (rewrite-track-clips track target rewrite-fn))))
     (throw (str "Unknown studio clip: " target))))
 
+(defn source-present? [sources source-id]
+  (loop [index 0]
+    (if (= index (count sources))
+      false
+      (if (= (get (nth sources index) "id") source-id)
+        true
+        (recur (+ index 1))))))
+
+(defn source-value [sources source-id]
+  (loop [index 0]
+    (if (= index (count sources))
+      nil
+      (let [source (nth sources index)]
+        (if (= (get source "id") source-id)
+          source
+          (recur (+ index 1)))))))
+
+(defn update-source [sources source-id update-fn]
+  (map-vector
+   sources
+   (fn [source]
+     (if (= (get source "id") source-id)
+       (update-fn source)
+       source))))
+
 (defn without-last [values]
   (let [limit (- (count values) 1)]
     (loop [index 0 output []]
@@ -172,17 +228,32 @@
         output
         (recur (+ index 1) (conj output (nth values index)))))))
 
+(defn world-audio-effects [sources project]
+  [{"effect" "scene"
+    "method" "sync-audio-sources"
+    "args" [sources]}
+   {"effect" "audio"
+    "method" "sync-world-sources"
+    "args" [sources project]}])
+
 (defn project-response [session project history]
   (let [studio (get session "studio")
         next-studio (assoc (assoc studio "project" project) "history" history)
         next (next-revision (assoc session "studio" next-studio))
-        transport (get next-studio "transport")]
+        transport (get next-studio "transport")
+        sources (or (get (get session "world") "audioSources") [])
+        transport-effects (if (= (get transport "status") "playing")
+                            [{"effect" "audio"
+                              "method" "apply-transport"
+                              "args" [transport project]}]
+                            [])
+        spatial-effects (if (= (count sources) 0)
+                          []
+                          [{"effect" "audio"
+                            "method" "sync-world-sources"
+                            "args" [sources project]}])]
     {"session" next
-     "effects" (if (= (get transport "status") "playing")
-                 [{"effect" "audio"
-                   "method" "apply-transport"
-                   "args" [transport project]}]
-                 [])}))
+     "effects" (append-vector transport-effects spatial-effects)}))
 
 (defn project-change [session project]
   (let [studio (get session "studio")
@@ -205,7 +276,27 @@
         next-project (assoc
                       (assoc project "assets" (add-asset assets asset))
                       "tracks" (conj tracks track))]
-    (project-change session next-project)))
+    (if (project-track-present? project (get track "id"))
+      (throw (str "Studio track id already exists: " (get track "id")))
+      (project-change session next-project))))
+
+(defn create-track [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        track (get event "track")
+        track-id (get track "id")
+        track-name (get track "name")]
+    (cond
+      (nil? track-id) (throw "Studio track requires an id")
+      (nil? track-name) (throw "Studio track requires a name")
+      (project-track-present? project track-id)
+      (throw (str "Studio track id already exists: " track-id))
+      :else
+      (project-change
+       session
+       (assoc project "tracks"
+              (conj (or (get project "tracks") [])
+                    (assoc track "clips" (or (get track "clips") []))))))))
 
 (defn restore-project [session event]
   (let [project (get event "project")]
@@ -217,16 +308,35 @@
   (let [studio (get session "studio")
         project (get studio "project")
         clip-id (get event "clip")
-        ;; Host transports reject non-finite numbers and the timeline clamps
-        ;; positions before dispatch. Hara retains the validated fractional
-        ;; value without invoking numeric comparison primitives that are not
-        ;; yet uniform across embedded runtime generations.
         start-seconds (or (get event "startSeconds") 0)
         next-project (update-clip
                       project clip-id
                       (fn [clip]
                         (assoc clip "startSeconds" start-seconds)))]
-    (project-change session next-project)))
+    (if (project-clip-present? project clip-id)
+      (project-change session next-project)
+      (throw (str "Unknown studio clip: " clip-id)))))
+
+(defn move-clip-track [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        clip-id (get event "clip")
+        track-id (get event "track")
+        clip (project-clip project clip-id)
+        start-seconds (or (get event "startSeconds") 0)]
+    (cond
+      (nil? clip) (throw (str "Unknown studio clip: " clip-id))
+      (not (project-track-present? project track-id))
+      (throw (str "Unknown studio track: " track-id))
+      :else
+      (let [moved (assoc clip "startSeconds" start-seconds)
+            removed (rewrite-project-clips project clip-id (fn [old] []))
+            next-project (update-track
+                          removed track-id
+                          (fn [track]
+                            (assoc track "clips"
+                                   (conj (or (get track "clips") []) moved))))]
+        (project-change session next-project)))))
 
 (defn replace-clip [session event]
   (let [studio (get session "studio")
@@ -283,7 +393,9 @@
                       project track-id
                       (fn [track]
                         (assoc track "gainDb" gain-db)))]
-    (project-change session next-project)))
+    (if (project-track-present? project track-id)
+      (project-change session next-project)
+      (throw (str "Unknown studio track: " track-id)))))
 
 (defn set-track-mute [session event]
   (let [studio (get session "studio")
@@ -294,7 +406,84 @@
                       project track-id
                       (fn [track]
                         (assoc track "mute" mute)))]
-    (project-change session next-project)))
+    (if (project-track-present? project track-id)
+      (project-change session next-project)
+      (throw (str "Unknown studio track: " track-id)))))
+
+(defn place-world-audio [session event]
+  (let [payload (get event "payload")
+        payload-type (get payload "type")
+        source-id (get payload "id")
+        track-id (get payload "track")
+        clip-id (get payload "clip")
+        studio (get session "studio")
+        project (get studio "project")
+        world (get session "world")
+        sources (or (get world "audioSources") [])
+        actual-track (if (= payload-type "studio/clip")
+                       (project-clip-track-id project clip-id)
+                       track-id)]
+    (cond
+      (nil? source-id) (throw "World audio source requires an id")
+      (source-present? sources source-id)
+      (throw (str "World audio source id already exists: " source-id))
+      (and (= payload-type "studio/track")
+           (not (project-track-present? project track-id)))
+      (throw (str "Unknown studio track: " track-id))
+      (and (= payload-type "studio/clip")
+           (nil? actual-track))
+      (throw (str "Unknown studio clip: " clip-id))
+      (not (or (= payload-type "studio/track")
+               (= payload-type "studio/clip")))
+      (throw (str "Unsupported world payload type: " payload-type))
+      :else
+      (let [source {"id" source-id
+                    "kind" payload-type
+                    "track" actual-track
+                    "clip" (if (= payload-type "studio/clip") clip-id nil)
+                    "label" (or (get payload "label") source-id)
+                    "position" (or (get event "position") [0 0 0])
+                    "playing" true
+                    "loop" (not (= (get payload "loop") false))
+                    "gainDb" (or (get payload "gainDb") 0)}
+            next-sources (conj sources source)
+            next-world (assoc world "audioSources" next-sources)
+            next (next-revision (assoc session "world" next-world))]
+        {"session" next
+         "effects" (world-audio-effects next-sources project)}))))
+
+(defn toggle-world-audio [session event]
+  (let [source-id (get event "source")
+        world (get session "world")
+        sources (or (get world "audioSources") [])
+        current (source-value sources source-id)
+        project (get (get session "studio") "project")]
+    (if current
+      (let [next-sources (update-source
+                          sources source-id
+                          (fn [source]
+                            (assoc source "playing" (not (get source "playing")))))
+            next-world (assoc world "audioSources" next-sources)
+            next (next-revision (assoc session "world" next-world))]
+        {"session" next
+         "effects" (world-audio-effects next-sources project)})
+      (throw (str "Unknown world audio source: " source-id)))))
+
+(defn remove-world-audio [session event]
+  (let [source-id (get event "source")
+        world (get session "world")
+        sources (or (get world "audioSources") [])
+        project (get (get session "studio") "project")]
+    (if (source-present? sources source-id)
+      (let [next-sources (vec (filter
+                               (fn [source]
+                                 (not (= (get source "id") source-id)))
+                               sources))
+            next-world (assoc world "audioSources" next-sources)
+            next (next-revision (assoc session "world" next-world))]
+        {"session" next
+         "effects" (world-audio-effects next-sources project)})
+      (throw (str "Unknown world audio source: " source-id)))))
 
 (defn undo-project [session]
   (let [studio (get session "studio")
@@ -333,35 +522,27 @@
 
 (defn reduce-event [session event]
   (let [event-type (get event "event/type")]
-    (if (= event-type "touchpoint/activate")
-      (activate-touchpoint session event)
-      (if (= event-type "surface/close")
-        (close-surface session)
-        (if (= event-type "studio/import")
-          (import-track session event)
-          (if (= event-type "studio/restore")
-            (restore-project session event)
-            (if (= event-type "studio/clip-move")
-              (move-clip session event)
-              (if (= event-type "studio/clip-replace")
-                (replace-clip session event)
-                (if (= event-type "studio/clip-split")
-                  (split-clip session event)
-                  (if (= event-type "studio/clip-insert-after")
-                    (insert-after-clip session event)
-                    (if (= event-type "studio/clip-delete")
-                      (delete-clip session event)
-                      (if (= event-type "studio/track-gain")
-                        (set-track-gain session event)
-                        (if (= event-type "studio/track-mute")
-                          (set-track-mute session event)
-                          (if (= event-type "studio/history-undo")
-                            (undo-project session)
-                            (if (= event-type "studio/history-redo")
-                              (redo-project session)
-                              (if (= event-type "studio/transport")
-                                (apply-transport session event)
-                                (throw (str "Unknown Hodos session event: " event-type))))))))))))))))))
+    (cond
+      (= event-type "touchpoint/activate") (activate-touchpoint session event)
+      (= event-type "surface/close") (close-surface session)
+      (= event-type "studio/import") (import-track session event)
+      (= event-type "studio/track-create") (create-track session event)
+      (= event-type "studio/restore") (restore-project session event)
+      (= event-type "studio/clip-move") (move-clip session event)
+      (= event-type "studio/clip-move-track") (move-clip-track session event)
+      (= event-type "studio/clip-replace") (replace-clip session event)
+      (= event-type "studio/clip-split") (split-clip session event)
+      (= event-type "studio/clip-insert-after") (insert-after-clip session event)
+      (= event-type "studio/clip-delete") (delete-clip session event)
+      (= event-type "studio/track-gain") (set-track-gain session event)
+      (= event-type "studio/track-mute") (set-track-mute session event)
+      (= event-type "studio/history-undo") (undo-project session)
+      (= event-type "studio/history-redo") (redo-project session)
+      (= event-type "studio/transport") (apply-transport session event)
+      (= event-type "world/drop") (place-world-audio session event)
+      (= event-type "world/audio-toggle") (toggle-world-audio session event)
+      (= event-type "world/audio-remove") (remove-world-audio session event)
+      :else (throw (str "Unknown Hodos session event: " event-type)))))
 
 (defn event [session-id input]
   (let [current (session-value session-id)
