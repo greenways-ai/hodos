@@ -52,9 +52,37 @@ test("Hara carries session and studio state across touchpoint events", async () 
     asset: { id: "sha256:audio", name: "track.wav" },
     track: { id: "track-1", name: "Track", asset: "sha256:audio", gainDb: 0, mute: false },
   }]);
+  dispatch("session/event", ["session-test", {
+    "event/type": "studio/import",
+    asset: { id: "sha256:audio", name: "track.wav" },
+    track: { id: "track-2", name: "Track copy", asset: "sha256:audio", gainDb: 0, mute: false },
+  }]);
   const state = dispatch("session/get", ["session-test"]);
   assert.match(state, /"track-1"/);
-  assert.match(state, /"revision" 2/);
+  assert.match(state, /"track-2"/);
+  assert.equal((state.match(/"sha256:audio"/g) ?? []).length, 3);
+  assert.match(state, /"revision" 3/);
+});
+
+test("Hara restores a durable browser project into the active session", async () => {
+  const runtime = await start({ resources });
+  runtime.require("gw.hodos.kernel");
+  const dispatch = (method, args) => runtime.eval(
+    `(gw.hodos.kernel/dispatch ${encodeHalValue(method)} ${encodeHalValue(args)})`,
+  );
+  dispatch("session/open", ["restore-test", { project: { id: "world" }, touchpoints: [] }]);
+  const restored = dispatch("session/event", ["restore-test", {
+    "event/type": "studio/restore",
+    project: {
+      id: "local/current",
+      title: "Restored song",
+      assets: [{ id: "sha256:saved", storage: { type: "opfs", key: "assets/saved.bin" } }],
+      tracks: [{ id: "saved-track", asset: "sha256:saved" }],
+    },
+  }]);
+  assert.match(restored, /"Restored song"/);
+  assert.match(restored, /"saved-track"/);
+  assert.match(restored, /"revision" 1/);
 });
 
 test("host objects are encoded as EDN maps for HAL dispatch", async () => {
