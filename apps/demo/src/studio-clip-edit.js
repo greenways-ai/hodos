@@ -1,73 +1,18 @@
 import "./studio-clip-edit.css";
+import {
+  duplicateClip,
+  splitClip,
+  STUDIO_MIN_CLIP_SECONDS,
+  trimClipEnd,
+  trimClipStart,
+} from "./studio-clip-model.js";
 import { normalizeProject } from "./studio-export.js";
 
 const PIXELS_PER_SECOND = 42;
-const SNAP_SECONDS = 0.25;
-const MIN_CLIP_SECONDS = 0.25;
-
-const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
-const snap = (value) => Math.round(value / SNAP_SECONDS) * SNAP_SECONDS;
-const randomId = (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
 
 function assetDuration(project, clip) {
   const asset = (project.assets ?? []).find((entry) => entry.id === clip.asset);
   return Math.max(0, Number(asset?.duration || clip.sourceStartSeconds + clip.duration || 0));
-}
-
-export function trimClipStart(clip, deltaSeconds) {
-  const start = Math.max(0, Number(clip.startSeconds || 0));
-  const sourceStart = Math.max(0, Number(clip.sourceStartSeconds || 0));
-  const duration = Math.max(MIN_CLIP_SECONDS, Number(clip.duration || MIN_CLIP_SECONDS));
-  const delta = snap(clamp(
-    Number(deltaSeconds || 0),
-    -Math.min(start, sourceStart),
-    duration - MIN_CLIP_SECONDS,
-  ));
-  return {
-    ...clip,
-    startSeconds: Math.max(0, start + delta),
-    sourceStartSeconds: Math.max(0, sourceStart + delta),
-    duration: Math.max(MIN_CLIP_SECONDS, duration - delta),
-  };
-}
-
-export function trimClipEnd(clip, deltaSeconds, maximumSourceDuration) {
-  const sourceStart = Math.max(0, Number(clip.sourceStartSeconds || 0));
-  const duration = Math.max(MIN_CLIP_SECONDS, Number(clip.duration || MIN_CLIP_SECONDS));
-  const maximum = Math.max(MIN_CLIP_SECONDS, Number(maximumSourceDuration || 0) - sourceStart);
-  return {
-    ...clip,
-    duration: snap(clamp(duration + Number(deltaSeconds || 0), MIN_CLIP_SECONDS, maximum)),
-  };
-}
-
-export function splitClip(clip, {
-  offsetSeconds = Number(clip.duration || 0) / 2,
-  rightId = randomId("clip"),
-} = {}) {
-  const duration = Math.max(MIN_CLIP_SECONDS * 2, Number(clip.duration || MIN_CLIP_SECONDS * 2));
-  const offset = snap(clamp(offsetSeconds, MIN_CLIP_SECONDS, duration - MIN_CLIP_SECONDS));
-  return {
-    left: { ...clip, duration: offset },
-    right: {
-      ...clip,
-      id: rightId,
-      startSeconds: Number(clip.startSeconds || 0) + offset,
-      sourceStartSeconds: Number(clip.sourceStartSeconds || 0) + offset,
-      duration: duration - offset,
-    },
-  };
-}
-
-export function duplicateClip(clip, {
-  id = randomId("clip"),
-  gapSeconds = SNAP_SECONDS,
-} = {}) {
-  return {
-    ...clip,
-    id,
-    startSeconds: Number(clip.startSeconds || 0) + Number(clip.duration || 0) + gapSeconds,
-  };
 }
 
 function actionButton(document, label, title, action) {
@@ -144,7 +89,7 @@ function decorateClip(element, clip, project, context) {
   tools.className = "studio-clip-tools";
   tools.append(
     actionButton(document, "S", `Split ${clip.id} at its midpoint`, () => {
-      if (Number(clip.duration || 0) < MIN_CLIP_SECONDS * 2) return;
+      if (Number(clip.duration || 0) < STUDIO_MIN_CLIP_SECONDS * 2) return;
       const parts = splitClip(clip);
       context.dispatch({
         "event/type": "studio/clip-split",
