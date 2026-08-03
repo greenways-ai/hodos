@@ -7,7 +7,7 @@
   "scripts": {
     "build": "npm run build -w @greenways/hodos-demo",
     "test": "node --test packages/viewer/test/*.test.js apps/demo/test/*.test.js",
-    "audit:hal": "! rg --glob '*.hal' 'greenways\\.' ."
+    "audit:hal": "node scripts/audit-hal.js"
   },
   "devDependencies": { "esbuild": "0.28.1" }
 }
