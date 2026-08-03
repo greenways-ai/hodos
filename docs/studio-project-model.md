@@ -83,6 +83,26 @@ pan            = track.pan
 `AudioContext.currentTime` remains the real-time clock. Hara carries transport
 intent and authored placement, not sample-level timing or `AudioBuffer` values.
 
+## Command history
+
+Every committed project change records the previous project in the Hara
+session's undo stack and clears redo. Undo and redo exchange canonical project
+snapshots between the two stacks and increment the session revision. If the
+transport is playing, the resulting project is rescheduled through the same
+`audio/apply-transport` effect as a direct edit.
+
+```clojure
+{"history"
+ {"undo" [previous-project ...]
+  "redo" [later-project ...]}}
+```
+
+The studio exposes toolbar controls plus Command/Ctrl-Z, Shift-Command/Ctrl-Z,
+and Ctrl-Y. Text fields keep native browser undo; the shortcuts dispatch to
+Hara only when focus is on the studio surface itself. This makes imports, clip
+moves, gain changes, mute changes, and future agent proposals part of one
+reversible command stream.
+
 ## Legacy project migration
 
 The first prototype stored a single `asset` and `startSeconds` directly on each
@@ -101,8 +121,6 @@ The next editing layer can build on the existing clip identity and range model:
 - `studio/clip-delete`
 - `studio/clip-move-track`
 - `studio/track-pan`
-- `studio/history-undo`
-- `studio/history-redo`
 
 A later musical timebase can add tempo maps and integer ticks while preserving
 seconds as a derived host scheduling value.
