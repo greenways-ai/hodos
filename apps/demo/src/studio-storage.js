@@ -1,6 +1,7 @@
 const PROJECT_FORMAT = "hodos-studio-project";
 const PROJECT_VERSION = "0.1.0";
 const APP_DIRECTORY = "hodos-studio";
+const ACTIVE_PROJECT_PATH = "state/active-project.txt";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
@@ -147,6 +148,21 @@ export class StudioStore {
     return this.backend.read(key);
   }
 
+  async setActiveProject(id) {
+    if (!id) throw new Error("Active studio project requires an id");
+    await this.backend.write(ACTIVE_PROJECT_PATH, textEncoder.encode(String(id)));
+  }
+
+  async activeProjectId() {
+    try {
+      const value = textDecoder.decode(await this.backend.read(ACTIVE_PROJECT_PATH)).trim();
+      return value || null;
+    } catch (error) {
+      if (error?.name === "NotFoundError") return null;
+      throw error;
+    }
+  }
+
   async saveProject(project) {
     if (!project?.id) throw new Error("Studio project requires an id");
     const record = {
@@ -156,6 +172,7 @@ export class StudioStore {
       project: cloneData(project),
     };
     await this.backend.write(this.projectPath(project.id), textEncoder.encode(JSON.stringify(record)));
+    await this.setActiveProject(project.id);
     return record;
   }
 
@@ -174,6 +191,11 @@ export class StudioStore {
       if (error?.name === "NotFoundError") return null;
       throw error;
     }
+  }
+
+  async loadActiveProject(fallbackId = "local/current") {
+    const id = await this.activeProjectId();
+    return this.loadProject(id || fallbackId);
   }
 }
 
