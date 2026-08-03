@@ -74,20 +74,43 @@
                  "method" "close-surface"
                  "args" [(if surface (get surface "id") nil)]}]}))
 
+(defn asset-present? [assets asset-id]
+  (loop [index 0]
+    (if (= index (count assets))
+      false
+      (if (= (get (nth assets index) "id") asset-id)
+        true
+        (recur (+ index 1))))))
+
+(defn add-asset [assets asset]
+  (if (asset-present? assets (get asset "id"))
+    assets
+    (conj assets asset)))
+
 (defn import-track [session event]
   (let [studio (get session "studio")
         project (get studio "project")
         asset (get event "asset")
         track (get event "track")
+        assets (or (get project "assets") [])
+        tracks (or (get project "tracks") [])
         next-project (assoc
-                      (assoc project "assets"
-                             (conj (or (get project "assets") []) asset))
-                      "tracks"
-                      (conj (or (get project "tracks") []) track))
+                      (assoc project "assets" (add-asset assets asset))
+                      "tracks" (conj tracks track))
         next-studio (assoc studio "project" next-project)
         next (next-revision (assoc session "studio" next-studio))]
     {"session" next
      "effects" []}))
+
+(defn restore-project [session event]
+  (let [project (get event "project")]
+    (if (get project "id")
+      (let [studio (get session "studio")
+            next-studio (assoc studio "project" project)
+            next (next-revision (assoc session "studio" next-studio))]
+        {"session" next
+         "effects" []})
+      (throw "Restored studio project requires an id"))))
 
 (defn apply-transport [session event]
   (let [studio (get session "studio")
@@ -108,9 +131,11 @@
         (close-surface session)
         (if (= event-type "studio/import")
           (import-track session event)
-          (if (= event-type "studio/transport")
-            (apply-transport session event)
-            (throw (str "Unknown Hodos session event: " event-type))))))))
+          (if (= event-type "studio/restore")
+            (restore-project session event)
+            (if (= event-type "studio/transport")
+              (apply-transport session event)
+              (throw (str "Unknown Hodos session event: " event-type)))))))))
 
 (defn event [session-id input]
   (let [current (session-value session-id)
