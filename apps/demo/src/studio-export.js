@@ -147,21 +147,60 @@ export function encodeWav(audioBuffer) {
   return new Uint8Array(output);
 }
 
+export function clipsForTrack(track, project) {
+  if (Array.isArray(track?.clips)) return track.clips;
+  if (!track?.asset) return [];
+  const asset = (project?.assets ?? []).find((entry) => entry.id === track.asset);
+  return [{
+    id: `legacy-${track.id || track.asset}`,
+    asset: track.asset,
+    startSeconds: Number(track.startSeconds || 0),
+    sourceStartSeconds: 0,
+    duration: Number(asset?.duration || 0),
+  }];
+}
+
+export function normalizeProject(project) {
+  const output = cloneData(project);
+  output.assets = output.assets ?? [];
+  output.tracks = (output.tracks ?? []).map((track) => {
+    const clips = clipsForTrack(track, output).map((clip) => ({
+      ...clip,
+      startSeconds: Math.max(0, Number(clip.startSeconds || 0)),
+      sourceStartSeconds: Math.max(0, Number(clip.sourceStartSeconds || 0)),
+      duration: Math.max(0, Number(clip.duration || 0)),
+    }));
+    const next = { ...track, clips };
+    delete next.asset;
+    delete next.startSeconds;
+    return next;
+  });
+  return output;
+}
+
 export async function renderProjectMix(project, buffers, {
   OfflineAudioContextClass = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext,
 } = {}) {
   if (!OfflineAudioContextClass) throw new Error("This browser does not provide OfflineAudioContext");
-  const active = (project?.tracks ?? [])
-    .filter((track) => !track.mute)
-    .map((track) => ({ track, buffer: buffers.get(track.asset) }))
-    .filter(({ buffer }) => buffer);
+  const active = [];
+  for (const track of project?.tracks ?? []) {
+    if (track.mute) continue;
+    for (const clip of clipsForTrack(track, project)) {
+      const buffer = buffers.get(clip.asset);
+      if (buffer) active.push({ track, clip, buffer });
+    }
+  }
   if (!active.length) throw new Error("The project has no available unmuted audio to export");
 
   const sampleRate = Math.max(8000, ...active.map(({ buffer }) => buffer.sampleRate || 48000));
-  const duration = Math.max(...active.map(({ track, buffer }) => Number(track.startSeconds || 0) + buffer.duration));
+  const duration = Math.max(...active.map(({ clip }) => Number(clip.startSeconds || 0) + Number(clip.duration || 0)));
   const context = new OfflineAudioContextClass(2, Math.max(1, Math.ceil(duration * sampleRate)), sampleRate);
 
-  for (const { track, buffer } of active) {
+  for (const { track, clip, buffer } of active) {
+    const sourceStart = Math.max(0, Number(clip.sourceStartSeconds || 0));
+    const available = Math.max(0, buffer.duration - sourceStart);
+    const clipDuration = Math.min(available, Number(clip.duration || available));
+    if (clipDuration <= 0) continue;
     const source = context.createBufferSource();
     const gain = context.createGain();
     source.buffer = buffer;
@@ -174,7 +213,7 @@ export async function renderProjectMix(project, buffers, {
     } else {
       gain.connect(context.destination);
     }
-    source.start(Number(track.startSeconds || 0));
+    source.start(Math.max(0, Number(clip.startSeconds || 0)), sourceStart, clipDuration);
   }
   return context.startRendering();
 }
@@ -189,7 +228,7 @@ export async function createProjectBundle({ project, readAsset, now = () => new 
   if (!project?.id) throw new Error("Project bundle export requires a project");
   if (typeof readAsset !== "function") throw new Error("Project bundle export requires an asset reader");
 
-  const portableProject = cloneData(project);
+  const portableProject = normalizeProject(project);
   const files = {};
   const manifestAssets = [];
 
