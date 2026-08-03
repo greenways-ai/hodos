@@ -259,7 +259,12 @@ export function createHodosViewer({
 }
 
 export { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
-export { WorldDraftPanel, nudgePosition, sourcePosition } from "./world-draft-panel.js";
+export { WorldDraftPanel } from "./world-draft-panel.js";
+export {
+  nudgePosition,
+  sourcePosition,
+  WORLD_DRAFT_NUDGE_STEP,
+} from "./world-draft-model.js";
 export {
   HODOS_WORLD_DRAG_TYPE,
   hasHodosWorldDrag,
