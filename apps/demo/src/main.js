@@ -7,6 +7,13 @@ import { withStudioHistory } from "./studio-history.js";
 import { createStudioSurface } from "./studio-surface.js";
 import { withStudioTrackManagement } from "./studio-track-management.js";
 import { STUDIO_TOUCHPOINTS } from "./studio-world.js";
+import { SHOWCASE_SURFACE_FACTORIES } from "./showcase-surfaces.js";
+import {
+  firstShowcaseGuideTouchpoint,
+  SHOWCASE_EXPERIENCE,
+  SHOWCASE_SURFACE_IDS,
+  touchpointForSurface,
+} from "./showcase-world.js";
 import { readWorldDraftProposal } from "./world-draft-review.js";
 import { createWorldDraftStore, saveWorldDraftFile } from "./world-draft-storage.js";
 import { saveHestiaContribution, saveRepositoryPatch } from "./world-publication.js";
@@ -111,6 +118,7 @@ const viewer = createHodosViewer({
     }
   },
   surfaces: {
+    ...SHOWCASE_SURFACE_FACTORIES,
     "hodos/studio": withStudioBundleImport(
       withStudioClipEditing(
         withStudioTrackManagement(withStudioHistory(createStudioSurface)),
@@ -156,7 +164,8 @@ function renderDemo(error = "") {
   const state = queryState();
   root.innerHTML = `<section class="world-welcome"><div class="welcome-frame"><header class="welcome-header"><a href="./" class="welcome-brand">${ouroboros()}<span>Hodos <em>Worlds</em></span></a><button class="welcome-theme" type="button" data-theme-toggle>Appearance</button></header>
   <div class="world-card welcome-card"><section class="welcome-hero"><div class="welcome-hero-art" role="img" aria-label="A curious young teenager entering a Hodos mosaic world"></div><div class="welcome-hero-veil"></div><div class="welcome-hero-copy"><p class="eyebrow">OPEN WORLDS · HARA IN THE BROWSER</p><h1>Enter a<br><i>living world.</i></h1><p>Hodos bundles repository-defined places through a live Hara kernel, then opens their Gaussian-splat scenes and trusted application surfaces in the browser.</p><a class="hero-action" href="#world-collection">Discover the collection ↓</a></div></section>
-  <section class="world-browser" id="world-collection"><div class="section-intro"><p class="eyebrow">THE DEMO</p><h2>World objects.<br>Classical interfaces.</h2></div>${error ? `<p role="alert"><code>${escapeHtml(error)}</code></p>` : ""}<section class="featured-worlds" aria-label="Featured worlds">${FEATURED_WORLDS.map((world) => `<article class="featured-world"><span>${escapeHtml(world.format)}</span><h2>${escapeHtml(world.title)}</h2><p>${escapeHtml(world.description)}</p><div><button type="button" data-featured-world="${escapeHtml(world.id)}">Open world</button><a href="${escapeHtml(world.attribution)}" target="_blank" rel="noreferrer">Source & attribution</a></div></article>`).join("")}</section>
+  <section class="world-browser" id="world-collection"><div class="section-intro"><p class="eyebrow">THE DEMO</p><h2>World objects.<br>Classical interfaces.</h2></div>${error ? `<p role="alert"><code>${escapeHtml(error)}</code></p>` : ""}<section class="featured-worlds" aria-label="Featured worlds">${FEATURED_WORLDS.map((world) => `<article class="featured-world${world.primary ? " featured-world--primary" : ""}"><span>${escapeHtml(world.format)}</span><h2>${escapeHtml(world.title)}</h2><p>${escapeHtml(world.description)}</p><ul class="featured-world-features">${(world.features ?? []).map((feature) => `<li>${escapeHtml(feature)}</li>`).join("")}</ul><div><button type="button" data-featured-world="${escapeHtml(world.id)}">${escapeHtml(world.action || "Open world")}</button><a href="${escapeHtml(world.attribution)}" target="_blank" rel="noreferrer">Source & attribution</a></div></article>`).join("")}</section>
+  <section class="showcase-landing"><header><p>ONE COMPOSED JOURNEY</p><h3>Try the whole platform, not only the renderer.</h3><span>The guided Splat Garden connects repository composition, Hara state, precise browser tools, spatial sound, editable world drafts and accountable publication.</span></header><div class="showcase-landing-grid"><article><span>01</span><strong>Explore</strong><p>Resolve a composed world and activate spatial application touchpoints.</p></article><article><span>02</span><strong>Create</strong><p>Import, arrange, edit, persist and export local audio in Studio.</p></article><article><span>03</span><strong>Program</strong><p>Inspect the live Hara state and invoke discoverable commands from M-x.</p></article><article><span>04</span><strong>Publish</strong><p>Review semantic changes, create Git patches and sign Hestia contributions.</p></article></div></section>
   <p class="world-divider"><span>Find another place</span></p><form class="catalog-form" role="search"><label>Search greenways-worlds<input name="query" type="search" placeholder="garden, apartment, gaussian splat"></label><button type="submit">Search worlds</button></form><div class="catalog-results" aria-live="polite"></div>
   <form class="world-form"><label>GitHub repository<input name="repo" type="url" required placeholder="https://github.com/owner/world" value="${escapeHtml(state.repository)}"></label><label>Ref (optional)<input name="ref" placeholder="main, tag, or commit SHA" value="${escapeHtml(state.ref)}"></label><label class="mode-control"><input name="strict" type="checkbox" ${state.mode === "strict" ? "checked" : ""}> Strict commits</label><button type="submit">Open with Hodos</button></form></section></div><footer class="welcome-footer"><span>HODOS / WORLDS</span><span>Kernel-bundled places · embedded Hara</span></footer></div></section>`;
 
@@ -211,7 +220,7 @@ function renderDemo(error = "") {
       await viewer.requestGitHubAccess();
       navigate({
         repository: world.repository,
-        ref: "",
+        ref: world.ref || "",
         mode: "dev",
         experience: world.experience || "",
       });
@@ -237,6 +246,12 @@ async function openWorld(initial) {
     if (draft) viewer.dispatch({ "event/type": "world/draft-restore", draft });
   } catch (error) {
     console.error("Hodos world draft restoration failed", error);
+  }
+
+  if (initial.experience === SHOWCASE_EXPERIENCE) {
+    const guide = firstShowcaseGuideTouchpoint(graph.touchpoints)
+      ?? touchpointForSurface({ world: { touchpoints: graph.touchpoints } }, SHOWCASE_SURFACE_IDS.guide);
+    if (guide) viewer.dispatch({ "event/type": "touchpoint/activate", touchpoint: guide });
   }
 }
 
