@@ -3,7 +3,7 @@
             [gw.hodos.bundle :as bundle]
             [gw.hodos.package :as package]
             [gw.hodos.scene :as scene]
-            [gw.hodos.session-draft :as session]
+            [gw.hodos.session-publication :as session]
             [std.substrate :as substrate]))
 
 (defn host-capabilities []
@@ -13,10 +13,14 @@
    "scene/gaussian-splat"
    "world/touchpoints"
    "world/draft"
+   "world/draft-review"
    "ui/surfaces"
    "audio/browser"
    "storage/world-draft"
-   "files/world-draft-export"])
+   "files/world-draft-import"
+   "files/world-draft-export"
+   "publication/repository-patch"
+   "publication/hestia-contribution"])
 
 (def SURFACE
   (adaptor/surface
@@ -45,7 +49,10 @@
                                   "audio/browser"
                                   "scene/gaussian-splat"
                                   "storage/world-draft"
-                                  "files/world-draft-export"]}}))
+                                  "files/world-draft-import"
+                                  "files/world-draft-export"
+                                  "publication/repository-patch"
+                                  "publication/hestia-contribution"]}}))
 
 (def NODE
   (adaptor/install-direct
