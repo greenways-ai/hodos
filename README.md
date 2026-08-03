@@ -36,7 +36,7 @@ This keeps the boundary explicit:
 See [`docs/touchpoints-and-surfaces.md`](docs/touchpoints-and-surfaces.md) for
 the interaction contract,
 [`docs/studio-project-model.md`](docs/studio-project-model.md) for the Hara
-track, clip, and undo/redo graph, and
+track, clip, editing, and undo/redo graph, and
 [`docs/studio-storage-and-export.md`](docs/studio-storage-and-export.md) for the
 persistence and portable bundle contract.
 
@@ -51,11 +51,12 @@ npm run build
 The current studio slice supports opening a surface from a 3D touchpoint,
 dragging local audio into the arrangement, storing content-addressed media in
 origin-private browser storage, restoring the Hara project on a later visit,
-drawing waveforms, moving clips on a horizontal timeline, editing track gain
-and mute, undoing and redoing committed edits through Hara, playing through Web
-Audio, rendering a WAV mix, and exporting and reopening a verified portable
-project bundle containing both Hara state and immutable audio.
+drawing waveforms, moving and non-destructively trimming clips, splitting,
+duplicating and deleting clips, editing track gain and mute, undoing and
+redoing committed edits through Hara, playing through Web Audio, rendering a
+WAV mix, and exporting and reopening a verified portable project bundle
+containing both Hara state and immutable audio.
 
-Trim, split, duplicate and delete commands, recording, generated stems, spatial
+Cross-track movement, fades, automation, recording, generated stems, spatial
 track placement in the world, a musical tick/tempo timebase, and model providers
 remain subsequent slices.
