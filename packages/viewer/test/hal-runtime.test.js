@@ -9,6 +9,7 @@ const resources = {
   "gw.hodos.bundle": fs.readFileSync(new URL("../../kernel/src/gw/hodos/bundle.hal", import.meta.url), "utf8"),
   "gw.hodos.package": fs.readFileSync(new URL("../../kernel/src/gw/hodos/package.hal", import.meta.url), "utf8"),
   "gw.hodos.scene": fs.readFileSync(new URL("../../kernel/src/gw/hodos/scene.hal", import.meta.url), "utf8"),
+  "gw.hodos.session": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session.hal", import.meta.url), "utf8"),
   "gw.hodos.kernel": fs.readFileSync(new URL("../../kernel/src/gw/hodos/kernel.hal", import.meta.url), "utf8"),
 };
 
@@ -23,6 +24,37 @@ test("browser VM exposes the HAL kernel through its generated adaptor surface", 
     runtime.eval('(gw.hodos.kernel/dispatch "catalog/search" [[{"name" "apartment"} {"name" "splat-garden"}] "garden"])'),
     '[{"name" "splat-garden"}]',
   );
+  assert.match(runtime.eval('(gw.hodos.kernel/dispatch "app/capabilities" [])'), /"ui\/surfaces"/);
+});
+
+test("Hara carries session and studio state across touchpoint events", async () => {
+  const runtime = await start({ resources });
+  runtime.require("gw.hodos.kernel");
+  const dispatch = (method, args) => runtime.eval(
+    `(gw.hodos.kernel/dispatch ${encodeHalValue(method)} ${encodeHalValue(args)})`,
+  );
+  dispatch("session/open", ["session-test", { project: { id: "world" }, touchpoints: [] }]);
+  const opened = dispatch("session/event", ["session-test", {
+    "event/type": "touchpoint/activate",
+    touchpoint: {
+      id: "studio-console",
+      label: "Open Studio",
+      surface: "hodos/studio",
+      presentation: "focus-overlay",
+      config: { project: "local/current" },
+    },
+  }]);
+  assert.match(opened, /"open-surface"/);
+  assert.match(opened, /"hodos\/studio"/);
+
+  dispatch("session/event", ["session-test", {
+    "event/type": "studio/import",
+    asset: { id: "sha256:audio", name: "track.wav" },
+    track: { id: "track-1", name: "Track", asset: "sha256:audio", gainDb: 0, mute: false },
+  }]);
+  const state = dispatch("session/get", ["session-test"]);
+  assert.match(state, /"track-1"/);
+  assert.match(state, /"revision" 2/);
 });
 
 test("host objects are encoded as EDN maps for HAL dispatch", async () => {
@@ -31,7 +63,7 @@ test("host objects are encoded as EDN maps for HAL dispatch", async () => {
   const graph = {
     repository: { owner: "greenways-worlds", repo: "playbot", url: "https://github.com/greenways-worlds/playbot" },
     layers: [{ id: "playbot", assetUrl: "https://raw.githubusercontent.com/greenways-worlds/playbot/commit/world/playbot/lod-meta.json" }],
-    diagnostics: []
+    diagnostics: [],
   };
   const source = `(gw.hodos.kernel/dispatch "world/render" ${encodeHalValue([graph])})`;
   const result = runtime.eval(source);
