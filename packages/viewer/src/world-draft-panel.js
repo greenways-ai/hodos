@@ -1,21 +1,9 @@
 import "./world-draft-panel.css";
-
-const STEP = 0.25;
-
-export function sourcePosition(source) {
-  const value = source?.position;
-  return Array.isArray(value) && value.length === 3 && value.every(Number.isFinite)
-    ? [...value]
-    : [0, 0, 0];
-}
-
-export function nudgePosition(position, axis, delta = STEP) {
-  const next = sourcePosition({ position });
-  if (![0, 1, 2].includes(axis)) throw new Error("World draft axis must be 0, 1, or 2");
-  if (!Number.isFinite(delta)) throw new Error("World draft nudge must be finite");
-  next[axis] = Math.round((next[axis] + delta) * 1000) / 1000;
-  return next;
-}
+import {
+  nudgePosition,
+  sourcePosition,
+  WORLD_DRAFT_NUDGE_STEP,
+} from "./world-draft-model.js";
 
 function button(document, label, action, className = "") {
   const element = document.createElement("button");
@@ -29,7 +17,7 @@ function button(document, label, action, className = "") {
 function numberInput(document, label, value) {
   const input = document.createElement("input");
   input.type = "number";
-  input.step = "0.25";
+  input.step = String(WORLD_DRAFT_NUDGE_STEP);
   input.value = String(value);
   input.setAttribute("aria-label", label);
   return input;
@@ -171,8 +159,8 @@ export class WorldDraftPanel {
     nudges.className = "hodos-world-nudges";
     for (const [axis, label] of ["X", "Y", "Z"].entries()) {
       nudges.append(
-        button(document, `${label}−`, () => this.dispatchPosition(source, nudgePosition(position, axis, -STEP))),
-        button(document, `${label}+`, () => this.dispatchPosition(source, nudgePosition(position, axis, STEP))),
+        button(document, `${label}−`, () => this.dispatchPosition(source, nudgePosition(position, axis, -WORLD_DRAFT_NUDGE_STEP))),
+        button(document, `${label}+`, () => this.dispatchPosition(source, nudgePosition(position, axis, WORLD_DRAFT_NUDGE_STEP))),
       );
     }
     positionField.append(positionLegend, coordinates, nudges);
