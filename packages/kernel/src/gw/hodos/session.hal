@@ -1,0 +1,119 @@
+(ns gw.hodos.session)
+
+(def ^:private *sessions* (atom {}))
+
+(defn response [state effects]
+  {"state" state
+   "effects" (or effects [])})
+
+(defn initial-studio []
+  {"project" {"id" "local/current"
+              "title" "Untitled project"
+              "assets" []
+              "tracks" []}
+   "transport" {"status" "stopped"
+                 "position" 0}
+   "selection" {"tracks" []
+                "clips" []}})
+
+(defn initial-session [session-id world]
+  {"id" session-id
+   "revision" 0
+   "world" world
+   "surface" nil
+   "studio" (initial-studio)})
+
+(defn session-value [session-id]
+  (let [session (get (deref *sessions*) session-id)]
+    (if session
+      session
+      (throw (str "Unknown Hodos session: " session-id)))))
+
+(defn store-session [session-id session]
+  (do (swap! *sessions* (fn [sessions]
+                          (assoc sessions session-id session)))
+      session))
+
+(defn next-revision [session]
+  (assoc session "revision" (+ 1 (or (get session "revision") 0))))
+
+(defn open [session-id world]
+  (let [session (initial-session session-id world)]
+    (response (store-session session-id session) [])))
+
+(defn get-session [session-id]
+  (response (session-value session-id) []))
+
+(defn close [session-id]
+  (do (swap! *sessions* (fn [sessions]
+                          (dissoc sessions session-id)))
+      (response {"id" session-id "status" "closed"} [])))
+
+(defn activate-touchpoint [session event]
+  (let [touchpoint (get event "touchpoint")
+        surface-id (get touchpoint "surface")]
+    (if surface-id
+      (let [surface {"id" surface-id
+                     "title" (or (get touchpoint "label") surface-id)
+                     "presentation" (or (get touchpoint "presentation") "focus-overlay")
+                     "touchpoint" (get touchpoint "id")
+                     "config" (or (get touchpoint "config") {})}
+            next (next-revision (assoc session "surface" surface))]
+        {"session" next
+         "effects" [{"effect" "ui"
+                     "method" "open-surface"
+                     "args" [surface]}]})
+      (throw "Touchpoint does not declare a surface"))))
+
+(defn close-surface [session]
+  (let [surface (get session "surface")
+        next (next-revision (assoc session "surface" nil))]
+    {"session" next
+     "effects" [{"effect" "ui"
+                 "method" "close-surface"
+                 "args" [(if surface (get surface "id") nil)]}]}))
+
+(defn import-track [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        asset (get event "asset")
+        track (get event "track")
+        next-project (assoc
+                      (assoc project "assets"
+                             (conj (or (get project "assets") []) asset))
+                      "tracks"
+                      (conj (or (get project "tracks") []) track))
+        next-studio (assoc studio "project" next-project)
+        next (next-revision (assoc session "studio" next-studio))]
+    {"session" next
+     "effects" []}))
+
+(defn apply-transport [session event]
+  (let [studio (get session "studio")
+        transport (assoc (or (get studio "transport") {})
+                         "status" (or (get event "status") "stopped"))
+        next-studio (assoc studio "transport" transport)
+        next (next-revision (assoc session "studio" next-studio))]
+    {"session" next
+     "effects" [{"effect" "audio"
+                 "method" "apply-transport"
+                 "args" [transport (get next-studio "project")]}]}))
+
+(defn reduce-event [session event]
+  (let [event-type (get event "event/type")]
+    (if (= event-type "touchpoint/activate")
+      (activate-touchpoint session event)
+      (if (= event-type "surface/close")
+        (close-surface session)
+        (if (= event-type "studio/import")
+          (import-track session event)
+          (if (= event-type "studio/transport")
+            (apply-transport session event)
+            (throw (str "Unknown Hodos session event: " event-type))))))))
+
+(defn event [session-id input]
+  (let [current (session-value session-id)
+        output (reduce-event current input)
+        next (get output "session")]
+    (response (store-session session-id next)
+              (get output "effects"))))
