@@ -51,9 +51,9 @@ A clip places a range of an asset on the project timeline:
  "duration" 7.75}
 ```
 
-The current slice uses seconds and quarter-second snapping. The fields already
-separate project placement from source offset, allowing later trim, split, loop,
-and fade commands without modifying the underlying asset.
+The current slice uses seconds and quarter-second snapping. Project placement,
+source offset, and duration are separate, so editing never rewrites the
+underlying immutable audio asset.
 
 A clip drag is only a browser preview until pointer release. The committed edit
 is sent to Hara:
@@ -66,6 +66,67 @@ is sent to Hara:
 
 Keyboard Left and Right invoke the same command in quarter-second increments.
 The DOM never becomes the project authority.
+
+## Structural clip editing
+
+The browser host calculates bounded, snapped transformations and sends complete
+serializable clip records into Hara. Hara owns the structural mutation and
+records it in command history.
+
+### Trim
+
+Dragging the left edge changes all three relevant values together:
+
+```text
+startSeconds       += delta
+sourceStartSeconds += delta
+duration           -= delta
+```
+
+Dragging the right edge changes duration only. Both edges retain a minimum
+quarter-second range and cannot pass the beginning or end of the source asset.
+The committed record is applied with:
+
+```clojure
+{"event/type" "studio/clip-replace"
+ "clip" updated-clip}
+```
+
+### Split
+
+A split preserves the original clip ID on the left and creates a new ID on the
+right. The two ranges remain adjacent in project and source time:
+
+```clojure
+{"event/type" "studio/clip-split"
+ "target" "clip-intro"
+ "left" left-clip
+ "right" right-clip}
+```
+
+Hara rejects a right-hand ID that already exists or a left-hand record that
+does not preserve the target identity.
+
+### Duplicate and delete
+
+Duplicate inserts a new clip immediately after the target in the same track:
+
+```clojure
+{"event/type" "studio/clip-insert-after"
+ "target" "clip-intro"
+ "clip" duplicated-clip}
+```
+
+Delete removes only the clip instance, not its shared audio asset:
+
+```clojure
+{"event/type" "studio/clip-delete"
+ "clip" "clip-intro"}
+```
+
+The surface exposes trim handles plus split, duplicate and delete controls.
+Delete/Backspace and Command/Ctrl-D invoke the same semantic events as the
+buttons.
 
 ## Playback and export
 
@@ -99,9 +160,9 @@ transport is playing, the resulting project is rescheduled through the same
 
 The studio exposes toolbar controls plus Command/Ctrl-Z, Shift-Command/Ctrl-Z,
 and Ctrl-Y. Text fields keep native browser undo; the shortcuts dispatch to
-Hara only when focus is on the studio surface itself. This makes imports, clip
-moves, gain changes, mute changes, and future agent proposals part of one
-reversible command stream.
+Hara only when focus is on the studio surface itself. Imports, movement, trim,
+split, duplicate, delete, mixer changes, and future agent proposals therefore
+share one reversible command stream.
 
 ## Legacy project migration
 
@@ -114,13 +175,11 @@ project is then sent back through `studio/restore`, keeping Hara authoritative.
 
 The next editing layer can build on the existing clip identity and range model:
 
-- `studio/clip-trim-start`
-- `studio/clip-trim-end`
-- `studio/clip-split`
-- `studio/clip-duplicate`
-- `studio/clip-delete`
 - `studio/clip-move-track`
+- `studio/clip-fade-in`
+- `studio/clip-fade-out`
 - `studio/track-pan`
+- automation lanes and selection-aware commands
 
 A later musical timebase can add tempo maps and integer ticks while preserving
 seconds as a derived host scheduling value.
