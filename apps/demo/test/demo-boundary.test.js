@@ -10,5 +10,8 @@ test("demo consumes the viewer package and installs the studio surface", () => {
   assert.match(source, /withStudioHistory/);
   assert.match(source, /withStudioBundleImport/);
   assert.match(source, /withStudioClipEditing/);
+  assert.match(source, /withStudioTrackManagement/);
+  assert.match(source, /SpatialAudioRuntime/);
+  assert.match(source, /sync-world-sources/);
   assert.doesNotMatch(source, /class WorldRenderer/);
 });
