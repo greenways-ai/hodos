@@ -3,10 +3,17 @@
             [gw.hodos.bundle :as bundle]
             [gw.hodos.package :as package]
             [gw.hodos.scene :as scene]
+            [gw.hodos.session :as session]
             [std.substrate :as substrate]))
 
 (defn host-capabilities []
-  ["github/catalog" "github/world" "packages/locked" "scene/gaussian-splat"])
+  ["github/catalog"
+   "github/world"
+   "packages/locked"
+   "scene/gaussian-splat"
+   "world/touchpoints"
+   "ui/surfaces"
+   "audio/browser"])
 
 (def SURFACE
   (adaptor/surface
@@ -19,10 +26,19 @@
     "package/activate" (fn [space args request node]
                          (package/activation-plan (nth args 0)))
     "world/render" (fn [space args request node]
-                     (scene/render (nth args 0)))}
+                     (scene/render (nth args 0)))
+    "session/open" (fn [space args request node]
+                     (session/open (nth args 0) (nth args 1)))
+    "session/get" (fn [space args request node]
+                    (session/get-session (nth args 0)))
+    "session/event" (fn [space args request node]
+                      (session/event (nth args 0) (nth args 1)))
+    "session/close" (fn [space args request node]
+                      (session/close (nth args 0)))}
    {"world/open" {"effects" ["github/world"]}
     "package/activate" {"effects" ["packages/locked"]}
-    "world/render" {"effects" ["scene/gaussian-splat"]}}))
+    "world/render" {"effects" ["scene/gaussian-splat"]}
+    "session/event" {"effects" ["ui/surfaces" "audio/browser"]}}))
 
 (def NODE
   (adaptor/install-direct
