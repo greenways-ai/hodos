@@ -1,4 +1,5 @@
 import "./viewer.css";
+import "./world-placement.css";
 import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph } from "./github-worlds.js";
 import { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
 import { WorldRenderer } from "./world-renderer.js";
@@ -50,6 +51,7 @@ export function createHodosViewer({
   surfaces = {},
   id = sessionId(),
   onEffect,
+  onCameraChange,
 } = {}) {
   if (!root) throw new Error("Hodos viewer requires a root element");
   if (!invoke) throw new Error("Hodos viewer requires a kernel dispatcher");
@@ -72,6 +74,7 @@ export function createHodosViewer({
     root.innerHTML = `<section class="world-shell">
       <div class="world-canvas"><canvas aria-label="Gaussian splat world"></canvas></div>
       <div class="world-touchpoints" aria-label="World touchpoints"></div>
+      <div class="world-audio-sources" aria-label="Spatial audio sources"></div>
       <div class="world-overlay"><div class="world-status" role="status"><strong>Reading world…</strong><span>${escapeHtml(next.repository)}${next.ref ? ` @ ${escapeHtml(next.ref)}` : ""}</span></div>
       <nav class="world-controls" aria-label="World controls"><button data-action="reset">Reset view</button><button data-action="mode">${next.mode === "strict" ? "Dev mode" : "Strict mode"}</button><button data-action="change">Change world</button></nav></div>
       <div class="diagnostic-slot"></div>
@@ -87,6 +90,7 @@ export function createHodosViewer({
       detail: root.querySelector(".world-status span"),
       diagnostics: root.querySelector(".diagnostic-slot"),
       touchpoints: root.querySelector(".world-touchpoints"),
+      audioSources: root.querySelector(".world-audio-sources"),
     };
   };
 
@@ -102,6 +106,17 @@ export function createHodosViewer({
     root.querySelector("form").addEventListener("submit", (event) => { event.preventDefault(); location.assign(location.pathname); });
   };
 
+  const forwardEffect = (effect, sessionState) => {
+    if (!onEffect) return;
+    try {
+      Promise.resolve(onEffect(effect, sessionState, { renderer, dispatch })).catch((error) => {
+        console.error(`Hodos host effect failed: ${effect.effect}/${effect.method}`, error, { effect });
+      });
+    } catch (error) {
+      console.error(`Hodos host effect failed: ${effect.effect}/${effect.method}`, error, { effect });
+    }
+  };
+
   const applySessionResult = (result) => {
     for (const effect of result?.effects ?? []) {
       if (effect.effect === "ui" && effect.method === "open-surface") {
@@ -110,20 +125,23 @@ export function createHodosViewer({
         surfaceHost.open(descriptor, { dispatch });
       } else if (effect.effect === "ui" && effect.method === "close-surface") {
         surfaceHost.close();
+      } else if (effect.effect === "scene" && effect.method === "sync-audio-sources") {
+        renderer?.syncAudioSources(effect.args[0] ?? []);
       } else if (effect.effect === "audio") {
         surfaceHost.handleEffect(effect);
+        forwardEffect(effect, result?.state);
       } else {
-        onEffect?.(effect, result?.state);
+        forwardEffect(effect, result?.state);
       }
     }
     surfaceHost?.update(result?.state);
     return result;
   };
 
-  const dispatch = (event) => {
+  function dispatch(event) {
     if (!sessionOpened) throw new Error("Hodos session is not open");
     return applySessionResult(invoke("session/event", [id, event]));
-  };
+  }
 
   async function open(next) {
     state = {
@@ -170,6 +188,17 @@ export function createHodosViewer({
         background: graph.project.background,
         camera: graph.project.camera,
         touchpointRoot: view.touchpoints,
+        audioSourceRoot: view.audioSources,
+        onCameraChange,
+        onWorldDrop: ({ payload, position }) => dispatch({
+          "event/type": "world/drop",
+          payload,
+          position,
+        }),
+        onAudioSource: ({ action, source }) => dispatch({
+          "event/type": action === "remove" ? "world/audio-remove" : "world/audio-toggle",
+          source: source.id,
+        }),
         onTouchpoint: (touchpoint) => dispatch({ "event/type": "touchpoint/activate", touchpoint }),
         onLayer: ({ layer, status, error }) => {
           if (status === "loaded") loaded += 1;
@@ -220,3 +249,11 @@ export function createHodosViewer({
 }
 
 export { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
+export {
+  HODOS_WORLD_DRAG_TYPE,
+  hasHodosWorldDrag,
+  installHodosWorldDrag,
+  readHodosWorldDrag,
+  setWorldDragPresentation,
+  writeHodosWorldDrag,
+} from "./world-drag.js";
