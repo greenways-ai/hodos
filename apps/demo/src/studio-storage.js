@@ -5,6 +5,7 @@ const ACTIVE_PROJECT_PATH = "state/active-project.txt";
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+let defaultStore;
 
 function copyBytes(value) {
   if (value instanceof ArrayBuffer) return new Uint8Array(value.slice(0));
@@ -199,8 +200,17 @@ export class StudioStore {
   }
 }
 
-export function createStudioStore({ backend, storage = globalThis.navigator?.storage } = {}) {
-  if (backend) return new StudioStore(backend);
-  if (storage?.getDirectory) return new StudioStore(new OpfsStudioBackend(storage));
-  return new StudioStore(new MemoryStudioBackend());
+function makeDefaultStore(storage) {
+  return new StudioStore(storage?.getDirectory
+    ? new OpfsStudioBackend(storage)
+    : new MemoryStudioBackend());
+}
+
+export function createStudioStore(options = {}) {
+  if (options.backend) return new StudioStore(options.backend);
+  if (Object.prototype.hasOwnProperty.call(options, "storage")) {
+    return makeDefaultStore(options.storage);
+  }
+  if (!defaultStore) defaultStore = makeDefaultStore(globalThis.navigator?.storage);
+  return defaultStore;
 }
