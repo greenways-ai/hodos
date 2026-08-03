@@ -9,5 +9,6 @@ test("demo consumes the viewer package and installs the studio surface", () => {
   assert.match(source, /STUDIO_TOUCHPOINTS/);
   assert.match(source, /withStudioHistory/);
   assert.match(source, /withStudioBundleImport/);
+  assert.match(source, /withStudioClipEditing/);
   assert.doesNotMatch(source, /class WorldRenderer/);
 });
