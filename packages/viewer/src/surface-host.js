@@ -91,13 +91,18 @@ export class SurfaceHost {
     this.root.hidden = false;
     this.root.dataset.presentation = presentation;
 
-    this.controller = this.registry.create(id, {
-      root: content,
-      descriptor: this.descriptor,
-      dispatch: (event) => this.dispatch?.(event),
-      requestClose: () => close.click(),
-    });
-    return this.controller;
+    try {
+      this.controller = this.registry.create(id, {
+        root: content,
+        descriptor: this.descriptor,
+        dispatch: (event) => this.dispatch?.(event),
+        requestClose: () => close.click(),
+      });
+      return this.controller;
+    } catch (error) {
+      this.close();
+      throw error;
+    }
   }
 
   update(state) {
