@@ -57,6 +57,7 @@
                      "title" (or (get touchpoint "label") surface-id)
                      "presentation" (or (get touchpoint "presentation") "focus-overlay")
                      "touchpoint" (get touchpoint "id")
+                     "camera" (get touchpoint "camera")
                      "config" (or (get touchpoint "config") {})}
             next (next-revision (assoc session "surface" surface))]
         {"session" next
