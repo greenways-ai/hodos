@@ -3,7 +3,7 @@
             [gw.hodos.bundle :as bundle]
             [gw.hodos.package :as package]
             [gw.hodos.scene :as scene]
-            [gw.hodos.session :as session]
+            [gw.hodos.session-draft :as session]
             [std.substrate :as substrate]))
 
 (defn host-capabilities []
@@ -12,8 +12,11 @@
    "packages/locked"
    "scene/gaussian-splat"
    "world/touchpoints"
+   "world/draft"
    "ui/surfaces"
-   "audio/browser"])
+   "audio/browser"
+   "storage/world-draft"
+   "files/world-draft-export"])
 
 (def SURFACE
   (adaptor/surface
@@ -38,7 +41,11 @@
    {"world/open" {"effects" ["github/world"]}
     "package/activate" {"effects" ["packages/locked"]}
     "world/render" {"effects" ["scene/gaussian-splat"]}
-    "session/event" {"effects" ["ui/surfaces" "audio/browser"]}}))
+    "session/event" {"effects" ["ui/surfaces"
+                                  "audio/browser"
+                                  "scene/gaussian-splat"
+                                  "storage/world-draft"
+                                  "files/world-draft-export"]}}))
 
 (def NODE
   (adaptor/install-direct
