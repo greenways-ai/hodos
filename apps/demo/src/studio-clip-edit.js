@@ -7,8 +7,12 @@ import {
   trimClipStart,
 } from "./studio-clip-model.js";
 import { normalizeProject } from "./studio-export.js";
+import { installHodosWorldDrag } from "../../../packages/viewer/src/world-drag.js";
 
 const PIXELS_PER_SECOND = 42;
+const SNAP_SECONDS = 0.25;
+const randomId = (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
+const snap = (value) => Math.round(value / SNAP_SECONDS) * SNAP_SECONDS;
 
 function assetDuration(project, clip) {
   const asset = (project.assets ?? []).find((entry) => entry.id === clip.asset);
@@ -26,6 +30,17 @@ function actionButton(document, label, title, action) {
     event.stopPropagation();
     action();
   });
+  return button;
+}
+
+function passiveTool(document, label, title, className) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute("aria-label", title);
+  button.className = className;
+  button.addEventListener("click", (event) => event.preventDefault());
   return button;
 }
 
@@ -77,7 +92,85 @@ function installTrimHandle(element, grip, clip, side, project, dispatch) {
   });
 }
 
-function decorateClip(element, clip, project, context) {
+function laneAt(document, x, y) {
+  return document.elementFromPoint?.(x, y)?.closest?.(".studio-lane[data-track-id]") ?? null;
+}
+
+function installCrossTrackDrag(element, grip, clip, context) {
+  let drag = null;
+  const clearTarget = () => {
+    if (drag?.lane) delete drag.lane.dataset.clipTarget;
+  };
+  const restore = () => {
+    if (!drag) return;
+    clearTarget();
+    drag.parent.append(element);
+    preview(element, clip);
+    delete element.dataset.crossTrack;
+    drag = null;
+  };
+
+  grip.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    grip.setPointerCapture(event.pointerId);
+    drag = {
+      pointer: event.pointerId,
+      parent: element.parentElement,
+      lane: element.parentElement,
+      track: element.parentElement?.dataset.trackId,
+      startSeconds: Number(clip.startSeconds || 0),
+    };
+    if (drag.lane) drag.lane.dataset.clipTarget = "true";
+    element.dataset.crossTrack = "true";
+    event.preventDefault();
+  });
+
+  grip.addEventListener("pointermove", (event) => {
+    if (!drag || drag.pointer !== event.pointerId) return;
+    const lane = laneAt(element.ownerDocument, event.clientX, event.clientY);
+    if (!lane) return;
+    if (drag.lane !== lane) {
+      clearTarget();
+      drag.lane = lane;
+      drag.track = lane.dataset.trackId;
+      lane.dataset.clipTarget = "true";
+      lane.append(element);
+    }
+    const rect = lane.getBoundingClientRect();
+    drag.startSeconds = snap(Math.max(0, (event.clientX - rect.left) / PIXELS_PER_SECOND));
+    preview(element, { ...clip, startSeconds: drag.startSeconds });
+  });
+
+  grip.addEventListener("pointerup", (event) => {
+    if (!drag || drag.pointer !== event.pointerId) return;
+    const target = drag.track;
+    const startSeconds = drag.startSeconds;
+    clearTarget();
+    delete element.dataset.crossTrack;
+    drag = null;
+    context.dispatch({
+      "event/type": "studio/clip-move-track",
+      clip: clip.id,
+      track: target,
+      startSeconds,
+    });
+  });
+  grip.addEventListener("pointercancel", restore);
+}
+
+function worldPayload(track, clip) {
+  return {
+    type: "studio/clip",
+    id: randomId("world-audio"),
+    track: track.id,
+    clip: clip.id,
+    label: `${track.name} clip`,
+    loop: true,
+  };
+}
+
+function decorateClip(element, clip, track, project, context) {
   element.dataset.clipId = clip.id;
   element.setAttribute("role", "group");
   element.setAttribute("aria-roledescription", "audio clip");
@@ -89,7 +182,16 @@ function decorateClip(element, clip, project, context) {
 
   const tools = document.createElement("div");
   tools.className = "studio-clip-tools";
+  const moveTrack = passiveTool(document, "↕", `Move ${clip.id} to another track`, "studio-clip-track-move");
+  installCrossTrackDrag(element, moveTrack, clip, context);
+
+  const world = passiveTool(document, "W", `Drag ${clip.id} into the 3D world`, "studio-clip-world");
+  world.addEventListener("pointerdown", (event) => event.stopPropagation());
+  installHodosWorldDrag(world, context.root, () => worldPayload(track, clip));
+
   tools.append(
+    moveTrack,
+    world,
     actionButton(document, "S", `Split ${clip.id} at its midpoint`, () => {
       if (Number(clip.duration || 0) < STUDIO_MIN_CLIP_SECONDS * 2) return;
       const parts = splitClip(clip);
@@ -137,13 +239,14 @@ export function withStudioClipEditing(factory) {
       update(state) {
         controller.update?.(state);
         const project = normalizeProject(state?.studio?.project ?? { id: "local/current", assets: [], tracks: [] });
-        const elements = [...context.root.querySelectorAll(".studio-clip")];
-        let index = 0;
-        for (const track of project.tracks ?? []) {
-          for (const clip of track.clips ?? []) {
-            const element = elements[index];
-            if (element) decorateClip(element, clip, project, context);
-            index += 1;
+        const rows = [...context.root.querySelectorAll(".studio-track")];
+        for (const [trackIndex, track] of (project.tracks ?? []).entries()) {
+          const lane = rows[trackIndex]?.querySelector(".studio-lane");
+          if (lane) lane.dataset.trackId = track.id;
+          const elements = [...(lane?.querySelectorAll(".studio-clip") ?? [])];
+          for (const [clipIndex, clip] of (track.clips ?? []).entries()) {
+            const element = elements[clipIndex];
+            if (element) decorateClip(element, clip, track, project, context);
           }
         }
       },
