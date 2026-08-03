@@ -4,6 +4,7 @@ import adaptorSource from "../src/gw/hodos/adaptor.hal";
 import bundleSource from "../src/gw/hodos/bundle.hal";
 import packageSource from "../src/gw/hodos/package.hal";
 import sceneSource from "../src/gw/hodos/scene.hal";
+import sessionSource from "../src/gw/hodos/session.hal";
 import kernelSource from "../src/gw/hodos/kernel.hal";
 import { installLockedPackages } from "./hara-packages.js";
 import { encodeHalValue } from "./hal-transport.js";
@@ -13,6 +14,7 @@ const runtime = await start({ resources: {
   "gw.hodos.bundle": bundleSource,
   "gw.hodos.package": packageSource,
   "gw.hodos.scene": sceneSource,
+  "gw.hodos.session": sessionSource,
   "gw.hodos.kernel": kernelSource,
 } });
 runtime.require("gw.hodos.kernel");
