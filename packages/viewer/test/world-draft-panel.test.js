@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { nudgePosition, sourcePosition } from "../src/world-draft-panel.js";
+import { nudgePosition, sourcePosition } from "../src/world-draft-model.js";
 
 test("world draft positions are copied and normalized", () => {
   const original = [1, 2, 3];
