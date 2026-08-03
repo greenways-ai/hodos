@@ -7,7 +7,9 @@ import { withStudioHistory } from "./studio-history.js";
 import { createStudioSurface } from "./studio-surface.js";
 import { withStudioTrackManagement } from "./studio-track-management.js";
 import { STUDIO_TOUCHPOINTS } from "./studio-world.js";
+import { readWorldDraftProposal } from "./world-draft-review.js";
 import { createWorldDraftStore, saveWorldDraftFile } from "./world-draft-storage.js";
+import { saveHestiaContribution, saveRepositoryPatch } from "./world-publication.js";
 import { createHodosViewer } from "../../../packages/viewer/src/index.js";
 import { searchWorldRepositories } from "../../../packages/viewer/src/github-worlds.js";
 import { activateLockedPackages, invokeHodos } from "../../../packages/kernel/runtime/hodos-runtime.js";
@@ -15,11 +17,32 @@ import { activateLockedPackages, invokeHodos } from "../../../packages/kernel/ru
 const root = document.querySelector("#hodos-app");
 const spatialAudio = new SpatialAudioRuntime();
 const worldDrafts = createWorldDraftStore();
+
+function worldIdentity(state) {
+  return {
+    repository: state?.world?.repository,
+    commit: state?.world?.commit,
+    project: {
+      id: state?.world?.project?.id,
+      version: state?.world?.project?.version,
+    },
+  };
+}
+
+function compactReceipt(artifact) {
+  const { patch: _patch, save: _save, ...receipt } = artifact;
+  return receipt;
+}
+
 const viewer = createHodosViewer({
   root,
   invoke: invokeHodos,
   activatePackages: activateLockedPackages,
   onCameraChange: (camera) => spatialAudio.updateListener(camera),
+  onDraftImport: (file, state) => readWorldDraftProposal(file, {
+    expectedIdentity: worldIdentity(state),
+    currentDraft: state?.world?.draft,
+  }),
   onEffect: async (effect, _state, context) => {
     if (effect.effect === "audio" && effect.method === "sync-world-sources") {
       return spatialAudio.sync(effect.args[0] ?? [], effect.args[1]);
@@ -32,6 +55,59 @@ const viewer = createHodosViewer({
     }
     if (effect.effect === "export" && effect.method === "world-draft") {
       return saveWorldDraftFile(effect.args[0], effect.args[1]);
+    }
+    if (effect.effect === "publication" && effect.method === "repository-patch") {
+      try {
+        const artifact = await saveRepositoryPatch(effect.args[0], effect.args[1]);
+        if (artifact.save?.method === "cancelled") {
+          context.dispatch({
+            "event/type": "world/publication-failed",
+            target: "repository",
+            error: "Repository patch export was cancelled",
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          context.dispatch({
+            "event/type": "world/publication-complete",
+            receipt: compactReceipt(artifact),
+          });
+        }
+      } catch (error) {
+        context.dispatch({
+          "event/type": "world/publication-failed",
+          target: "repository",
+          error: error.message,
+          createdAt: new Date().toISOString(),
+        });
+        throw error;
+      }
+      return;
+    }
+    if (effect.effect === "publication" && effect.method === "hestia-contribution") {
+      try {
+        const artifact = await saveHestiaContribution(effect.args[0], effect.args[1], effect.args[2]);
+        if (artifact.save?.method === "cancelled") {
+          context.dispatch({
+            "event/type": "world/publication-failed",
+            target: "hestia",
+            error: "Hestia contribution export was cancelled",
+            createdAt: new Date().toISOString(),
+          });
+        } else {
+          context.dispatch({
+            "event/type": "world/publication-complete",
+            receipt: compactReceipt(artifact),
+          });
+        }
+      } catch (error) {
+        context.dispatch({
+          "event/type": "world/publication-failed",
+          target: "hestia",
+          error: error.message,
+          createdAt: new Date().toISOString(),
+        });
+        throw error;
+      }
     }
   },
   surfaces: {
