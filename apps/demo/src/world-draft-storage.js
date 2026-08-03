@@ -55,6 +55,7 @@ export class WorldDraftStore {
     this.backend = backend;
     this.kind = backend.kind;
     this.persistent = backend.persistent;
+    this.pending = Promise.resolve();
   }
 
   async prepare() {
@@ -65,7 +66,7 @@ export class WorldDraftStore {
     return `world-drafts/${encodeURIComponent(worldDraftKey(identity))}.json`;
   }
 
-  async save(identity, draft) {
+  save(identity, draft) {
     const key = worldDraftKey(identity);
     const record = {
       format: RECORD_FORMAT,
@@ -75,11 +76,16 @@ export class WorldDraftStore {
       identity: cloneData(identity),
       draft: validateWorldDraft(draft),
     };
-    await this.backend.write(this.path(identity), textEncoder.encode(JSON.stringify(record)));
-    return record;
+    const write = this.pending.then(async () => {
+      await this.backend.write(this.path(identity), textEncoder.encode(JSON.stringify(record)));
+      return record;
+    });
+    this.pending = write.catch(() => {});
+    return write;
   }
 
   async load(identity) {
+    await this.pending;
     const key = worldDraftKey(identity);
     try {
       const bytes = await this.backend.read(this.path(identity));
