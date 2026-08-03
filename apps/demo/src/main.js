@@ -1,22 +1,33 @@
 import "./world.css";
 import { FEATURED_WORLDS, featuredWorld } from "./featured-worlds.js";
+import { SpatialAudioRuntime } from "./spatial-audio.js";
 import { withStudioBundleImport } from "./studio-bundle-import.js";
 import { withStudioClipEditing } from "./studio-clip-edit.js";
 import { withStudioHistory } from "./studio-history.js";
 import { createStudioSurface } from "./studio-surface.js";
+import { withStudioTrackManagement } from "./studio-track-management.js";
 import { STUDIO_TOUCHPOINTS } from "./studio-world.js";
 import { createHodosViewer } from "../../../packages/viewer/src/index.js";
 import { searchWorldRepositories } from "../../../packages/viewer/src/github-worlds.js";
 import { activateLockedPackages, invokeHodos } from "../../../packages/kernel/runtime/hodos-runtime.js";
 
 const root = document.querySelector("#hodos-app");
+const spatialAudio = new SpatialAudioRuntime();
 const viewer = createHodosViewer({
   root,
   invoke: invokeHodos,
   activatePackages: activateLockedPackages,
+  onCameraChange: (camera) => spatialAudio.updateListener(camera),
+  onEffect: (effect) => {
+    if (effect.effect === "audio" && effect.method === "sync-world-sources") {
+      return spatialAudio.sync(effect.args[0] ?? [], effect.args[1]);
+    }
+  },
   surfaces: {
     "hodos/studio": withStudioBundleImport(
-      withStudioClipEditing(withStudioHistory(createStudioSurface)),
+      withStudioClipEditing(
+        withStudioTrackManagement(withStudioHistory(createStudioSurface)),
+      ),
     ),
   },
 });
@@ -60,7 +71,7 @@ function renderDemo(error = "") {
   <div class="world-card welcome-card"><section class="welcome-hero"><div class="welcome-hero-art" role="img" aria-label="A curious young teenager entering a Hodos mosaic world"></div><div class="welcome-hero-veil"></div><div class="welcome-hero-copy"><p class="eyebrow">OPEN WORLDS · HARA IN THE BROWSER</p><h1>Enter a<br><i>living world.</i></h1><p>Hodos bundles repository-defined places through a live Hara kernel, then opens their Gaussian-splat scenes and trusted application surfaces in the browser.</p><a class="hero-action" href="#world-collection">Discover the collection ↓</a></div></section>
   <section class="world-browser" id="world-collection"><div class="section-intro"><p class="eyebrow">THE DEMO</p><h2>World objects.<br>Classical interfaces.</h2></div>${error ? `<p role="alert"><code>${escapeHtml(error)}</code></p>` : ""}<section class="featured-worlds" aria-label="Featured worlds">${FEATURED_WORLDS.map((world) => `<article class="featured-world"><span>${escapeHtml(world.format)}</span><h2>${escapeHtml(world.title)}</h2><p>${escapeHtml(world.description)}</p><div><button type="button" data-featured-world="${escapeHtml(world.id)}">Open world</button><a href="${escapeHtml(world.attribution)}" target="_blank" rel="noreferrer">Source & attribution</a></div></article>`).join("")}</section>
   <p class="world-divider"><span>Find another place</span></p><form class="catalog-form" role="search"><label>Search greenways-worlds<input name="query" type="search" placeholder="garden, apartment, gaussian splat"></label><button type="submit">Search worlds</button></form><div class="catalog-results" aria-live="polite"></div>
-  <form class="world-form"><label>GitHub repository<input name="repo" type="url" required placeholder="https://github.com/owner/world" value="${escapeHtml(state.repository)}"></label><label>Ref (optional)<input name="ref" placeholder="main, tag, or commit SHA" value="${escapeHtml(state.ref)}"></label><label class="mode-control"><input name="strict" type="checkbox" ${state.mode === "strict" ? "checked" : ""}> Strict commits</label><button type="submit">Open with Hodos</button></form></section></div><footer class="welcome-footer"><span>HODOS / WORLDS</span><span>Kernel-bundled places · open repositories</span></footer></div></section>`;
+  <form class="world-form"><label>GitHub repository<input name="repo" type="url" required placeholder="https://github.com/owner/world" value="${escapeHtml(state.repository)}"></label><label>Ref (optional)<input name="ref" placeholder="main, tag, or commit SHA" value="${escapeHtml(state.ref)}"></label><label class="mode-control"><input name="strict" type="checkbox" ${state.mode === "strict" ? "checked" : ""}> Strict commits</label><button type="submit">Open with Hodos</button></form></section></div><footer class="welcome-footer"><span>HODOS / WORLDS</span><span>Kernel-bundled places · embedded Hara</span></footer></div></section>`;
 
   root.querySelector("[data-theme-toggle]").addEventListener("click", () => {
     const current = document.documentElement.dataset.themePreference || "auto";
@@ -132,4 +143,7 @@ if (initial.repository) {
 } else {
   renderDemo();
 }
-window.addEventListener("beforeunload", () => viewer.destroy(), { once: true });
+window.addEventListener("beforeunload", () => {
+  spatialAudio.destroy();
+  viewer.destroy();
+}, { once: true });
