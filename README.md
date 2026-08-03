@@ -14,8 +14,9 @@ The repository deliberately separates reusable technology from presentation:
   sources into the scene, provides direct draft and review controls, and mounts
   only trusted, host-registered 2D application surfaces.
 - `apps/demo` is the Hodos Worlds demonstration using public repositories from
-  [greenways-worlds](https://github.com/greenways-worlds). Its first application
-  surface is a browser-native multitrack music studio prototype.
+  [greenways-worlds](https://github.com/greenways-worlds). Its guided Splat
+  Garden experience combines a tour, live Hara inspector, command deck and the
+  browser-native multitrack Studio.
 
 ## Touchpoints and classical interfaces
 
@@ -32,7 +33,8 @@ This keeps the boundary explicit:
 - PlayCanvas renders and picks the 3D scene, resolves world drop positions, and
   projects source controls.
 - HTML and Canvas render precise classical interfaces such as Studio, the
-  spatial world-draft inspector, and semantic review.
+  spatial world-draft inspector, semantic review, the guided tour and command
+  deck.
 - Web Audio owns decoded buffers, offline rendering, HRTF panners, and the
   real-time audio clock.
 - Web Crypto hashes repository artifacts and signs Hestia contribution
@@ -44,6 +46,8 @@ This keeps the boundary explicit:
 
 See [`docs/touchpoints-and-surfaces.md`](docs/touchpoints-and-surfaces.md) for
 the interaction contract,
+[`docs/guided-showcase.md`](docs/guided-showcase.md) for the complete demo
+journey,
 [`docs/studio-project-model.md`](docs/studio-project-model.md) for the Hara
 track, clip, editing, and undo/redo graph,
 [`docs/studio-storage-and-export.md`](docs/studio-storage-and-export.md) for the
@@ -63,6 +67,13 @@ npm install
 npm test
 npm run build
 ```
+
+The guided showcase opens the composed `greenways-worlds/splat-garden` world
+and derives a five-step journey directly from live Hara state: resolve the
+immutable world, create in Studio, place audio spatially, edit the world draft,
+and produce an accountable publication artifact. The inspector exposes the
+serializable session and declared capabilities; the `M-x`-style command deck
+invokes the same semantic events as the graphical controls.
 
 The current Studio slice supports opening a classical interface from a 3D
 touchpoint, dragging local audio into the arrangement, storing content-addressed
@@ -84,7 +95,7 @@ coordinates, nudge axes, tune gain and audible range, toggle looping and
 playback, remove placements, undo and redo world changes, recover the draft
 from OPFS, and export a portable `.hodos-world.json` document.
 
-Portable drafts can now be imported back against the exact immutable world as
+Portable drafts can be imported back against the exact immutable world as
 semantic proposals. Makers review source additions, removals, and field-level
 changes, accept any subset as one undoable Hara transaction, then produce a
 `git apply`-compatible repository patch or an independently verifiable,
