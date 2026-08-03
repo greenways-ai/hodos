@@ -1,0 +1,7 @@
+{
+  "name": "@greenways/hodos-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": { "edn-data": "1.1.2", "fflate": "^0.8.2" }
+}

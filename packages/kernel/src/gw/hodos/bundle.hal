@@ -1,0 +1,30 @@
+(ns gw.hodos.bundle
+  (:require [std.foundation.string :as string]))
+
+(defn normalize-query [value]
+  (string/lower (string/trim (str (or value "")))))
+
+(defn repository-search-text [repository]
+  (string/lower
+   (str (or (get repository "name") "") " "
+        (or (get repository "full_name") "") " "
+        (or (get repository "description") "") " "
+        (string/join " " (or (get repository "topics") [])))))
+
+(defn catalog-search [repositories query]
+  (let [needle (normalize-query query)]
+    (if (string/blank? needle)
+      repositories
+      (vec (filter
+            (fn [repository]
+              (string/includes? (repository-search-text repository) needle))
+            repositories)))))
+
+(defn open [repository ref mode]
+  {"state" {"status" "resolving"
+            "repository" repository
+            "ref" (or ref "")
+            "mode" (if (= mode "strict") "strict" "dev")}
+   "effects" [{"effect" "github"
+               "method" "resolve-world"
+               "args" [repository (or ref "") mode]}]})

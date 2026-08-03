@@ -1,0 +1,7 @@
+(ns gw.hodos.package)
+
+(defn activation-plan [lock-source]
+  {"state" {"status" "verifying-packages"}
+   "effects" [{"effect" "packages"
+               "method" "activate-lock"
+               "args" [lock-source]}]})

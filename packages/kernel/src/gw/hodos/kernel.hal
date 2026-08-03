@@ -1,0 +1,36 @@
+(ns gw.hodos.kernel
+  (:require [gw.hodos.adaptor :as adaptor]
+            [gw.hodos.bundle :as bundle]
+            [gw.hodos.package :as package]
+            [gw.hodos.scene :as scene]
+            [std.substrate :as substrate]))
+
+(defn host-capabilities []
+  ["github/catalog" "github/world" "packages/locked" "scene/gaussian-splat"])
+
+(def SURFACE
+  (adaptor/surface
+   "@hodos"
+   {"app/capabilities" (fn [space args request node] (host-capabilities))
+    "catalog/search" (fn [space args request node]
+                       (bundle/catalog-search (nth args 0) (nth args 1)))
+    "world/open" (fn [space args request node]
+                   (bundle/open (nth args 0) (nth args 1) (nth args 2)))
+    "package/activate" (fn [space args request node]
+                         (package/activation-plan (nth args 0)))
+    "world/render" (fn [space args request node]
+                     (scene/render (nth args 0)))}
+   {"world/open" {"effects" ["github/world"]}
+    "package/activate" {"effects" ["packages/locked"]}
+    "world/render" {"effects" ["scene/gaussian-splat"]}}))
+
+(def NODE
+  (adaptor/install-direct
+   (substrate/node-create {"id" "hodos"})
+   SURFACE))
+
+(defn dispatch [method-name args]
+  (let [entry (get SURFACE method-name)]
+    (if entry
+      (apply (get entry "fn") [nil (or args []) nil NODE])
+      (throw (str "Unknown Hodos method: " method-name)))))

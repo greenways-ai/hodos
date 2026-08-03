@@ -1,0 +1,5 @@
+(ns gw.hodos.scene)
+
+(defn render [graph]
+  {"state" {"status" "ready" "graph" graph}
+   "effects" [{"effect" "scene" "method" "render-world" "args" [graph]}]})

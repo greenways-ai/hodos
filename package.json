@@ -1,0 +1,13 @@
+{
+  "name": "@greenways/hodos-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build": "npm run build -w @greenways/hodos-demo",
+    "test": "node --test packages/viewer/test/*.test.js apps/demo/test/*.test.js",
+    "audit:hal": "! rg --glob '*.hal' 'greenways\\.' ."
+  },
+  "devDependencies": { "esbuild": "0.28.1" }
+}

@@ -1,0 +1,7 @@
+{:project/name "hodos"
+ :project/id gw/hodos
+ :project/version "0.1.0"
+ :project/license "EPL-2.0"
+ :project/main gw.hodos.kernel
+ :project/source-paths ["packages/kernel/src"]
+ :project/test-paths ["packages/kernel/test"]}
