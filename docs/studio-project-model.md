@@ -35,9 +35,23 @@ A track owns mixing controls and an ordered set of clip records:
  "clips" [...]}
 ```
 
-Gain and mute edits are Hara events. When the transport is playing, a committed
-project edit emits a fresh `audio/apply-transport` effect so the Web Audio host
-reschedules from the new canonical graph.
+A maker can create an empty track through the same Hara command surface used by
+imports:
+
+```clojure
+{"event/type" "studio/track-create"
+ "track" {"id" "track-room"
+          "name" "Room"
+          "gainDb" 0
+          "pan" 0
+          "mute" false
+          "clips" []}}
+```
+
+Hara rejects duplicate track identities. Gain and mute edits are also Hara
+events. When the transport is playing, a committed project edit emits a fresh
+`audio/apply-transport` effect so the Web Audio host reschedules from the new
+canonical graph.
 
 ## Clips
 
@@ -55,8 +69,8 @@ The current slice uses seconds and quarter-second snapping. Project placement,
 source offset, and duration are separate, so editing never rewrites the
 underlying immutable audio asset.
 
-A clip drag is only a browser preview until pointer release. The committed edit
-is sent to Hara:
+A horizontal clip drag is only a browser preview until pointer release. The
+committed edit is sent to Hara:
 
 ```clojure
 {"event/type" "studio/clip-move"
@@ -66,6 +80,23 @@ is sent to Hara:
 
 Keyboard Left and Right invoke the same command in quarter-second increments.
 The DOM never becomes the project authority.
+
+## Moving clips between tracks
+
+Every lane exposes its stable track ID. A dedicated clip grip can preview the
+clip over another lane and calculate a new snapped project time. Pointer release
+commits both dimensions together:
+
+```clojure
+{"event/type" "studio/clip-move-track"
+ "clip" "clip-intro"
+ "track" "track-room"
+ "startSeconds" 2.5}
+```
+
+Hara verifies both identities, removes the clip from its current track, updates
+its project start, and appends it to the target track. The operation is one
+history entry, so undo restores both the previous track and previous time.
 
 ## Structural clip editing
 
@@ -124,14 +155,15 @@ Delete removes only the clip instance, not its shared audio asset:
  "clip" "clip-intro"}
 ```
 
-The surface exposes trim handles plus split, duplicate and delete controls.
-Delete/Backspace and Command/Ctrl-D invoke the same semantic events as the
-buttons.
+The surface exposes trim handles plus track-move, world-placement, split,
+duplicate and delete controls. Delete/Backspace and Command/Ctrl-D invoke the
+same semantic events as the buttons.
 
-## Playback and export
+## Playback, export, and spatial projection
 
-Both real-time playback and offline WAV export iterate the same track/clip
-graph. For every unmuted clip, the host schedules:
+Real-time playback, offline WAV export, portable bundles, and world spatial
+sources all consume the same track/clip graph. For every unmuted clip, the host
+schedules:
 
 ```text
 project start = clip.startSeconds
@@ -140,6 +172,10 @@ duration       = clip.duration
 gain           = track.gainDb
 pan            = track.pan
 ```
+
+A track dragged into the world preserves relative clip placement. A single clip
+dragged into the world is rebased to start at zero. See
+[`spatial-audio.md`](spatial-audio.md) for the world-source lifecycle.
 
 `AudioContext.currentTime` remains the real-time clock. Hara carries transport
 intent and authored placement, not sample-level timing or `AudioBuffer` values.
@@ -150,7 +186,8 @@ Every committed project change records the previous project in the Hara
 session's undo stack and clears redo. Undo and redo exchange canonical project
 snapshots between the two stacks and increment the session revision. If the
 transport is playing, the resulting project is rescheduled through the same
-`audio/apply-transport` effect as a direct edit.
+`audio/apply-transport` effect as a direct edit. If world audio sources exist,
+Hara also requests a spatial rebuild against the restored project.
 
 ```clojure
 {"history"
@@ -158,11 +195,12 @@ transport is playing, the resulting project is rescheduled through the same
   "redo" [later-project ...]}}
 ```
 
-The studio exposes toolbar controls plus Command/Ctrl-Z, Shift-Command/Ctrl-Z,
+The Studio exposes toolbar controls plus Command/Ctrl-Z, Shift-Command/Ctrl-Z,
 and Ctrl-Y. Text fields keep native browser undo; the shortcuts dispatch to
-Hara only when focus is on the studio surface itself. Imports, movement, trim,
-split, duplicate, delete, mixer changes, and future agent proposals therefore
-share one reversible command stream.
+Hara only when focus is on the Studio surface itself. Imports, track creation,
+horizontal or cross-track movement, trim, split, duplicate, delete, mixer
+changes, and future agent proposals therefore share one reversible command
+stream.
 
 ## Legacy project migration
 
@@ -175,10 +213,10 @@ project is then sent back through `studio/restore`, keeping Hara authoritative.
 
 The next editing layer can build on the existing clip identity and range model:
 
-- `studio/clip-move-track`
 - `studio/clip-fade-in`
 - `studio/clip-fade-out`
 - `studio/track-pan`
+- track deletion and orphan-asset cleanup
 - automation lanes and selection-aware commands
 
 A later musical timebase can add tempo maps and integer ticks while preserving
