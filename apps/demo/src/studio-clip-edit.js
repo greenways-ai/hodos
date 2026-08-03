@@ -79,6 +79,8 @@ function installTrimHandle(element, grip, clip, side, project, dispatch) {
 
 function decorateClip(element, clip, project, context) {
   element.dataset.clipId = clip.id;
+  element.setAttribute("role", "group");
+  element.setAttribute("aria-roledescription", "audio clip");
   const document = element.ownerDocument;
   const start = handle(document, "start", `Trim start of ${clip.id}`);
   const end = handle(document, "end", `Trim end of ${clip.id}`);
