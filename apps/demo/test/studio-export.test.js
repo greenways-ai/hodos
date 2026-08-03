@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createProjectBundle, encodeWav } from "../src/studio-export.js";
+import { createProjectBundle, encodeWav, renderProjectMix } from "../src/studio-export.js";
 
 function readStoredZip(bytes) {
   const files = {};
@@ -58,5 +58,45 @@ test("project bundle contains portable Hara state and immutable audio", async ()
   assert.equal(manifest.assets.length, 1);
   assert.ok(files[manifest.assets[0].path]);
   assert.deepEqual(portable.assets[0].storage, { type: "bundle", path: manifest.assets[0].path });
+  assert.equal(portable.tracks[0].clips[0].asset, "sha256:abc");
+  assert.equal("asset" in portable.tracks[0], false);
   assert.equal(new DataView(bundle.buffer, bundle.byteOffset + bundle.byteLength - 22, 22).getUint32(0, true), 0x06054b50);
+});
+
+test("offline mix schedules first-class clips at project and source offsets", async () => {
+  const starts = [];
+  class FakeOfflineAudioContext {
+    constructor(channels, length, sampleRate) {
+      this.channels = channels;
+      this.length = length;
+      this.sampleRate = sampleRate;
+      this.destination = {};
+    }
+    createBufferSource() {
+      return {
+        connect() {},
+        start: (...args) => starts.push(args),
+      };
+    }
+    createGain() {
+      return { gain: { value: 1 }, connect() { return this; } };
+    }
+    createStereoPanner() {
+      return { pan: { value: 0 }, connect() { return this; } };
+    }
+    async startRendering() {
+      return { numberOfChannels: 2, length: this.length, sampleRate: this.sampleRate };
+    }
+  }
+  const buffer = { duration: 8, sampleRate: 48000 };
+  await renderProjectMix({
+    tracks: [{
+      id: "track-1",
+      gainDb: -3,
+      pan: 0.25,
+      mute: false,
+      clips: [{ id: "clip-1", asset: "asset-1", startSeconds: 2, sourceStartSeconds: 0.5, duration: 1.5 }],
+    }],
+  }, new Map([["asset-1", buffer]]), { OfflineAudioContextClass: FakeOfflineAudioContext });
+  assert.deepEqual(starts, [[2, 0.5, 1.5]]);
 });
