@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import { parseEDNString } from "edn-data";
 import { start } from "../../kernel/runtime/hara-vm.mjs";
 import { encodeHalValue } from "../../kernel/runtime/hal-transport.js";
+
+const decode = (value) => parseEDNString(value, {
+  mapAs: "object", setAs: "array", listAs: "array",
+  keywordAs: "string", charAs: "string", objectKeysAs: "string",
+});
 
 const resources = {
   "gw.hodos.adaptor": fs.readFileSync(new URL("../../kernel/src/gw/hodos/adaptor.hal", import.meta.url), "utf8"),
@@ -57,11 +63,11 @@ test("Hara carries session and studio state across touchpoint events", async () 
     asset: { id: "sha256:audio", name: "track.wav" },
     track: { id: "track-2", name: "Track copy", gainDb: 0, mute: false, clips: [{ id: "clip-2", asset: "sha256:audio", startSeconds: 0, sourceStartSeconds: 0, duration: 4 }] },
   }]);
-  const state = dispatch("session/get", ["session-test"]);
-  assert.match(state, /"track-1"/);
-  assert.match(state, /"track-2"/);
-  assert.equal((state.match(/"sha256:audio"/g) ?? []).length, 3);
-  assert.match(state, /"revision" 3/);
+  const state = decode(dispatch("session/get", ["session-test"])).state;
+  assert.deepEqual(state.studio.project.tracks.map(({ id }) => id), ["track-1", "track-2"]);
+  assert.equal(state.studio.project.assets.length, 1);
+  assert.equal(state.studio.project.assets[0].id, "sha256:audio");
+  assert.equal(state.revision, 3);
 
   dispatch("session/event", ["session-test", {
     "event/type": "studio/clip-move", clip: "clip-1", startSeconds: 3.25,
