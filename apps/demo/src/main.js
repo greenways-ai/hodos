@@ -1,6 +1,7 @@
 import "./world.css";
 import { FEATURED_WORLDS, featuredWorld } from "./featured-worlds.js";
 import { withStudioBundleImport } from "./studio-bundle-import.js";
+import { withStudioClipEditing } from "./studio-clip-edit.js";
 import { withStudioHistory } from "./studio-history.js";
 import { createStudioSurface } from "./studio-surface.js";
 import { STUDIO_TOUCHPOINTS } from "./studio-world.js";
@@ -14,7 +15,9 @@ const viewer = createHodosViewer({
   invoke: invokeHodos,
   activatePackages: activateLockedPackages,
   surfaces: {
-    "hodos/studio": withStudioBundleImport(withStudioHistory(createStudioSurface)),
+    "hodos/studio": withStudioBundleImport(
+      withStudioClipEditing(withStudioHistory(createStudioSurface)),
+    ),
   },
 });
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
