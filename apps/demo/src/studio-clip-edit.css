@@ -1,0 +1,11 @@
+.studio-clip{overflow:visible}
+.studio-clip-handle{position:absolute;z-index:5;top:-1px;bottom:-1px;width:10px;padding:0;border:0;background:transparent;cursor:ew-resize;touch-action:none}
+.studio-clip-handle:before{content:"";position:absolute;top:7px;bottom:7px;width:2px;background:rgba(240,213,138,.38)}
+.studio-clip-handle:hover:before,.studio-clip-handle:focus-visible:before,.studio-clip[data-trimming] .studio-clip-handle:before{background:#f0d58a}
+.studio-clip-handle--start{left:-1px}.studio-clip-handle--start:before{left:3px}
+.studio-clip-handle--end{right:-1px}.studio-clip-handle--end:before{right:3px}
+.studio-clip-tools{position:absolute;z-index:6;top:5px;right:7px;display:flex;gap:3px;opacity:0;transition:opacity .12s ease}
+.studio-clip:hover .studio-clip-tools,.studio-clip:focus-within .studio-clip-tools{opacity:1}
+.studio-clip-tools button{display:grid;place-items:center;width:22px;height:20px;padding:0;border:1px solid rgba(240,213,138,.34);background:rgba(8,11,9,.78);color:#e3c97f;font:700 8px var(--mono,ui-monospace,monospace)}
+.studio-clip-tools button:hover,.studio-clip-tools button:focus-visible{border-color:#f0d58a;background:#d6ba70;color:#080b09}
+.studio-clip[data-trimming]{z-index:4;border-color:#f0d58a;background:rgba(214,186,112,.24);box-shadow:0 16px 40px rgba(0,0,0,.34)}
