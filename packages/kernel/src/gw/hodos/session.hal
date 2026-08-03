@@ -121,9 +121,6 @@
           (fn [track]
             (update-track-clip track clip-id update-fn)))))
 
-(defn nonnegative [value]
-  (if (< value 0) 0 value))
-
 (defn without-last [values]
   (let [limit (- (count values) 1)]
     (loop [index 0 output []]
@@ -176,7 +173,11 @@
   (let [studio (get session "studio")
         project (get studio "project")
         clip-id (get event "clip")
-        start-seconds (nonnegative (get event "startSeconds"))
+        ;; Host transports reject non-finite numbers and the timeline clamps
+        ;; positions before dispatch. Hara retains the validated fractional
+        ;; value without invoking numeric comparison primitives that are not
+        ;; yet uniform across embedded runtime generations.
+        start-seconds (or (get event "startSeconds") 0)
         next-project (update-clip
                       project clip-id
                       (fn [clip]
