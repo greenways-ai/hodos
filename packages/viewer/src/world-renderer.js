@@ -9,6 +9,7 @@ import {
   RESOLUTION_AUTO,
   Vec3,
 } from "playcanvas";
+import { hasHodosWorldDrag, readHodosWorldDrag } from "./world-drag.js";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -29,6 +30,13 @@ function addTransform(parent, transform, name) {
   return entity;
 }
 
+function sourcePosition(source) {
+  const value = source?.position;
+  return Array.isArray(value) && value.length === 3 && value.every(Number.isFinite)
+    ? value
+    : [0, 0, 0];
+}
+
 export class WorldRenderer {
   constructor(canvas, {
     background = "#09101a",
@@ -36,14 +44,23 @@ export class WorldRenderer {
     onLayer,
     onTouchpoint,
     touchpointRoot,
+    onWorldDrop,
+    onAudioSource,
+    audioSourceRoot,
+    onCameraChange,
   } = {}) {
     this.canvas = canvas;
     this.onLayer = onLayer || (() => {});
     this.onTouchpoint = onTouchpoint || (() => {});
+    this.onWorldDrop = onWorldDrop || (() => {});
+    this.onAudioSource = onAudioSource || (() => {});
+    this.onCameraChange = onCameraChange || (() => {});
     this.touchpointRoot = touchpointRoot;
+    this.audioSourceRoot = audioSourceRoot;
     this.assets = new Map();
     this.entities = [];
     this.touchpoints = [];
+    this.audioSources = new Map();
     this.bounds = null;
     this.destroyed = false;
     this.abort = new AbortController();
@@ -72,7 +89,7 @@ export class WorldRenderer {
     this.hasSuppliedCamera = Boolean(supplied);
     this.installControls();
     this.updateCamera();
-    this.app.on("update", () => this.updateTouchpoints());
+    this.app.on("update", () => this.updateOverlays());
     this.app.start();
   }
 
@@ -85,6 +102,16 @@ export class WorldRenderer {
     this.orbit.yaw = Math.atan2(offset.x, offset.z) * 180 / Math.PI;
   }
 
+  cameraState() {
+    const position = this.camera.getPosition();
+    const forward = this.orbit.target.clone().sub(position).normalize();
+    return {
+      position: [position.x, position.y, position.z],
+      forward: [forward.x, forward.y, forward.z],
+      up: [0, 1, 0],
+    };
+  }
+
   updateCamera() {
     const yaw = this.orbit.yaw * Math.PI / 180;
     const pitch = this.orbit.pitch * Math.PI / 180;
@@ -95,6 +122,7 @@ export class WorldRenderer {
       this.orbit.target.z + Math.cos(yaw) * horizontal,
     );
     this.camera.lookAt(this.orbit.target);
+    this.onCameraChange(this.cameraState());
   }
 
   installControls() {
@@ -153,6 +181,29 @@ export class WorldRenderer {
       event.preventDefault();
       this.zoom(Math.exp(event.deltaY * 0.001));
     }, { passive: false, signal });
+
+    this.canvas.addEventListener("dragover", (event) => {
+      if (!hasHodosWorldDrag(event.dataTransfer)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      this.canvas.dataset.worldDropActive = "true";
+    }, { signal });
+    this.canvas.addEventListener("dragleave", () => {
+      delete this.canvas.dataset.worldDropActive;
+    }, { signal });
+    this.canvas.addEventListener("drop", (event) => {
+      if (!hasHodosWorldDrag(event.dataTransfer)) return;
+      event.preventDefault();
+      delete this.canvas.dataset.worldDropActive;
+      try {
+        const payload = readHodosWorldDrag(event.dataTransfer);
+        const position = this.worldPointAt(event.clientX, event.clientY);
+        this.onWorldDrop({ payload, position, clientX: event.clientX, clientY: event.clientY });
+      } catch (error) {
+        console.error("Hodos world drop failed", error);
+      }
+    }, { signal });
+
     document.addEventListener("visibilitychange", () => {
       this.app.autoRender = !document.hidden;
       if (!document.hidden) this.app.renderNextFrame = true;
@@ -175,6 +226,40 @@ export class WorldRenderer {
     const up = this.camera.up.clone().mulScalar(dy * scale);
     this.orbit.target.add(right).add(up);
     this.updateCamera();
+  }
+
+  screenRay(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const width = this.app.graphicsDevice.width || this.canvas.width || rect.width;
+    const height = this.app.graphicsDevice.height || this.canvas.height || rect.height;
+    if (!rect.width || !rect.height || !width || !height) return null;
+    const x = (clientX - rect.left) / rect.width * width;
+    const y = (clientY - rect.top) / rect.height * height;
+    const origin = this.camera.getPosition().clone();
+    const far = this.camera.camera.screenToWorld(x, y, this.camera.camera.farClip, new Vec3());
+    return { origin, direction: far.sub(origin).normalize() };
+  }
+
+  worldPointAt(clientX, clientY) {
+    const ray = this.screenRay(clientX, clientY);
+    if (!ray) return [this.orbit.target.x, this.orbit.target.y, this.orbit.target.z];
+    const floorY = this.bounds
+      ? this.bounds.center.y - this.bounds.halfExtents.y
+      : this.orbit.target.y;
+    if (Math.abs(ray.direction.y) > 1e-5) {
+      const distance = (floorY - ray.origin.y) / ray.direction.y;
+      if (distance > 0) {
+        const point = ray.origin.clone().add(ray.direction.clone().mulScalar(distance));
+        return [point.x, point.y + 0.2, point.z];
+      }
+    }
+    const normal = this.orbit.target.clone().sub(ray.origin).normalize();
+    const denominator = ray.direction.dot(normal);
+    const distance = Math.abs(denominator) > 1e-5
+      ? this.orbit.target.clone().sub(ray.origin).dot(normal) / denominator
+      : this.orbit.distance;
+    const point = ray.origin.clone().add(ray.direction.clone().mulScalar(Math.max(0.1, distance)));
+    return [point.x, point.y, point.z];
   }
 
   assetFor(url) {
@@ -275,29 +360,22 @@ export class WorldRenderer {
 
   loadTouchpoints(touchpoints = []) {
     for (const touchpoint of touchpoints) this.addTouchpoint(touchpoint);
-    this.updateTouchpoints();
+    this.updateOverlays();
     return this.touchpoints;
   }
 
   activateTouchpointAt(clientX, clientY) {
     if (!this.touchpoints.length) return null;
-    const rect = this.canvas.getBoundingClientRect();
-    const width = this.app.graphicsDevice.width || this.canvas.width || rect.width;
-    const height = this.app.graphicsDevice.height || this.canvas.height || rect.height;
-    if (!rect.width || !rect.height || !width || !height) return null;
-    const x = (clientX - rect.left) / rect.width * width;
-    const y = (clientY - rect.top) / rect.height * height;
-    const origin = this.camera.getPosition().clone();
-    const far = this.camera.camera.screenToWorld(x, y, this.camera.camera.farClip, new Vec3());
-    const direction = far.sub(origin).normalize();
+    const ray = this.screenRay(clientX, clientY);
+    if (!ray) return null;
     let nearest = null;
 
     for (const entry of this.touchpoints) {
       const center = entry.anchor.getPosition();
-      const offset = center.clone().sub(origin);
-      const along = offset.dot(direction);
+      const offset = center.clone().sub(ray.origin);
+      const along = offset.dot(ray.direction);
       if (along < 0) continue;
-      const closest = origin.clone().add(direction.clone().mulScalar(along));
+      const closest = ray.origin.clone().add(ray.direction.clone().mulScalar(along));
       const distance = center.clone().sub(closest).length();
       if (distance > entry.radius) continue;
       if (!nearest || along < nearest.distance) nearest = { entry, distance: along };
@@ -308,26 +386,100 @@ export class WorldRenderer {
     return nearest.entry.touchpoint;
   }
 
-  updateTouchpoints() {
-    if (!this.touchpoints.length || this.destroyed) return;
+  createAudioSourceElement(source) {
+    if (!this.audioSourceRoot) return null;
+    const document = this.audioSourceRoot.ownerDocument ?? globalThis.document;
+    const root = document.createElement("div");
+    root.className = "hodos-audio-source";
+    const main = document.createElement("button");
+    main.type = "button";
+    main.className = "hodos-audio-source-main";
+    const copy = document.createElement("span");
+    const label = document.createElement("strong");
+    const state = document.createElement("small");
+    copy.append(label, state);
+    main.append(copy);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "hodos-audio-source-remove";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", `Remove ${source.label || source.id}`);
+    main.addEventListener("click", () => this.onAudioSource({ action: "toggle", source: this.audioSources.get(source.id)?.source || source }));
+    remove.addEventListener("click", () => this.onAudioSource({ action: "remove", source: this.audioSources.get(source.id)?.source || source }));
+    root.append(main, remove);
+    this.audioSourceRoot.append(root);
+    return { root, main, remove, label, state };
+  }
+
+  addAudioSource(source) {
+    const anchor = new Entity(`${source.id} spatial audio`);
+    anchor.setPosition(...sourcePosition(source));
+    this.app.root.addChild(anchor);
+    this.entities.push(anchor);
+    const controls = this.createAudioSourceElement(source);
+    const entry = { source, anchor, controls, projected: new Vec3() };
+    this.audioSources.set(source.id, entry);
+    this.updateAudioSourceEntry(entry, source);
+    return entry;
+  }
+
+  updateAudioSourceEntry(entry, source) {
+    entry.source = source;
+    entry.anchor.setPosition(...sourcePosition(source));
+    if (!entry.controls) return;
+    entry.controls.root.dataset.playing = String(Boolean(source.playing));
+    entry.controls.label.textContent = source.label || source.id;
+    entry.controls.state.textContent = source.playing ? "Playing in world" : "Paused in world";
+    entry.controls.main.setAttribute("aria-label", `${source.playing ? "Pause" : "Play"} ${source.label || source.id}`);
+    entry.controls.remove.setAttribute("aria-label", `Remove ${source.label || source.id}`);
+  }
+
+  removeAudioSource(id) {
+    const entry = this.audioSources.get(id);
+    if (!entry) return;
+    entry.controls?.root.remove();
+    entry.anchor.destroy();
+    this.audioSources.delete(id);
+  }
+
+  syncAudioSources(sources = []) {
+    const nextIds = new Set(sources.map((source) => source.id));
+    for (const id of this.audioSources.keys()) {
+      if (!nextIds.has(id)) this.removeAudioSource(id);
+    }
+    for (const source of sources) {
+      const entry = this.audioSources.get(source.id);
+      if (entry) this.updateAudioSourceEntry(entry, source);
+      else this.addAudioSource(source);
+    }
+    this.updateOverlays();
+  }
+
+  projectOverlay(entry, element, marginX = 80, marginY = 60) {
+    if (!element) return;
     const rect = this.canvas.getBoundingClientRect();
     const width = this.app.graphicsDevice.width || this.canvas.width || rect.width;
     const height = this.app.graphicsDevice.height || this.canvas.height || rect.height;
-    if (!rect.width || !rect.height || !width || !height) return;
-
-    for (const entry of this.touchpoints) {
-      if (!entry.button) continue;
-      this.camera.camera.worldToScreen(entry.anchor.getPosition(), entry.projected);
-      const x = entry.projected.x / width * rect.width;
-      const y = entry.projected.y / height * rect.height;
-      const visible = entry.projected.z > 0
-        && x >= -80 && x <= rect.width + 80
-        && y >= -60 && y <= rect.height + 60;
-      entry.button.hidden = !visible;
-      if (!visible) continue;
-      entry.button.style.left = `${x}px`;
-      entry.button.style.top = `${y}px`;
+    if (!rect.width || !rect.height || !width || !height) {
+      element.hidden = true;
+      return;
     }
+    this.camera.camera.worldToScreen(entry.anchor.getPosition(), entry.projected);
+    const x = entry.projected.x / width * rect.width;
+    const y = entry.projected.y / height * rect.height;
+    const visible = entry.projected.z > 0
+      && x >= -marginX && x <= rect.width + marginX
+      && y >= -marginY && y <= rect.height + marginY;
+    element.hidden = !visible;
+    if (!visible) return;
+    element.style.left = `${x}px`;
+    element.style.top = `${y}px`;
+  }
+
+  updateOverlays() {
+    if (this.destroyed) return;
+    for (const entry of this.touchpoints) this.projectOverlay(entry, entry.button);
+    for (const entry of this.audioSources.values()) this.projectOverlay(entry, entry.controls?.root, 100, 70);
   }
 
   focusCamera(camera) {
@@ -349,6 +501,7 @@ export class WorldRenderer {
     this.destroyed = true;
     this.abort.abort();
     for (const { button } of this.touchpoints) button?.remove();
+    for (const id of [...this.audioSources.keys()]) this.removeAudioSource(id);
     this.touchpoints = [];
     this.app.destroy();
     this.assets.clear();
