@@ -32,9 +32,9 @@ host-injected development touchpoints; repository worlds should normally use an
 explicit world position. Imported touchpoints inherit the import transform
 chain.
 
-The viewer currently presents a projected button and also tests the declared
-sphere against a canvas click ray. This lets a Gaussian-splat region behave like
-an interactive object even though SOG does not expose a semantic object tree.
+The viewer presents a projected button and also tests the declared sphere
+against a canvas click ray. This lets a Gaussian-splat region behave like an
+interactive object even though SOG does not expose a semantic object tree.
 
 ## Hara session event
 
@@ -96,24 +96,58 @@ A surface receives:
 ```
 
 It may return a controller with `update(state)`, `handleEffect(effect)`, and
-`destroy()` methods.
+`destroy()` methods. Decorators can add capabilities such as bundle import,
+command history, clip editing, track creation, or world placement without
+changing the generic viewer.
+
+## Dragging surface values into the world
+
+Trusted surfaces can write a bounded JSON envelope to the generic
+`application/x-hodos-world-payload` drag type. During the drag the surface
+narrows so the world canvas can receive the drop. The renderer resolves a world
+position and dispatches:
+
+```clojure
+{"event/type" "world/drop"
+ "payload" typed-surface-value
+ "position" [x y z]}
+```
+
+The viewer does not interpret application-specific payload fields. Hara decides
+whether the type is supported, validates references, updates world state, and
+emits scene/audio effects. Studio track and clip placement are documented in
+[`spatial-audio.md`](spatial-audio.md).
+
+This preserves the same trust boundary as touchpoints:
+
+```text
+3D or 2D gesture
+    ↓
+serializable semantic event
+    ↓
+Hara state transition
+    ↓
+capability-scoped host effects
+```
 
 ## State boundary
 
-Hara stores serialisable logical state:
+Hara stores serializable logical state:
 
 - active world and touchpoint;
 - active surface;
-- studio project, assets, tracks, transport and revision;
-- command/event history in later slices.
+- Studio project, assets, tracks, clips, transport, selection, history and
+  revision;
+- world spatial-source identity, position and play state.
 
-The host stores non-serialisable runtime objects:
+The host stores non-serializable runtime objects:
 
-- PlayCanvas entities;
-- DOM nodes;
-- `File`, `AudioBuffer`, `AudioNode`, and GPU objects;
-- decoded waveform data and the sample-accurate audio clock.
+- PlayCanvas entities and projected DOM markers;
+- `File`, `ArrayBuffer`, `AudioBuffer`, `AudioNode`, `PannerNode`, and GPU
+  objects;
+- OPFS handles, decoded waveform data, and the sample-accurate audio clock.
 
-The studio import path sends only an immutable asset descriptor and track
-record into Hara. Audio bytes remain in the browser host. This is currently a
-page-session store; OPFS-backed asset persistence is the next storage slice.
+Imported audio bytes are content-addressed in OPFS and the serializable project
+is restored into Hara. The world can request installed applications and receive
+typed drag values, but cannot directly read browser storage, create Web Audio
+nodes, or mutate the DOM.
