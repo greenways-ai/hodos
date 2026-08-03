@@ -50,18 +50,33 @@ test("Hara carries session and studio state across touchpoint events", async () 
   dispatch("session/event", ["session-test", {
     "event/type": "studio/import",
     asset: { id: "sha256:audio", name: "track.wav" },
-    track: { id: "track-1", name: "Track", asset: "sha256:audio", gainDb: 0, mute: false },
+    track: { id: "track-1", name: "Track", gainDb: 0, mute: false, clips: [{ id: "clip-1", asset: "sha256:audio", startSeconds: 0, sourceStartSeconds: 0, duration: 4 }] },
   }]);
   dispatch("session/event", ["session-test", {
     "event/type": "studio/import",
     asset: { id: "sha256:audio", name: "track.wav" },
-    track: { id: "track-2", name: "Track copy", asset: "sha256:audio", gainDb: 0, mute: false },
+    track: { id: "track-2", name: "Track copy", gainDb: 0, mute: false, clips: [{ id: "clip-2", asset: "sha256:audio", startSeconds: 0, sourceStartSeconds: 0, duration: 4 }] },
   }]);
   const state = dispatch("session/get", ["session-test"]);
   assert.match(state, /"track-1"/);
   assert.match(state, /"track-2"/);
   assert.equal((state.match(/"sha256:audio"/g) ?? []).length, 3);
   assert.match(state, /"revision" 3/);
+
+  dispatch("session/event", ["session-test", {
+    "event/type": "studio/clip-move", clip: "clip-1", startSeconds: 3.25,
+  }]);
+  dispatch("session/event", ["session-test", {
+    "event/type": "studio/track-gain", track: "track-1", gainDb: -6,
+  }]);
+  dispatch("session/event", ["session-test", {
+    "event/type": "studio/track-mute", track: "track-2", mute: true,
+  }]);
+  const edited = dispatch("session/get", ["session-test"]);
+  assert.match(edited, /"startSeconds" 3.25/);
+  assert.match(edited, /"gainDb" -6/);
+  assert.match(edited, /"mute" true/);
+  assert.match(edited, /"revision" 6/);
 });
 
 test("Hara restores a durable browser project into the active session", async () => {
@@ -77,7 +92,7 @@ test("Hara restores a durable browser project into the active session", async ()
       id: "local/current",
       title: "Restored song",
       assets: [{ id: "sha256:saved", storage: { type: "opfs", key: "assets/saved.bin" } }],
-      tracks: [{ id: "saved-track", asset: "sha256:saved" }],
+      tracks: [{ id: "saved-track", gainDb: 0, mute: false, clips: [{ id: "saved-clip", asset: "sha256:saved", startSeconds: 0, sourceStartSeconds: 0, duration: 1 }] }],
     },
   }]);
   assert.match(restored, /"Restored song"/);
