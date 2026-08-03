@@ -1,0 +1,288 @@
+(ns gw.hodos.session-publication
+  (:require [gw.hodos.session :as base]
+            [gw.hodos.session-draft :as draft]))
+
+(def ^:private *reviews* (atom {}))
+
+(defn empty-review []
+  {"proposal" nil
+   "selected" []
+   "stale" false
+   "publications" []})
+
+(defn review-value [session-id]
+  (or (get (deref *reviews*) session-id)
+      (throw (str "Unknown Hodos publication session: " session-id))))
+
+(defn store-review [session-id review]
+  (do
+    (swap! *reviews* (fn [reviews]
+                       (assoc reviews session-id review)))
+    review))
+
+(defn merge-review-state [state review]
+  (let [world (get state "world")
+        next-world (assoc
+                    (assoc world "review" review)
+                    "publications" (or (get review "publications") []))]
+    (assoc state "world" next-world)))
+
+(defn merge-review-result [result review]
+  (assoc result "state"
+         (merge-review-state (get result "state") review)))
+
+(defn open [session-id world]
+  (let [result (draft/open session-id world)
+        review (store-review session-id (empty-review))]
+    (merge-review-result result review)))
+
+(defn get-session [session-id]
+  (merge-review-result (draft/get-session session-id)
+                       (review-value session-id)))
+
+(defn close [session-id]
+  (do
+    (swap! *reviews* (fn [reviews]
+                       (dissoc reviews session-id)))
+    (draft/close session-id)))
+
+(defn vector-contains? [values target]
+  (loop [index 0]
+    (if (= index (count values))
+      false
+      (if (= (nth values index) target)
+        true
+        (recur (+ index 1))))))
+
+(defn vector-remove [values target]
+  (vec (filter (fn [value] (not (= value target))) values)))
+
+(defn toggle-selected [selected change-id]
+  (if (vector-contains? selected change-id)
+    (vector-remove selected change-id)
+    (conj selected change-id)))
+
+(defn change-ids [changes]
+  (loop [index 0 output []]
+    (if (= index (count changes))
+      output
+      (recur (+ index 1)
+             (conj output (get (nth changes index) "id"))))))
+
+(defn remove-source [sources source-id]
+  (vec (filter
+        (fn [source]
+          (not (= (get source "id") source-id)))
+        sources)))
+
+(defn apply-change [sources change]
+  (let [operation (get change "op")
+        source-id (get change "source")
+        after (get change "after")]
+    (cond
+      (= operation "add")
+      (if (base/source-present? sources source-id)
+        (throw (str "Imported source already exists: " source-id))
+        (conj sources after))
+
+      (= operation "remove")
+      (if (base/source-present? sources source-id)
+        (remove-source sources source-id)
+        (throw (str "Imported removal references an unknown source: " source-id)))
+
+      (= operation "replace")
+      (if (base/source-present? sources source-id)
+        (base/update-source sources source-id (fn [source] after))
+        (throw (str "Imported change references an unknown source: " source-id)))
+
+      :else
+      (throw (str "Unsupported world draft change operation: " operation)))))
+
+(defn apply-selected-changes [sources changes selected]
+  (loop [index 0 output sources]
+    (if (= index (count changes))
+      output
+      (let [change (nth changes index)]
+        (recur (+ index 1)
+               (if (vector-contains? selected (get change "id"))
+                 (apply-change output change)
+                 output))))))
+
+(defn world-mutating-event? [event-type]
+  (or (= event-type "world/drop")
+      (= event-type "world/audio-move")
+      (= event-type "world/audio-gain")
+      (= event-type "world/audio-range")
+      (= event-type "world/audio-loop")
+      (= event-type "world/audio-toggle")
+      (= event-type "world/audio-remove")
+      (= event-type "world/history-undo")
+      (= event-type "world/history-redo")
+      (= event-type "world/draft-restore")))
+
+(defn propose-draft [session-id state event]
+  (let [proposal (get event "proposal")
+        current (draft/draft-value session-id)
+        changes (or (get proposal "changes") [])]
+    (cond
+      (not (= (get proposal "format") "hodos-world-draft-proposal"))
+      (throw "World draft proposal has an unsupported format")
+
+      (not (= (get proposal "version") "0.1.0"))
+      (throw "World draft proposal has an unsupported version")
+
+      (not (= (get proposal "identity") (draft/world-identity state)))
+      (throw "World draft proposal targets a different world identity")
+
+      (not (= (get proposal "baseRevision") (get current "revision")))
+      (throw "World draft proposal was computed against a stale revision")
+
+      (= (count changes) 0)
+      (throw "World draft proposal contains no semantic changes")
+
+      :else
+      (let [review (review-value session-id)
+            selected (or (get proposal "selected") (change-ids changes))
+            next-review (assoc
+                         (assoc
+                          (assoc review "proposal" proposal)
+                          "selected" selected)
+                         "stale" false)]
+        (store-review session-id next-review)
+        {"state" (merge-review-state state next-review)
+         "effects" []}))))
+
+(defn toggle-review-change [session-id state event]
+  (let [review (review-value session-id)
+        proposal (get review "proposal")
+        change-id (get event "change")]
+    (if (nil? proposal)
+      (throw "There is no world draft proposal to review")
+      (let [valid (vector-contains? (change-ids (get proposal "changes")) change-id)]
+        (if (not valid)
+          (throw (str "Unknown world draft proposal change: " change-id))
+          (let [next-review (assoc review "selected"
+                                   (toggle-selected (or (get review "selected") []) change-id))]
+            (store-review session-id next-review)
+            {"state" (merge-review-state state next-review)
+             "effects" []}))))))
+
+(defn clear-proposal [review]
+  (assoc
+   (assoc
+    (assoc review "proposal" nil)
+    "selected" [])
+   "stale" false))
+
+(defn accept-review [session-id state]
+  (let [review (review-value session-id)
+        proposal (get review "proposal")
+        selected (or (get review "selected") [])
+        current (draft/draft-value session-id)]
+    (cond
+      (nil? proposal) (throw "There is no world draft proposal to accept")
+      (get review "stale") (throw "World draft proposal is stale and must be imported again")
+      (not (= (get proposal "baseRevision") (get current "revision")))
+      (throw "World draft proposal is stale and must be imported again")
+      (= (count selected) 0) (throw "Select at least one world draft change")
+      :else
+      (let [sources (or (get current "audioSources") [])
+            next-sources (apply-selected-changes
+                          sources
+                          (or (get proposal "changes") [])
+                          selected)
+            result (draft/draft-change session-id state next-sources)
+            next-review (clear-proposal review)]
+        (store-review session-id next-review)
+        (merge-review-result result next-review)))))
+
+(defn reject-review [session-id state]
+  (let [next-review (clear-proposal (review-value session-id))]
+    (store-review session-id next-review)
+    {"state" (merge-review-state state next-review)
+     "effects" []}))
+
+(defn ensure-publishable [session-id]
+  (let [review (review-value session-id)
+        current (draft/draft-value session-id)]
+    (cond
+      (not (nil? (get review "proposal")))
+      (throw "Finish or reject the active world draft review before publishing")
+      (= (count (or (get current "audioSources") [])) 0)
+      (throw "World draft has no sources to publish")
+      :else current)))
+
+(defn publish-repository [session-id state]
+  (let [current (ensure-publishable session-id)]
+    {"state" (merge-review-state state (review-value session-id))
+     "effects" [{"effect" "publication"
+                 "method" "repository-patch"
+                 "args" [(draft/world-identity state)
+                         (draft/draft-snapshot current)]}]}))
+
+(defn publish-hestia [session-id state event]
+  (let [current (ensure-publishable session-id)
+        room (get event "room")]
+    (if (or (nil? room) (= room ""))
+      (throw "Hestia publication requires a room identifier")
+      {"state" (merge-review-state state (review-value session-id))
+       "effects" [{"effect" "publication"
+                   "method" "hestia-contribution"
+                   "args" [(draft/world-identity state)
+                           (draft/draft-snapshot current)
+                           room]}]})))
+
+(defn publication-complete [session-id state event]
+  (let [review (review-value session-id)
+        receipt (get event "receipt")
+        next-review (assoc review "publications"
+                           (conj (or (get review "publications") []) receipt))]
+    (store-review session-id next-review)
+    {"state" (merge-review-state state next-review)
+     "effects" []}))
+
+(defn publication-failed [session-id state event]
+  (publication-complete
+   session-id state
+   {"receipt" {"target" (get event "target")
+               "status" "failed"
+               "error" (get event "error")
+               "createdAt" (get event "createdAt")}}))
+
+(defn event [session-id input]
+  (let [event-type (get input "event/type")
+        state (get (draft/get-session session-id) "state")]
+    (cond
+      (= event-type "world/draft-propose")
+      (propose-draft session-id state input)
+
+      (= event-type "world/draft-review-toggle")
+      (toggle-review-change session-id state input)
+
+      (= event-type "world/draft-review-accept")
+      (accept-review session-id state)
+
+      (= event-type "world/draft-review-reject")
+      (reject-review session-id state)
+
+      (= event-type "world/publish-repository")
+      (publish-repository session-id state)
+
+      (= event-type "world/publish-hestia")
+      (publish-hestia session-id state input)
+
+      (= event-type "world/publication-complete")
+      (publication-complete session-id state input)
+
+      (= event-type "world/publication-failed")
+      (publication-failed session-id state input)
+
+      :else
+      (let [review (review-value session-id)
+            result (draft/event session-id input)
+            next-review (if (and (not (nil? (get review "proposal")))
+                                 (world-mutating-event? event-type))
+                          (assoc review "stale" true)
+                          review)]
+        (store-review session-id next-review)
+        (merge-review-result result next-review)))))

@@ -6,6 +6,7 @@ import packageSource from "../src/gw/hodos/package.hal";
 import sceneSource from "../src/gw/hodos/scene.hal";
 import sessionSource from "../src/gw/hodos/session.hal";
 import sessionDraftSource from "../src/gw/hodos/session_draft.hal";
+import sessionPublicationSource from "../src/gw/hodos/session_publication.hal";
 import kernelSource from "../src/gw/hodos/kernel.hal";
 import { installLockedPackages } from "./hara-packages.js";
 import { encodeHalValue } from "./hal-transport.js";
@@ -17,6 +18,7 @@ const runtime = await start({ resources: {
   "gw.hodos.scene": sceneSource,
   "gw.hodos.session": sessionSource,
   "gw.hodos.session-draft": sessionDraftSource,
+  "gw.hodos.session-publication": sessionPublicationSource,
   "gw.hodos.kernel": kernelSource,
 } });
 runtime.require("gw.hodos.kernel");

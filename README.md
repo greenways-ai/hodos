@@ -7,10 +7,11 @@ packages, and the viewer renders its Gaussian-splat scene.
 The repository deliberately separates reusable technology from presentation:
 
 - `packages/kernel` owns the `gw.hodos.*` HAL surface, bundling, persistent
-  browser sessions, package plans, scene commands, and editable world drafts.
+  browser sessions, package plans, scene commands, editable world drafts,
+  semantic review, and publication intent.
 - `packages/viewer` is an embeddable browser viewer with no featured-world or
   landing-page policy. It projects spatial touchpoints and world-owned audio
-  sources into the scene, provides direct draft editing controls, and mounts
+  sources into the scene, provides direct draft and review controls, and mounts
   only trusted, host-registered 2D application surfaces.
 - `apps/demo` is the Hodos Worlds demonstration using public repositories from
   [greenways-worlds](https://github.com/greenways-worlds). Its first application
@@ -25,18 +26,21 @@ the browser then mounts the matching trusted HTML application.
 
 This keeps the boundary explicit:
 
-- Hara carries world, world-draft, surface, Studio project, track, clip, mixer,
-  spatial-source, transport, command-history, and revision state.
+- Hara carries world, world-draft, proposal, publication-receipt, surface,
+  Studio project, track, clip, mixer, spatial-source, transport,
+  command-history, and revision state.
 - PlayCanvas renders and picks the 3D scene, resolves world drop positions, and
   projects source controls.
-- HTML and Canvas render precise classical interfaces such as Studio and the
-  spatial world-draft inspector.
+- HTML and Canvas render precise classical interfaces such as Studio, the
+  spatial world-draft inspector, and semantic review.
 - Web Audio owns decoded buffers, offline rendering, HRTF panners, and the
   real-time audio clock.
+- Web Crypto hashes repository artifacts and signs Hestia contribution
+  envelopes; signing keys remain browser-owned.
 - OPFS owns durable local media, Studio project snapshots, and world-draft
   snapshots.
 - A world can request a registered surface by ID, but cannot inject arbitrary
-  HTML or obtain direct DOM, audio-node, or filesystem access.
+  HTML or obtain direct DOM, audio-node, signing-key, or filesystem access.
 
 See [`docs/touchpoints-and-surfaces.md`](docs/touchpoints-and-surfaces.md) for
 the interaction contract,
@@ -45,9 +49,12 @@ track, clip, editing, and undo/redo graph,
 [`docs/studio-storage-and-export.md`](docs/studio-storage-and-export.md) for the
 persistence and portable bundle contract,
 [`docs/spatial-audio.md`](docs/spatial-audio.md) for Studio-to-world drag and
-spatial playback, and
+spatial playback,
 [`docs/world-drafts.md`](docs/world-drafts.md) for editable, persistent local
-world state.
+world state, and
+[`docs/world-draft-review-and-publication.md`](docs/world-draft-review-and-publication.md)
+for exact-world imports, semantic acceptance, repository patches, and signed
+Hestia contributions.
 
 ## Development
 
@@ -71,12 +78,18 @@ A complete track or individual clip can also be dragged from Studio into the
 marker, tracks the camera as the Web Audio listener, and projects the selected
 clip graph through an HRTF `PannerNode`.
 
-Those spatial placements now form a versioned Hara world draft tied to the
-exact repository commit. Makers can reposition sources, enter precise XYZ
+Those spatial placements form a versioned Hara world draft tied to the exact
+repository commit. Makers can reposition sources, enter precise XYZ
 coordinates, nudge axes, tune gain and audible range, toggle looping and
 playback, remove placements, undo and redo world changes, recover the draft
 from OPFS, and export a portable `.hodos-world.json` document.
 
+Portable drafts can now be imported back against the exact immutable world as
+semantic proposals. Makers review source additions, removals, and field-level
+changes, accept any subset as one undoable Hara transaction, then produce a
+`git apply`-compatible repository patch or an independently verifiable,
+ECDSA-signed Hestia-room contribution.
+
 Fades, automation, recording, generated stems, a musical tick/tempo timebase,
-general world components, draft import/publication, collaboration, and model
-providers remain subsequent slices.
+general world components, direct GitHub PR creation, Hestia network submission,
+collaboration, and model providers remain subsequent slices.
