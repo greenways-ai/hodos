@@ -17,6 +17,7 @@ const resources = {
   "gw.hodos.scene": fs.readFileSync(new URL("../../kernel/src/gw/hodos/scene.hal", import.meta.url), "utf8"),
   "gw.hodos.session": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session.hal", import.meta.url), "utf8"),
   "gw.hodos.session-draft": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_draft.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-publication": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_publication.hal", import.meta.url), "utf8"),
   "gw.hodos.kernel": fs.readFileSync(new URL("../../kernel/src/gw/hodos/kernel.hal", import.meta.url), "utf8"),
 };
 
@@ -34,6 +35,8 @@ test("browser VM exposes the HAL kernel through its generated adaptor surface", 
   const capabilities = runtime.eval('(gw.hodos.kernel/dispatch "app/capabilities" [])');
   assert.match(capabilities, /"ui\/surfaces"/);
   assert.match(capabilities, /"world\/draft"/);
+  assert.match(capabilities, /"world\/draft-review"/);
+  assert.match(capabilities, /"publication\/hestia-contribution"/);
 });
 
 test("Hara carries session and studio state across touchpoint events", async () => {
