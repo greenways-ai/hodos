@@ -24,7 +24,8 @@ the browser then mounts the matching trusted HTML application.
 
 This keeps the boundary explicit:
 
-- Hara carries world, surface, studio project, transport, and revision state.
+- Hara carries world, surface, studio project, clip, mixer, transport, and
+  revision state.
 - PlayCanvas renders and picks the 3D scene.
 - HTML and Canvas render precise classical interfaces such as the studio.
 - Web Audio owns decoded buffers and the real-time audio clock.
@@ -33,9 +34,11 @@ This keeps the boundary explicit:
   HTML or obtain direct DOM or filesystem access.
 
 See [`docs/touchpoints-and-surfaces.md`](docs/touchpoints-and-surfaces.md) for
-the interaction contract and
+the interaction contract,
+[`docs/studio-project-model.md`](docs/studio-project-model.md) for the Hara
+track and clip graph, and
 [`docs/studio-storage-and-export.md`](docs/studio-storage-and-export.md) for the
-studio persistence and portable export boundary.
+persistence and portable export boundary.
 
 ## Development
 
@@ -48,8 +51,10 @@ npm run build
 The current studio slice supports opening a surface from a 3D touchpoint,
 dragging local audio into the arrangement, storing content-addressed media in
 origin-private browser storage, restoring the Hara project on a later visit,
-drawing waveforms, playing through Web Audio, rendering a WAV mix, and exporting
-a portable project bundle containing both Hara state and immutable audio.
+drawing waveforms, moving clips on a horizontal timeline, editing track gain
+and mute, playing through Web Audio, rendering a WAV mix, and exporting a
+portable project bundle containing both Hara state and immutable audio.
 
-Clip positioning, trim and split commands, recording, generated stems, spatial
-track placement in the world, and model providers remain subsequent slices.
+Trim, split, duplicate and delete commands, undo/redo, recording, generated
+stems, spatial track placement in the world, a musical tick/tempo timebase, and
+model providers remain subsequent slices.
