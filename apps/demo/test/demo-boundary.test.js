@@ -7,5 +7,7 @@ test("demo consumes the viewer package and installs the studio surface", () => {
   assert.match(source, /createHodosViewer/);
   assert.match(source, /hodos\/studio/);
   assert.match(source, /STUDIO_TOUCHPOINTS/);
+  assert.match(source, /withStudioHistory/);
+  assert.match(source, /withStudioBundleImport/);
   assert.doesNotMatch(source, /class WorldRenderer/);
 });
