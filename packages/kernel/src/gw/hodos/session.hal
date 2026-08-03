@@ -96,6 +96,12 @@
       (recur (+ index 1)
              (conj output (update-fn (nth values index)))))))
 
+(defn append-vector [output values]
+  (loop [index 0 next output]
+    (if (= index (count values))
+      next
+      (recur (+ index 1) (conj next (nth values index))))))
+
 (defn update-track [project track-id update-fn]
   (assoc project "tracks"
          (map-vector
@@ -120,6 +126,44 @@
           (or (get project "tracks") [])
           (fn [track]
             (update-track-clip track clip-id update-fn)))))
+
+(defn track-clip-present? [track clip-id]
+  (let [clips (or (get track "clips") [])]
+    (loop [index 0]
+      (if (= index (count clips))
+        false
+        (if (= (get (nth clips index) "id") clip-id)
+          true
+          (recur (+ index 1)))))))
+
+(defn project-clip-present? [project clip-id]
+  (let [tracks (or (get project "tracks") [])]
+    (loop [index 0]
+      (if (= index (count tracks))
+        false
+        (if (track-clip-present? (nth tracks index) clip-id)
+          true
+          (recur (+ index 1)))))))
+
+(defn rewrite-track-clips [track target rewrite-fn]
+  (let [clips (or (get track "clips") [])]
+    (assoc track "clips"
+           (loop [index 0 output []]
+             (if (= index (count clips))
+               output
+               (let [clip (nth clips index)]
+                 (if (= (get clip "id") target)
+                   (recur (+ index 1) (append-vector output (rewrite-fn clip)))
+                   (recur (+ index 1) (conj output clip)))))))))
+
+(defn rewrite-project-clips [project target rewrite-fn]
+  (if (project-clip-present? project target)
+    (assoc project "tracks"
+           (map-vector
+            (or (get project "tracks") [])
+            (fn [track]
+              (rewrite-track-clips track target rewrite-fn))))
+    (throw (str "Unknown studio clip: " target))))
 
 (defn without-last [values]
   (let [limit (- (count values) 1)]
@@ -183,6 +227,52 @@
                       (fn [clip]
                         (assoc clip "startSeconds" start-seconds)))]
     (project-change session next-project)))
+
+(defn replace-clip [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        clip (get event "clip")
+        clip-id (get clip "id")
+        next-project (rewrite-project-clips
+                      project clip-id
+                      (fn [old] [clip]))]
+    (project-change session next-project)))
+
+(defn split-clip [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        target (get event "target")
+        left (get event "left")
+        right (get event "right")]
+    (if (not (= (get left "id") target))
+      (throw "Left split clip must preserve the target id")
+      (if (= (get right "id") target)
+        (throw "Right split clip requires a new id")
+        (if (project-clip-present? project (get right "id"))
+          (throw (str "Studio clip id already exists: " (get right "id")))
+          (project-change
+           session
+           (rewrite-project-clips project target (fn [old] [left right]))))))))
+
+(defn insert-after-clip [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        target (get event "target")
+        clip (get event "clip")
+        clip-id (get clip "id")]
+    (if (project-clip-present? project clip-id)
+      (throw (str "Studio clip id already exists: " clip-id))
+      (project-change
+       session
+       (rewrite-project-clips project target (fn [old] [old clip]))))))
+
+(defn delete-clip [session event]
+  (let [studio (get session "studio")
+        project (get studio "project")
+        target (get event "clip")]
+    (project-change
+     session
+     (rewrite-project-clips project target (fn [old] [])))))
 
 (defn set-track-gain [session event]
   (let [studio (get session "studio")
@@ -253,17 +343,25 @@
             (restore-project session event)
             (if (= event-type "studio/clip-move")
               (move-clip session event)
-              (if (= event-type "studio/track-gain")
-                (set-track-gain session event)
-                (if (= event-type "studio/track-mute")
-                  (set-track-mute session event)
-                  (if (= event-type "studio/history-undo")
-                    (undo-project session)
-                    (if (= event-type "studio/history-redo")
-                      (redo-project session)
-                      (if (= event-type "studio/transport")
-                        (apply-transport session event)
-                        (throw (str "Unknown Hodos session event: " event-type))))))))))))))
+              (if (= event-type "studio/clip-replace")
+                (replace-clip session event)
+                (if (= event-type "studio/clip-split")
+                  (split-clip session event)
+                  (if (= event-type "studio/clip-insert-after")
+                    (insert-after-clip session event)
+                    (if (= event-type "studio/clip-delete")
+                      (delete-clip session event)
+                      (if (= event-type "studio/track-gain")
+                        (set-track-gain session event)
+                        (if (= event-type "studio/track-mute")
+                          (set-track-mute session event)
+                          (if (= event-type "studio/history-undo")
+                            (undo-project session)
+                            (if (= event-type "studio/history-redo")
+                              (redo-project session)
+                              (if (= event-type "studio/transport")
+                                (apply-transport session event)
+                                (throw (str "Unknown Hodos session event: " event-type))))))))))))))))))
 
 (defn event [session-id input]
   (let [current (session-value session-id)
