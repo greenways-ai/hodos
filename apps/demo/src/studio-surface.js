@@ -1,7 +1,10 @@
 import "./studio.css";
+import "./studio-timeline.css";
 import {
+  clipsForTrack,
   createProjectBundle,
   encodeWav,
+  normalizeProject,
   renderProjectMix,
   safeFilename,
   saveBlob,
@@ -9,6 +12,10 @@ import {
 import { createStudioStore } from "./studio-storage.js";
 
 const AUDIO_EXTENSIONS = /\.(?:wav|mp3|m4a|aac|ogg|flac|webm)$/i;
+const PIXELS_PER_SECOND = 42;
+const MIN_TIMELINE_SECONDS = 24;
+const TRACK_HEADER_WIDTH = 154;
+const SNAP_SECONDS = 0.25;
 const decibels = (value) => 10 ** (Number(value || 0) / 20);
 const randomId = (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
 
@@ -99,15 +106,28 @@ export class StudioAudioRuntime {
     const when = context.currentTime + 0.03;
     for (const track of project?.tracks ?? []) {
       if (track.mute) continue;
-      const buffer = this.buffers.get(track.asset);
-      if (!buffer) continue;
-      const source = context.createBufferSource();
-      const gain = context.createGain();
-      source.buffer = buffer;
-      gain.gain.value = decibels(track.gainDb);
-      source.connect(gain).connect(context.destination);
-      source.start(when + Number(track.startSeconds || 0));
-      this.sources.push(source);
+      for (const clip of clipsForTrack(track, project)) {
+        const buffer = this.buffers.get(clip.asset);
+        if (!buffer) continue;
+        const sourceStart = Math.max(0, Number(clip.sourceStartSeconds || 0));
+        const available = Math.max(0, buffer.duration - sourceStart);
+        const duration = Math.min(available, Number(clip.duration || available));
+        if (duration <= 0) continue;
+        const source = context.createBufferSource();
+        const gain = context.createGain();
+        source.buffer = buffer;
+        gain.gain.value = decibels(track.gainDb);
+        source.connect(gain);
+        if (typeof context.createStereoPanner === "function") {
+          const panner = context.createStereoPanner();
+          panner.pan.value = Math.max(-1, Math.min(1, Number(track.pan || 0)));
+          gain.connect(panner).connect(context.destination);
+        } else {
+          gain.connect(context.destination);
+        }
+        source.start(when + Math.max(0, Number(clip.startSeconds || 0)), sourceStart, duration);
+        this.sources.push(source);
+      }
     }
   }
 
@@ -196,7 +216,7 @@ export function createStudioSurface({ root, dispatch }) {
         <div class="studio-assets" data-assets></div>
       </aside>
       <main class="studio-arrangement">
-        <div class="studio-ruler"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span></div>
+        <div class="studio-ruler" data-ruler></div>
         <div class="studio-tracks" data-tracks></div>
         <div class="studio-empty" data-empty><strong>Drop audio into the arrangement</strong><span>Your project is restored when this world is opened again on this browser.</span></div>
       </main>
@@ -214,6 +234,7 @@ export function createStudioSurface({ root, dispatch }) {
 
   const app = root.querySelector(".studio-app");
   const tracksRoot = root.querySelector("[data-tracks]");
+  const ruler = root.querySelector("[data-ruler]");
   const assetsRoot = root.querySelector("[data-assets]");
   const empty = root.querySelector("[data-empty]");
   const status = root.querySelector("[data-status]");
@@ -225,7 +246,7 @@ export function createStudioSurface({ root, dispatch }) {
 
   async function saveNow(project = currentProject(session)) {
     if (!persistenceReady || !project) return;
-    await store.saveProject(project);
+    await store.saveProject(normalizeProject(project));
   }
 
   function queueSave(next) {
@@ -301,11 +322,16 @@ export function createStudioSurface({ root, dispatch }) {
         const track = {
           id: randomId("track"),
           name: basename(file.name),
-          asset: asset.id,
           gainDb: 0,
           pan: 0,
           mute: false,
-          startSeconds: 0,
+          clips: [{
+            id: randomId("clip"),
+            asset: asset.id,
+            startSeconds: 0,
+            sourceStartSeconds: 0,
+            duration: asset.duration,
+          }],
         };
         dispatch({ "event/type": "studio/import", asset, track });
       }
@@ -341,13 +367,79 @@ export function createStudioSurface({ root, dispatch }) {
     importFiles(event.dataTransfer.files);
   });
 
+  function projectDuration(project) {
+    let duration = MIN_TIMELINE_SECONDS;
+    for (const track of project?.tracks ?? []) {
+      for (const clip of clipsForTrack(track, project)) {
+        duration = Math.max(duration, Number(clip.startSeconds || 0) + Number(clip.duration || 0) + 2);
+      }
+    }
+    return Math.ceil(duration / 4) * 4;
+  }
+
+  function installClipDrag(element, clip) {
+    let drag = null;
+    const setPreview = (seconds) => {
+      element.style.left = `${seconds * PIXELS_PER_SECOND}px`;
+      element.dataset.start = `${seconds.toFixed(2)}s`;
+    };
+    element.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      element.setPointerCapture(event.pointerId);
+      drag = { pointer: event.pointerId, x: event.clientX, start: Number(clip.startSeconds || 0), next: Number(clip.startSeconds || 0) };
+      element.dataset.dragging = "true";
+      event.preventDefault();
+    });
+    element.addEventListener("pointermove", (event) => {
+      if (!drag || drag.pointer !== event.pointerId) return;
+      const raw = Math.max(0, drag.start + (event.clientX - drag.x) / PIXELS_PER_SECOND);
+      drag.next = Math.round(raw / SNAP_SECONDS) * SNAP_SECONDS;
+      setPreview(drag.next);
+    });
+    const finish = (event) => {
+      if (!drag || drag.pointer !== event.pointerId) return;
+      const next = drag.next;
+      drag = null;
+      delete element.dataset.dragging;
+      dispatch({ "event/type": "studio/clip-move", clip: clip.id, startSeconds: next });
+    };
+    element.addEventListener("pointerup", finish);
+    element.addEventListener("pointercancel", () => {
+      if (drag) setPreview(drag.start);
+      drag = null;
+      delete element.dataset.dragging;
+    });
+    element.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      event.preventDefault();
+      const direction = event.key === "ArrowLeft" ? -1 : 1;
+      dispatch({
+        "event/type": "studio/clip-move",
+        clip: clip.id,
+        startSeconds: Math.max(0, Number(clip.startSeconds || 0) + direction * SNAP_SECONDS),
+      });
+    });
+  }
+
   function render(next) {
     session = next;
-    const project = currentProject(next) ?? { title: "Untitled project", assets: [], tracks: [] };
+    const project = normalizeProject(currentProject(next) ?? { id: "local/current", title: "Untitled project", assets: [], tracks: [] });
     root.querySelector(".studio-project-title strong").textContent = project.title;
     tracksRoot.replaceChildren();
     assetsRoot.replaceChildren();
+    ruler.replaceChildren();
     empty.hidden = Boolean(project.tracks.length);
+
+    const seconds = projectDuration(project);
+    const timelineWidth = seconds * PIXELS_PER_SECOND;
+    const headerWidth = Number.parseFloat(globalThis.getComputedStyle?.(app).getPropertyValue("--studio-track-header")) || TRACK_HEADER_WIDTH;
+    ruler.style.width = `${headerWidth + timelineWidth}px`;
+    for (let second = 0; second <= seconds; second += 4) {
+      const mark = document.createElement("span");
+      mark.textContent = `${second}s`;
+      mark.style.left = `${headerWidth + second * PIXELS_PER_SECOND}px`;
+      ruler.append(mark);
+    }
 
     for (const asset of project.assets ?? []) {
       const item = document.createElement("article");
@@ -363,14 +455,47 @@ export function createStudioSurface({ root, dispatch }) {
     for (const [index, track] of (project.tracks ?? []).entries()) {
       const row = document.createElement("article");
       row.className = "studio-track";
-      row.innerHTML = `<header><span></span><strong></strong><small></small></header><div class="studio-clip"><canvas aria-label="Waveform"></canvas><span></span></div>`;
+      row.style.width = `${headerWidth + timelineWidth}px`;
+      row.innerHTML = `<header><span></span><strong></strong><small></small><div class="studio-track-controls"></div></header><div class="studio-lane"></div>`;
       row.querySelector("header span").textContent = String(index + 1).padStart(2, "0");
       row.querySelector("header strong").textContent = track.name;
       row.querySelector("header small").textContent = `${track.gainDb} dB`;
-      row.querySelector(".studio-clip span").textContent = track.name;
+      const controls = row.querySelector(".studio-track-controls");
+      const mute = button(document, track.mute ? "Unmute" : "Mute", () => dispatch({
+        "event/type": "studio/track-mute", track: track.id, mute: !track.mute,
+      }));
+      mute.className = "studio-track-mute";
+      const gain = document.createElement("input");
+      gain.type = "range";
+      gain.min = "-24";
+      gain.max = "6";
+      gain.step = "0.5";
+      gain.value = String(track.gainDb || 0);
+      gain.setAttribute("aria-label", `${track.name} gain`);
+      gain.addEventListener("change", () => dispatch({
+        "event/type": "studio/track-gain", track: track.id, gainDb: Number(gain.value),
+      }));
+      controls.append(mute, gain);
+
+      const lane = row.querySelector(".studio-lane");
+      lane.style.width = `${timelineWidth}px`;
+      for (const clip of clipsForTrack(track, project)) {
+        const clipElement = document.createElement("div");
+        clipElement.className = "studio-clip";
+        clipElement.tabIndex = 0;
+        clipElement.setAttribute("role", "button");
+        clipElement.setAttribute("aria-label", `${track.name} clip at ${Number(clip.startSeconds || 0).toFixed(2)} seconds`);
+        clipElement.style.left = `${Number(clip.startSeconds || 0) * PIXELS_PER_SECOND}px`;
+        clipElement.style.width = `${Math.max(72, Number(clip.duration || 0) * PIXELS_PER_SECOND)}px`;
+        clipElement.dataset.start = `${Number(clip.startSeconds || 0).toFixed(2)}s`;
+        clipElement.innerHTML = `<canvas aria-label="Waveform"></canvas><span></span>`;
+        clipElement.querySelector("span").textContent = track.name;
+        lane.append(clipElement);
+        const buffer = audio.buffers.get(clip.asset);
+        if (buffer) drawWaveform(clipElement.querySelector("canvas"), buffer);
+        installClipDrag(clipElement, clip);
+      }
       tracksRoot.append(row);
-      const buffer = audio.buffers.get(track.asset);
-      if (buffer) drawWaveform(row.querySelector("canvas"), buffer);
     }
     queueSave(next);
   }
@@ -383,14 +508,16 @@ export function createStudioSurface({ root, dispatch }) {
       const saved = await store.loadProject(active?.id || "local/current");
       const latest = currentProject(session);
       const hasActiveWork = Boolean((latest?.assets?.length ?? 0) || (latest?.tracks?.length ?? 0));
-      const project = hasActiveWork ? latest : saved;
+      const sourceProject = hasActiveWork ? latest : saved;
+      const project = sourceProject ? normalizeProject(sourceProject) : null;
       let missing = [];
       if (project) {
         missing = await audio.hydrateProject(project, (asset) => setStatus(`Restoring ${asset.name}…`));
       }
       persistenceReady = true;
-      if (!hasActiveWork && saved) {
-        dispatch({ "event/type": "studio/restore", project: saved });
+      const requiresRestore = project && (!hasActiveWork || JSON.stringify(project) !== JSON.stringify(sourceProject));
+      if (requiresRestore) {
+        dispatch({ "event/type": "studio/restore", project });
       } else if (project) {
         render(session);
       }
@@ -429,7 +556,7 @@ export function createStudioSurface({ root, dispatch }) {
       destroyed = true;
       globalThis.clearTimeout(saveTimer);
       const project = currentProject(session);
-      if (persistenceReady && project) store.saveProject(project).catch(() => {});
+      if (persistenceReady && project) store.saveProject(normalizeProject(project)).catch(() => {});
       audio.stop();
       session = null;
     },
