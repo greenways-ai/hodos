@@ -7,20 +7,31 @@ import { withStudioHistory } from "./studio-history.js";
 import { createStudioSurface } from "./studio-surface.js";
 import { withStudioTrackManagement } from "./studio-track-management.js";
 import { STUDIO_TOUCHPOINTS } from "./studio-world.js";
+import { createWorldDraftStore, saveWorldDraftFile } from "./world-draft-storage.js";
 import { createHodosViewer } from "../../../packages/viewer/src/index.js";
 import { searchWorldRepositories } from "../../../packages/viewer/src/github-worlds.js";
 import { activateLockedPackages, invokeHodos } from "../../../packages/kernel/runtime/hodos-runtime.js";
 
 const root = document.querySelector("#hodos-app");
 const spatialAudio = new SpatialAudioRuntime();
+const worldDrafts = createWorldDraftStore();
 const viewer = createHodosViewer({
   root,
   invoke: invokeHodos,
   activatePackages: activateLockedPackages,
   onCameraChange: (camera) => spatialAudio.updateListener(camera),
-  onEffect: (effect) => {
+  onEffect: async (effect, _state, context) => {
     if (effect.effect === "audio" && effect.method === "sync-world-sources") {
       return spatialAudio.sync(effect.args[0] ?? [], effect.args[1]);
+    }
+    if (effect.effect === "storage" && effect.method === "save-world-draft") {
+      const [identity, draft] = effect.args;
+      await worldDrafts.save(identity, draft);
+      context.dispatch({ "event/type": "world/draft-saved", revision: draft.revision });
+      return;
+    }
+    if (effect.effect === "export" && effect.method === "world-draft") {
+      return saveWorldDraftFile(effect.args[0], effect.args[1]);
     }
   },
   surfaces: {
@@ -134,12 +145,28 @@ function renderDemo(error = "") {
   }));
 }
 
-const initial = queryState();
-if (initial.repository) {
-  viewer.open({
+async function openWorld(initial) {
+  const graph = await viewer.open({
     ...initial,
     touchpoints: initial.experience === "studio" ? STUDIO_TOUCHPOINTS : [],
-  }).catch(() => {});
+  });
+  try {
+    await worldDrafts.prepare();
+    const identity = {
+      repository: graph.repository,
+      commit: graph.commit,
+      project: { id: graph.project.id, version: graph.project.version },
+    };
+    const draft = await worldDrafts.load(identity);
+    if (draft) viewer.dispatch({ "event/type": "world/draft-restore", draft });
+  } catch (error) {
+    console.error("Hodos world draft restoration failed", error);
+  }
+}
+
+const initial = queryState();
+if (initial.repository) {
+  openWorld(initial).catch(() => {});
 } else {
   renderDemo();
 }
