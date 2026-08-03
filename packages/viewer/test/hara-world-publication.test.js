@@ -40,6 +40,12 @@ const world = {
   touchpoints: [],
 };
 
+const proposalIdentity = {
+  repository: world.repository,
+  commit: world.commit,
+  project: world.project,
+};
+
 const project = {
   id: "local/current",
   title: "Review song",
@@ -89,7 +95,7 @@ function proposal(baseRevision = 1) {
     format: "hodos-world-draft-proposal",
     version: "0.1.0",
     id: "proposal-1",
-    identity: world,
+    identity: proposalIdentity,
     baseRevision,
     changes: [
       {
