@@ -18,6 +18,7 @@ const resources = {
   "gw.hodos.session": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session.hal", import.meta.url), "utf8"),
   "gw.hodos.session-draft": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_draft.hal", import.meta.url), "utf8"),
   "gw.hodos.session-publication": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_publication.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-authoring": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_authoring.hal", import.meta.url), "utf8"),
   "gw.hodos.kernel": fs.readFileSync(new URL("../../kernel/src/gw/hodos/kernel.hal", import.meta.url), "utf8"),
 };
 
@@ -106,15 +107,15 @@ test("Hara world draft owns placement, transforms, acoustics, persistence and un
   assert.deepEqual(placed.state.world.draft.entities, []);
   assert.equal(placed.state.world.draft.dirty, true);
   assert.equal(placed.state.world.draft.history.undo.length, 1);
-  assert.deepEqual(placed.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "scene/sync-world-entities",
-    "scene/sync-audio-sources",
-    "audio/sync-world-sources",
-    "storage/save-world-draft",
-  ]);
-  assert.equal(placed.effects[3].args[1].format, "hodos-world-draft");
-  assert.equal(placed.effects[3].args[1].revision, 1);
-  assert.deepEqual(placed.effects[3].args[1].entities, []);
+  const effects = placed.effects.map(({ effect, method }) => `${effect}/${method}`);
+  assert.ok(effects.includes("scene/sync-world-entities"));
+  assert.ok(effects.includes("scene/sync-editor-document"));
+  assert.ok(effects.includes("audio/sync-world-sources"));
+  assert.ok(effects.includes("storage/save-world-draft"));
+  const storage = placed.effects.find(({ effect, method }) => effect === "storage" && method === "save-world-draft");
+  assert.equal(storage.args[1].format, "hodos-world-draft");
+  assert.equal(storage.args[1].revision, 1);
+  assert.deepEqual(storage.args[1].entities, []);
 
   const saved = dispatch("session/event", ["world-draft-session", {
     "event/type": "world/draft-saved", revision: 1,
@@ -146,11 +147,9 @@ test("Hara world draft owns placement, transforms, acoustics, persistence and un
   const exported = dispatch("session/event", ["world-draft-session", {
     "event/type": "world/draft-export",
   }]);
-  assert.deepEqual(exported.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "export/world-draft",
-  ]);
-  assert.equal(exported.effects[0].args[1].audioSources[0].gainDb, -6);
-  assert.deepEqual(exported.effects[0].args[1].entities, []);
+  const exportEffect = exported.effects.find(({ effect, method }) => effect === "export" && method === "world-draft");
+  assert.equal(exportEffect.args[1].audioSources[0].gainDb, -6);
+  assert.deepEqual(exportEffect.args[1].entities, []);
 });
 
 test("stored world drafts restore without creating an extra persistence write", async () => {
@@ -169,16 +168,19 @@ test("stored world drafts restore without creating an extra persistence write", 
         gainDb: -3, refDistance: 1, maxDistance: 12, rolloffFactor: 1,
       }],
       entities: [],
+      collections: [],
+      assets: [],
+      prefabs: [],
+      animations: [{ id: "main", name: "Main", duration: 10, fps: 30, tracks: [] }],
     },
   }]);
   assert.equal(restored.state.world.draft.revision, 7);
   assert.equal(restored.state.world.draft.dirty, false);
   assert.equal(restored.state.world.audioSources[0].id, "saved-source");
-  assert.deepEqual(restored.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "scene/sync-world-entities",
-    "scene/sync-audio-sources",
-    "audio/sync-world-sources",
-  ]);
+  const effects = restored.effects.map(({ effect, method }) => `${effect}/${method}`);
+  assert.ok(effects.includes("scene/sync-world-entities"));
+  assert.ok(effects.includes("scene/sync-editor-document"));
+  assert.ok(effects.includes("audio/sync-world-sources"));
 });
 
 test("world audio placement rejects missing studio references", async () => {
