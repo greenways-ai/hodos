@@ -6,6 +6,40 @@
 (defn empty-history []
   {"undo" [] "redo" []})
 
+(defn empty-editor []
+  {"mode" "edit"
+   "tool" "select"
+   "space" "world"
+   "selection" []
+   "active" nil})
+
+(defn normalize-editor [value]
+  (let [editor (or value {})]
+    {"mode" (if (= (get editor "mode") "preview") "preview" "edit")
+     "tool" (or (get editor "tool") "select")
+     "space" (if (= (get editor "space") "local") "local" "world")
+     "selection" (or (get editor "selection") [])
+     "active" (get editor "active")}))
+
+(defn normalize-transform [value]
+  (let [transform (or value {})]
+    {"position" (or (get transform "position") [0 0 0])
+     "rotation" (or (get transform "rotation") [0 0 0])
+     "scale" (or (get transform "scale") [1 1 1])}))
+
+(defn normalize-entity [entity]
+  {"id" (get entity "id")
+   "name" (or (get entity "name") (get entity "id"))
+   "kind" (or (get entity "kind") "empty")
+   "parent" (get entity "parent")
+   "visible" (not (= (get entity "visible") false))
+   "locked" (= (get entity "locked") true)
+   "transform" (normalize-transform (get entity "transform"))
+   "components" (or (get entity "components") {})})
+
+(defn normalize-entities [entities]
+  (base/map-vector (or entities []) normalize-entity))
+
 (defn normalize-source [source]
   (assoc
    (assoc
@@ -24,12 +58,15 @@
      "revision" (or (get draft "revision") 0)
      "dirty" false
      "audioSources" (normalize-sources (get draft "audioSources"))
+     "entities" (normalize-entities (get draft "entities"))
+     "editor" (normalize-editor (get draft "editor"))
      "history" (empty-history)}))
 
 (defn initial-draft [world]
   (normalize-draft
    (or (get world "draft")
-       {"audioSources" (or (get world "audioSources") [])})))
+       {"audioSources" (or (get world "audioSources") [])
+        "entities" (or (get world "entities") [])})))
 
 (defn draft-value [session-id]
   (let [draft (get (deref *drafts*) session-id)]
@@ -43,11 +80,16 @@
                       (assoc drafts session-id draft)))
     draft))
 
+(defn draft-content [draft]
+  {"audioSources" (or (get draft "audioSources") [])
+   "entities" (or (get draft "entities") [])})
+
 (defn draft-snapshot [draft]
   {"format" "hodos-world-draft"
    "version" "0.1.0"
    "revision" (or (get draft "revision") 0)
-   "audioSources" (or (get draft "audioSources") [])})
+   "audioSources" (or (get draft "audioSources") [])
+   "entities" (or (get draft "entities") [])})
 
 (defn world-identity [state]
   (let [world (get state "world")
@@ -60,7 +102,15 @@
 (defn merge-state [state draft]
   (let [world (get state "world")
         sources (or (get draft "audioSources") [])
-        next-world (assoc (assoc world "audioSources" sources) "draft" draft)]
+        entities (or (get draft "entities") [])
+        editor (normalize-editor (get draft "editor"))
+        next-world (assoc
+                    (assoc
+                     (assoc
+                      (assoc world "audioSources" sources)
+                      "entities" entities)
+                     "editor" editor)
+                    "draft" draft)]
     (assoc
      (assoc state "world" next-world)
      "revision" (+ (or (get state "revision") 0)
@@ -87,15 +137,23 @@
 (defn project-value [state]
   (get (get state "studio") "project"))
 
+(defn scene-effects [draft]
+  [{"effect" "scene"
+    "method" "sync-world-entities"
+    "args" [(or (get draft "entities") [])
+            (normalize-editor (get draft "editor"))]}
+   {"effect" "scene"
+    "method" "sync-audio-sources"
+    "args" [(or (get draft "audioSources") [])]}])
+
 (defn draft-effects [state draft persist]
   (let [sources (or (get draft "audioSources") [])
         project (project-value state)
-        effects [{"effect" "scene"
-                  "method" "sync-audio-sources"
-                  "args" [sources]}
+        effects (conj
+                 (scene-effects draft)
                  {"effect" "audio"
                   "method" "sync-world-sources"
-                  "args" [sources project]}]]
+                  "args" [sources project]})]
     (if persist
       (conj effects
             {"effect" "storage"
@@ -103,25 +161,48 @@
              "args" [(world-identity state) (draft-snapshot draft)]})
       effects)))
 
+(defn editor-effects [draft]
+  [{"effect" "scene"
+    "method" "sync-world-entities"
+    "args" [(or (get draft "entities") [])
+            (normalize-editor (get draft "editor"))]}])
+
 (defn world-response [session-id state draft persist]
   (let [next-draft (store-draft session-id draft)]
     {"state" (merge-state state next-draft)
      "effects" (draft-effects state next-draft persist)}))
 
-(defn draft-change [session-id state sources]
+(defn editor-response [session-id state editor]
+  (let [draft (draft-value session-id)
+        next-draft (store-draft session-id
+                                (assoc draft "editor" (normalize-editor editor)))]
+    {"state" (merge-state state next-draft)
+     "effects" (editor-effects next-draft)}))
+
+(defn draft-document-change [session-id state changed]
   (let [draft (draft-value session-id)
         history (or (get draft "history") (empty-history))
         next-history {"undo" (conj (or (get history "undo") [])
-                                    (or (get draft "audioSources") []))
+                                    (draft-content draft))
                       "redo" []}
         next-draft (assoc
                     (assoc
-                     (assoc
-                      (assoc draft "audioSources" sources)
-                      "history" next-history)
+                     (assoc changed "history" next-history)
                      "dirty" true)
                     "revision" (+ 1 (or (get draft "revision") 0)))]
     (world-response session-id state next-draft true)))
+
+(defn draft-change [session-id state sources]
+  (draft-document-change
+   session-id state
+   (assoc (draft-value session-id) "audioSources" sources)))
+
+(defn entity-change [session-id state entities editor]
+  (draft-document-change
+   session-id state
+   (assoc
+    (assoc (draft-value session-id) "entities" entities)
+    "editor" (normalize-editor editor))))
 
 (defn restore-draft [session-id state event]
   (let [input (get event "draft")]
@@ -147,6 +228,175 @@
      "effects" [{"effect" "export"
                  "method" "world-draft"
                  "args" [(world-identity state) (draft-snapshot draft)]}]}))
+
+(defn entity-present? [entities entity-id]
+  (loop [index 0]
+    (if (= index (count entities))
+      false
+      (if (= (get (nth entities index) "id") entity-id)
+        true
+        (recur (+ index 1))))))
+
+(defn entity-value [entities entity-id]
+  (loop [index 0]
+    (if (= index (count entities))
+      nil
+      (let [entity (nth entities index)]
+        (if (= (get entity "id") entity-id)
+          entity
+          (recur (+ index 1)))))))
+
+(defn update-entity [entities entity-id update-fn]
+  (base/map-vector
+   entities
+   (fn [entity]
+     (if (= (get entity "id") entity-id)
+       (update-fn entity)
+       entity))))
+
+(defn remove-entity [entities entity-id]
+  (vec
+   (filter
+    (fn [entity]
+      (not (= (get entity "id") entity-id)))
+    (base/map-vector
+     entities
+     (fn [entity]
+       (if (= (get entity "parent") entity-id)
+         (assoc entity "parent" nil)
+         entity))))))
+
+(defn editor-select-target [editor target]
+  (if target
+    (assoc
+     (assoc editor "selection" [target])
+     "active" target)
+    (assoc
+     (assoc editor "selection" [])
+     "active" nil)))
+
+(defn editor-target-present? [draft target]
+  (let [target-type (get target "type")
+        target-id (get target "id")]
+    (or (and (= target-type "entity")
+             (entity-present? (or (get draft "entities") []) target-id))
+        (and (= target-type "audio")
+             (base/source-present? (or (get draft "audioSources") []) target-id)))))
+
+(defn select-editor-target [session-id state event]
+  (let [draft (draft-value session-id)
+        target (get event "target")
+        editor (normalize-editor (get draft "editor"))]
+    (if (or (nil? target) (editor-target-present? draft target))
+      (editor-response session-id state (editor-select-target editor target))
+      (throw "Editor selection references an unknown world item"))))
+
+(defn set-editor-tool [session-id state event]
+  (let [tool (get event "tool")]
+    (if (or (= tool "select")
+            (= tool "translate")
+            (= tool "rotate")
+            (= tool "scale"))
+      (editor-response
+       session-id state
+       (assoc (normalize-editor (get (draft-value session-id) "editor"))
+              "tool" tool))
+      (throw (str "Unsupported world editor tool: " tool)))))
+
+(defn set-editor-mode [session-id state event]
+  (let [mode (get event "mode")]
+    (if (or (= mode "edit") (= mode "preview"))
+      (editor-response
+       session-id state
+       (assoc (normalize-editor (get (draft-value session-id) "editor"))
+              "mode" mode))
+      (throw (str "Unsupported world editor mode: " mode)))))
+
+(defn create-world-entity [session-id state event]
+  (let [draft (draft-value session-id)
+        entities (or (get draft "entities") [])
+        entity (normalize-entity (get event "entity"))
+        entity-id (get entity "id")
+        parent-id (get entity "parent")
+        editor (normalize-editor (get draft "editor"))
+        target {"type" "entity" "id" entity-id}]
+    (cond
+      (nil? entity-id) (throw "World entity requires an id")
+      (entity-present? entities entity-id)
+      (throw (str "World entity id already exists: " entity-id))
+      (and parent-id (not (entity-present? entities parent-id)))
+      (throw (str "World entity parent does not exist: " parent-id))
+      :else
+      (entity-change
+       session-id state
+       (conj entities entity)
+       (editor-select-target editor target)))))
+
+(defn update-world-entity [session-id state event]
+  (let [draft (draft-value session-id)
+        entities (or (get draft "entities") [])
+        entity (normalize-entity (get event "entity"))
+        entity-id (get entity "id")
+        parent-id (get entity "parent")]
+    (cond
+      (not (entity-present? entities entity-id))
+      (throw (str "Unknown world entity: " entity-id))
+      (= parent-id entity-id)
+      (throw "World entity cannot parent itself")
+      (and parent-id (not (entity-present? entities parent-id)))
+      (throw (str "World entity parent does not exist: " parent-id))
+      :else
+      (entity-change
+       session-id state
+       (update-entity entities entity-id (fn [old] entity))
+       (get draft "editor")))))
+
+(defn transform-world-entity [session-id state event]
+  (let [draft (draft-value session-id)
+        entities (or (get draft "entities") [])
+        entity-id (get event "entity")
+        transform (normalize-transform (get event "transform"))]
+    (if (entity-present? entities entity-id)
+      (entity-change
+       session-id state
+       (update-entity
+        entities entity-id
+        (fn [entity]
+          (if (= (get entity "locked") true)
+            entity
+            (assoc entity "transform" transform))))
+       (get draft "editor"))
+      (throw (str "Unknown world entity: " entity-id)))))
+
+(defn delete-world-entity [session-id state event]
+  (let [draft (draft-value session-id)
+        entities (or (get draft "entities") [])
+        entity-id (get event "entity")
+        editor (normalize-editor (get draft "editor"))]
+    (if (entity-present? entities entity-id)
+      (entity-change
+       session-id state
+       (remove-entity entities entity-id)
+       (editor-select-target editor nil))
+      (throw (str "Unknown world entity: " entity-id)))))
+
+(defn duplicate-world-entity [session-id state event]
+  (let [draft (draft-value session-id)
+        entities (or (get draft "entities") [])
+        source-id (get event "source")
+        entity (normalize-entity (get event "entity"))
+        entity-id (get entity "id")
+        editor (normalize-editor (get draft "editor"))]
+    (cond
+      (not (entity-present? entities source-id))
+      (throw (str "Unknown world entity: " source-id))
+      (entity-present? entities entity-id)
+      (throw (str "World entity id already exists: " entity-id))
+      :else
+      (entity-change
+       session-id state
+       (conj entities entity)
+       (editor-select-target editor {"type" "entity" "id" entity-id})))))
 
 (defn place-world-audio [session-id state event]
   (let [payload (get event "payload")
@@ -185,8 +435,13 @@
                     "gainDb" (or (get payload "gainDb") 0)
                     "refDistance" (or (get payload "refDistance") 1)
                     "maxDistance" (or (get payload "maxDistance") 30)
-                    "rolloffFactor" (or (get payload "rolloffFactor") 1)}]
-        (draft-change session-id state (conj sources source))))))
+                    "rolloffFactor" (or (get payload "rolloffFactor") 1)}
+            editor (normalize-editor (get draft "editor"))
+            changed (assoc
+                     (assoc draft "audioSources" (conj sources source))
+                     "editor" (editor-select-target
+                               editor {"type" "audio" "id" source-id}))]
+        (draft-document-change session-id state changed)))))
 
 (defn update-world-source [session-id state event update-fn]
   (let [source-id (get event "source")
@@ -240,19 +495,39 @@
 (defn remove-world-audio [session-id state event]
   (let [source-id (get event "source")
         draft (draft-value session-id)
-        sources (or (get draft "audioSources") [])]
+        sources (or (get draft "audioSources") [])
+        editor (normalize-editor (get draft "editor"))
+        active (get editor "active")
+        next-editor (if (and active
+                             (= (get active "type") "audio")
+                             (= (get active "id") source-id))
+                      (editor-select-target editor nil)
+                      editor)]
     (if (base/source-present? sources source-id)
-      (draft-change
+      (draft-document-change
        session-id state
-       (vec (filter
-             (fn [source]
-               (not (= (get source "id") source-id)))
-             sources)))
+       (assoc
+        (assoc draft "audioSources"
+               (vec (filter
+                     (fn [source]
+                       (not (= (get source "id") source-id)))
+                     sources)))
+        "editor" next-editor))
       (throw (str "Unknown world audio source: " source-id)))))
+
+(defn clear-editor-selection [editor]
+  (editor-select-target (normalize-editor editor) nil))
+
+(defn restore-draft-content [draft content]
+  (assoc
+   (assoc
+    (assoc draft "audioSources" (normalize-sources (get content "audioSources")))
+    "entities" (normalize-entities (get content "entities")))
+   "editor" (clear-editor-selection (get draft "editor"))))
 
 (defn undo-world [session-id state]
   (let [draft (draft-value session-id)
-        current (or (get draft "audioSources") [])
+        current (draft-content draft)
         history (or (get draft "history") (empty-history))
         undo (or (get history "undo") [])]
     (if (= (count undo) 0)
@@ -263,7 +538,7 @@
             next-draft (assoc
                         (assoc
                          (assoc
-                          (assoc draft "audioSources" previous)
+                          (restore-draft-content draft previous)
                           "history" next-history)
                          "dirty" true)
                         "revision" (+ 1 (or (get draft "revision") 0)))]
@@ -271,18 +546,18 @@
 
 (defn redo-world [session-id state]
   (let [draft (draft-value session-id)
-        current (or (get draft "audioSources") [])
+        current (draft-content draft)
         history (or (get draft "history") (empty-history))
         redo (or (get history "redo") [])]
     (if (= (count redo) 0)
       {"state" (merge-state state draft) "effects" []}
-      (let [next-sources (nth redo (- (count redo) 1))
+      (let [next-content (nth redo (- (count redo) 1))
             next-history {"undo" (conj (or (get history "undo") []) current)
                           "redo" (base/without-last redo)}
             next-draft (assoc
                         (assoc
                          (assoc
-                          (assoc draft "audioSources" next-sources)
+                          (restore-draft-content draft next-content)
                           "history" next-history)
                          "dirty" true)
                         "revision" (+ 1 (or (get draft "revision") 0)))]
@@ -320,6 +595,30 @@
     (cond
       (= event-type "world/drop")
       (place-world-audio session-id state input)
+
+      (= event-type "world/editor-select")
+      (select-editor-target session-id state input)
+
+      (= event-type "world/editor-tool")
+      (set-editor-tool session-id state input)
+
+      (= event-type "world/editor-mode")
+      (set-editor-mode session-id state input)
+
+      (= event-type "world/entity-create")
+      (create-world-entity session-id state input)
+
+      (= event-type "world/entity-update")
+      (update-world-entity session-id state input)
+
+      (= event-type "world/entity-transform")
+      (transform-world-entity session-id state input)
+
+      (= event-type "world/entity-delete")
+      (delete-world-entity session-id state input)
+
+      (= event-type "world/entity-duplicate")
+      (duplicate-world-entity session-id state input)
 
       (= event-type "world/audio-move")
       (move-world-audio session-id state input)

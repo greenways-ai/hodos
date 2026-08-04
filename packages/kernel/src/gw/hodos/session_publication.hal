@@ -69,47 +69,77 @@
       (recur (+ index 1)
              (conj output (get (nth changes index) "id"))))))
 
-(defn remove-source [sources source-id]
-  (vec (filter
-        (fn [source]
-          (not (= (get source "id") source-id)))
-        sources)))
+(defn item-present? [items item-id]
+  (loop [index 0]
+    (if (= index (count items))
+      false
+      (if (= (get (nth items index) "id") item-id)
+        true
+        (recur (+ index 1))))))
 
-(defn apply-change [sources change]
+(defn update-item [items item-id update-fn]
+  (base/map-vector
+   items
+   (fn [item]
+     (if (= (get item "id") item-id)
+       (update-fn item)
+       item))))
+
+(defn remove-item [items item-id]
+  (vec (filter
+        (fn [item]
+          (not (= (get item "id") item-id)))
+        items)))
+
+(defn change-collection [change]
+  (or (get change "collection") "audioSources"))
+
+(defn change-target [change]
+  (if (= (change-collection change) "entities")
+    (get change "entity")
+    (get change "source")))
+
+(defn apply-change [items change]
   (let [operation (get change "op")
-        source-id (get change "source")
+        item-id (change-target change)
         after (get change "after")]
     (cond
       (= operation "add")
-      (if (base/source-present? sources source-id)
-        (throw (str "Imported source already exists: " source-id))
-        (conj sources after))
+      (if (item-present? items item-id)
+        (throw (str "Imported item already exists: " item-id))
+        (conj items after))
 
       (= operation "remove")
-      (if (base/source-present? sources source-id)
-        (remove-source sources source-id)
-        (throw (str "Imported removal references an unknown source: " source-id)))
+      (if (item-present? items item-id)
+        (remove-item items item-id)
+        (throw (str "Imported removal references an unknown item: " item-id)))
 
       (= operation "replace")
-      (if (base/source-present? sources source-id)
-        (base/update-source sources source-id (fn [source] after))
-        (throw (str "Imported change references an unknown source: " source-id)))
+      (if (item-present? items item-id)
+        (update-item items item-id (fn [item] after))
+        (throw (str "Imported change references an unknown item: " item-id)))
 
       :else
       (throw (str "Unsupported world draft change operation: " operation)))))
 
-(defn apply-selected-changes [sources changes selected]
-  (loop [index 0 output sources]
+(defn apply-selected-collection [items changes selected collection]
+  (loop [index 0 output items]
     (if (= index (count changes))
       output
       (let [change (nth changes index)]
         (recur (+ index 1)
-               (if (vector-contains? selected (get change "id"))
+               (if (and (= (change-collection change) collection)
+                        (vector-contains? selected (get change "id")))
                  (apply-change output change)
                  output))))))
 
 (defn world-mutating-event? [event-type]
   (or (= event-type "world/drop")
+      (= event-type "world/entity-create")
+      (= event-type "world/entity-update")
+      (= event-type "world/entity-transform")
+      (= event-type "world/entity-delete")
+      (= event-type "world/entity-duplicate")
       (= event-type "world/audio-move")
       (= event-type "world/audio-gain")
       (= event-type "world/audio-range")
@@ -186,12 +216,17 @@
       (throw "World draft proposal is stale and must be imported again")
       (= (count selected) 0) (throw "Select at least one world draft change")
       :else
-      (let [sources (or (get current "audioSources") [])
-            next-sources (apply-selected-changes
-                          sources
-                          (or (get proposal "changes") [])
-                          selected)
-            result (draft/draft-change session-id state next-sources)
+      (let [changes (or (get proposal "changes") [])
+            next-sources (apply-selected-collection
+                          (or (get current "audioSources") [])
+                          changes selected "audioSources")
+            next-entities (apply-selected-collection
+                           (or (get current "entities") [])
+                           changes selected "entities")
+            changed (assoc
+                     (assoc current "audioSources" next-sources)
+                     "entities" next-entities)
+            result (draft/draft-document-change session-id state changed)
             next-review (clear-proposal review)]
         (store-review session-id next-review)
         (merge-review-result result next-review)))))
@@ -208,8 +243,9 @@
     (cond
       (not (nil? (get review "proposal")))
       (throw "Finish or reject the active world draft review before publishing")
-      (= (count (or (get current "audioSources") [])) 0)
-      (throw "World draft has no sources to publish")
+      (and (= (count (or (get current "audioSources") [])) 0)
+           (= (count (or (get current "entities") [])) 0))
+      (throw "World draft has no editable content to publish")
       :else current)))
 
 (defn publish-repository [session-id state]

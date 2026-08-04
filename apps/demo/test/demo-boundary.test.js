@@ -19,6 +19,22 @@ test("demo consumes the viewer package and installs the spatial Studio host", ()
   assert.doesNotMatch(source, /class WorldRenderer/);
 });
 
+test("viewer package owns the generic Blender-like editor", () => {
+  const viewer = fs.readFileSync(new URL("../../../packages/viewer/src/index.js", import.meta.url), "utf8");
+  const panel = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-panel.js", import.meta.url), "utf8");
+  const renderer = fs.readFileSync(new URL("../../../packages/viewer/src/world-renderer.js", import.meta.url), "utf8");
+  assert.match(viewer, /WorldEditorPanel/);
+  assert.match(viewer, /sync-world-entities/);
+  assert.match(panel, /Outliner/);
+  assert.match(panel, /world\/entity-create/);
+  assert.match(panel, /world\/entity-transform/);
+  assert.match(panel, /world\/entity-duplicate/);
+  assert.match(panel, /world\/entity-delete/);
+  assert.match(renderer, /syncWorldEntities/);
+  assert.match(renderer, /activateWorldEntityAt/);
+  assert.match(renderer, /createEditorGizmo/);
+});
+
 test("demo installs the guided tour, inspector and command deck", () => {
   const source = fs.readFileSync(new URL("../src/main.js", import.meta.url), "utf8");
   const surfaces = fs.readFileSync(new URL("../src/showcase-surfaces.js", import.meta.url), "utf8");

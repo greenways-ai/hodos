@@ -38,6 +38,7 @@ export class WorldDraftReviewPanel {
   renderShell() {
     const document = this.root.ownerDocument ?? globalThis.document;
     this.root.className = "hodos-world-review";
+    this.root.dataset.collapsed = "true";
     this.root.innerHTML = "";
 
     const header = document.createElement("header");
@@ -47,7 +48,7 @@ export class WorldDraftReviewPanel {
     const title = document.createElement("strong");
     title.textContent = "Import & publish";
     identity.append(eyebrow, title);
-    const collapse = button(document, "Hide", () => {
+    const collapse = button(document, "Show", () => {
       const collapsed = this.root.dataset.collapsed === "true";
       this.root.dataset.collapsed = String(!collapsed);
       collapse.textContent = collapsed ? "Hide" : "Show";
@@ -80,13 +81,7 @@ export class WorldDraftReviewPanel {
         room: this.room.value,
       });
     });
-    toolbar.append(
-      this.file,
-      this.importButton,
-      this.repositoryButton,
-      this.room,
-      this.hestiaButton,
-    );
+    toolbar.append(this.file, this.importButton, this.repositoryButton, this.room, this.hestiaButton);
 
     this.status = document.createElement("p");
     this.status.className = "hodos-world-review-status";
@@ -106,6 +101,7 @@ export class WorldDraftReviewPanel {
     try {
       const proposal = await this.importDraft(file, this.state);
       this.dispatch({ "event/type": "world/draft-propose", proposal });
+      this.root.dataset.collapsed = "false";
       this.status.textContent = `${proposal.changes.length} semantic change${proposal.changes.length === 1 ? "" : "s"} ready for review.`;
     } catch (error) {
       console.error("Hodos world draft import failed", error);
@@ -131,9 +127,10 @@ export class WorldDraftReviewPanel {
     }));
     const copy = document.createElement("span");
     const name = document.createElement("strong");
-    name.textContent = `${operationLabel(change.op)} ${change.label || change.source}`;
+    const target = change.source || change.entity || change.id;
+    name.textContent = `${operationLabel(change.op)} ${change.label || target}`;
     const id = document.createElement("small");
-    id.textContent = change.source;
+    id.textContent = `${change.collection || "audioSources"} · ${target}`;
     copy.append(name, id);
     heading.append(checkbox, copy);
 
@@ -220,10 +217,10 @@ export class WorldDraftReviewPanel {
     const draft = state?.world?.draft;
     const review = state?.world?.review;
     const publications = state?.world?.publications ?? [];
-    const hasSources = Boolean(draft?.audioSources?.length);
+    const hasContent = Boolean(draft?.audioSources?.length || draft?.entities?.length);
     const reviewing = Boolean(review?.proposal);
-    this.repositoryButton.disabled = !hasSources || reviewing;
-    this.hestiaButton.disabled = !hasSources || reviewing;
+    this.repositoryButton.disabled = !hasContent || reviewing;
+    this.hestiaButton.disabled = !hasContent || reviewing;
     this.room.disabled = reviewing;
     this.content.replaceChildren();
 
@@ -232,13 +229,13 @@ export class WorldDraftReviewPanel {
       this.content.append(proposal);
       this.status.textContent = review.stale
         ? "The proposal is stale because the draft changed. Reject it and import again."
-        : "Select the source changes Hara should accept as one reversible world transaction.";
+        : "Select the entity and source changes Hara should accept as one reversible world transaction.";
     } else {
       this.content.append(this.renderPublications(publications));
       if (!this.status.textContent || this.status.textContent.includes("ready for review")) {
-        this.status.textContent = hasSources
-          ? "Import an exact-world draft for semantic review, or publish the accepted local draft."
-          : "Place a Studio track or clip before importing or publishing a world draft.";
+        this.status.textContent = hasContent
+          ? "Import an exact-world draft for semantic review, or publish the accepted scene draft."
+          : "Create a scene object or place Studio audio before importing or publishing a world draft.";
       }
     }
   }

@@ -25,11 +25,11 @@ export function stableJson(value) {
   return JSON.stringify(canonicalValue(value));
 }
 
-function uniqueSourceMap(sources, label) {
+function uniqueItemMap(values, label) {
   const map = new Map();
-  for (const source of sources ?? []) {
-    if (map.has(source.id)) throw new Error(`${label} contains duplicate source id: ${source.id}`);
-    map.set(source.id, source);
+  for (const value of values ?? []) {
+    if (map.has(value.id)) throw new Error(`${label} contains duplicate id: ${value.id}`);
+    map.set(value.id, value);
   }
   return map;
 }
@@ -49,57 +49,81 @@ function fieldChanges(before, after) {
   });
 }
 
-export function diffWorldDrafts(currentDraft, candidateDraft) {
-  const current = validateWorldDraft(currentDraft);
-  const candidate = validateWorldDraft(candidateDraft);
-  const before = uniqueSourceMap(current.audioSources, "Current draft");
-  const after = uniqueSourceMap(candidate.audioSources, "Imported draft");
+function diffCollection(beforeValues, afterValues, {
+  collection,
+  prefix,
+  targetField,
+  label,
+  labelFor,
+}) {
+  const before = uniqueItemMap(beforeValues, `Current ${label}`);
+  const after = uniqueItemMap(afterValues, `Imported ${label}`);
   const ids = [...new Set([...before.keys(), ...after.keys()])].sort();
   const changes = [];
-
   for (const id of ids) {
     const previous = before.get(id);
     const next = after.get(id);
+    const common = {
+      id: `${prefix}:${id}`,
+      collection,
+      [targetField]: id,
+      label: labelFor(next ?? previous, id),
+    };
     if (!previous) {
       changes.push({
-        id: `source:${id}`,
+        ...common,
         op: "add",
-        source: id,
-        label: next.label || id,
         before: null,
         after: cloneData(next),
         fields: fieldChanges(null, next),
       });
     } else if (!next) {
       changes.push({
-        id: `source:${id}`,
+        ...common,
         op: "remove",
-        source: id,
-        label: previous.label || id,
         before: cloneData(previous),
         after: null,
         fields: fieldChanges(previous, null),
       });
     } else if (stableJson(previous) !== stableJson(next)) {
       changes.push({
-        id: `source:${id}`,
+        ...common,
         op: "replace",
-        source: id,
-        label: next.label || previous.label || id,
         before: cloneData(previous),
         after: cloneData(next),
         fields: fieldChanges(previous, next),
       });
     }
   }
+  return { changes, total: ids.length };
+}
 
+export function diffWorldDrafts(currentDraft, candidateDraft) {
+  const current = validateWorldDraft(currentDraft);
+  const candidate = validateWorldDraft(candidateDraft);
+  const audio = diffCollection(current.audioSources, candidate.audioSources, {
+    collection: "audioSources",
+    prefix: "source",
+    targetField: "source",
+    label: "audio source collection",
+    labelFor: (value, id) => value?.label || id,
+  });
+  const entities = diffCollection(current.entities, candidate.entities, {
+    collection: "entities",
+    prefix: "entity",
+    targetField: "entity",
+    label: "entity collection",
+    labelFor: (value, id) => value?.name || id,
+  });
+  const changes = [...entities.changes, ...audio.changes];
+  const total = entities.total + audio.total;
   return {
     changes,
     summary: {
       add: changes.filter(({ op }) => op === "add").length,
       remove: changes.filter(({ op }) => op === "remove").length,
       replace: changes.filter(({ op }) => op === "replace").length,
-      unchanged: ids.length - changes.length,
+      unchanged: total - changes.length,
     },
   };
 }

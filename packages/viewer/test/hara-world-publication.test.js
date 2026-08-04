@@ -78,6 +78,20 @@ function source(id, overrides = {}) {
   };
 }
 
+function entity(id, overrides = {}) {
+  return {
+    id,
+    name: id,
+    kind: "box",
+    parent: null,
+    visible: true,
+    locked: false,
+    transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    components: { primitive: { shape: "box", color: "#c8ad73", opacity: 1 } },
+    ...overrides,
+  };
+}
+
 async function preparedSession(id) {
   const dispatch = await kernel();
   dispatch("session/open", [id, world]);
@@ -87,10 +101,14 @@ async function preparedSession(id) {
     payload: { type: "studio/track", id: "source-a", track: "track-a", label: "source-a" },
     position: [0, 0.2, 0],
   }]);
+  dispatch("session/event", [id, {
+    "event/type": "world/entity-create",
+    entity: entity("cube-a"),
+  }]);
   return dispatch;
 }
 
-function proposal(baseRevision = 1) {
+function proposal(baseRevision = 2) {
   return {
     format: "hodos-world-draft-proposal",
     version: "0.1.0",
@@ -99,7 +117,19 @@ function proposal(baseRevision = 1) {
     baseRevision,
     changes: [
       {
+        id: "entity:cube-a",
+        collection: "entities",
+        op: "replace",
+        entity: "cube-a",
+        before: entity("cube-a"),
+        after: entity("cube-a", {
+          transform: { position: [4, 0, 0], rotation: [0, 45, 0], scale: [1, 1, 1] },
+        }),
+        fields: [],
+      },
+      {
         id: "source:source-a",
+        collection: "audioSources",
         op: "replace",
         source: "source-a",
         before: source("source-a"),
@@ -108,6 +138,7 @@ function proposal(baseRevision = 1) {
       },
       {
         id: "source:source-b",
+        collection: "audioSources",
         op: "add",
         source: "source-b",
         before: null,
@@ -115,19 +146,21 @@ function proposal(baseRevision = 1) {
         fields: [],
       },
     ],
-    selected: ["source:source-a", "source:source-b"],
-    summary: { add: 1, remove: 0, replace: 1, unchanged: 0 },
+    selected: ["entity:cube-a", "source:source-a", "source:source-b"],
+    summary: { add: 1, remove: 0, replace: 2, unchanged: 0 },
   };
 }
 
-test("Hara reviews a selected subset as one reversible draft transaction", async () => {
+test("Hara reviews a selected subset as one reversible scene transaction", async () => {
   const dispatch = await preparedSession("review-session");
   const proposed = dispatch("session/event", ["review-session", {
     "event/type": "world/draft-propose",
     proposal: proposal(),
   }]);
   assert.equal(proposed.state.world.review.proposal.id, "proposal-1");
-  assert.deepEqual(proposed.state.world.review.selected, ["source:source-a", "source:source-b"]);
+  assert.deepEqual(proposed.state.world.review.selected, [
+    "entity:cube-a", "source:source-a", "source:source-b",
+  ]);
 
   dispatch("session/event", ["review-session", {
     "event/type": "world/draft-review-toggle",
@@ -139,9 +172,11 @@ test("Hara reviews a selected subset as one reversible draft transaction", async
   assert.equal(accepted.state.world.audioSources.length, 1);
   assert.deepEqual(accepted.state.world.audioSources[0].position, [2, 1, -3]);
   assert.equal(accepted.state.world.audioSources[0].gainDb, -6);
+  assert.deepEqual(accepted.state.world.entities[0].transform.position, [4, 0, 0]);
   assert.equal(accepted.state.world.review.proposal, null);
-  assert.equal(accepted.state.world.draft.history.undo.length, 2);
+  assert.equal(accepted.state.world.draft.history.undo.length, 3);
   assert.deepEqual(accepted.effects.map(({ effect, method }) => `${effect}/${method}`), [
+    "scene/sync-world-entities",
     "scene/sync-audio-sources",
     "audio/sync-world-sources",
     "storage/save-world-draft",
@@ -151,18 +186,19 @@ test("Hara reviews a selected subset as one reversible draft transaction", async
     "event/type": "world/history-undo",
   }]);
   assert.deepEqual(undone.state.world.audioSources[0].position, [0, 0.2, 0]);
+  assert.deepEqual(undone.state.world.entities[0].transform.position, [0, 0, 0]);
 });
 
-test("Hara marks proposals stale when the live draft changes", async () => {
+test("Hara marks proposals stale when the live scene changes", async () => {
   const dispatch = await preparedSession("stale-session");
   dispatch("session/event", ["stale-session", {
     "event/type": "world/draft-propose",
     proposal: proposal(),
   }]);
   const moved = dispatch("session/event", ["stale-session", {
-    "event/type": "world/audio-move",
-    source: "source-a",
-    position: [5, 0.2, 0],
+    "event/type": "world/entity-transform",
+    entity: "cube-a",
+    transform: { position: [5, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
   }]);
   assert.equal(moved.state.world.review.stale, true);
   assert.throws(
@@ -181,6 +217,7 @@ test("Hara emits repository and Hestia publication effects and stores receipts",
   assert.deepEqual(repository.effects.map(({ effect, method }) => `${effect}/${method}`), [
     "publication/repository-patch",
   ]);
+  assert.equal(repository.effects[0].args[1].entities[0].id, "cube-a");
 
   const hestia = dispatch("session/event", ["publish-session", {
     "event/type": "world/publish-hestia",

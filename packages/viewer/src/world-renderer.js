@@ -1,17 +1,26 @@
 import {
   Application,
   Asset,
+  BLEND_NORMAL,
   BoundingBox,
   Color,
   Entity,
   FILLMODE_FILL_WINDOW,
   GSPLAT_RENDERER_AUTO,
   RESOLUTION_AUTO,
+  StandardMaterial,
   Vec3,
 } from "playcanvas";
 import { hasHodosWorldDrag, readHodosWorldDrag } from "./world-drag.js";
+import {
+  editorState,
+  normalizeWorldEntity,
+  normalizeWorldTransform,
+  worldEntityRadius,
+} from "./world-editor-model.js";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const AXES = Object.freeze(["x", "y", "z"]);
 
 function hexColor(value) {
   const match = /^#([0-9a-f]{6})$/i.exec(value || "");
@@ -37,6 +46,21 @@ function sourcePosition(source) {
     : [0, 0, 0];
 }
 
+function primitiveType(kind) {
+  return ["box", "sphere", "plane", "cylinder", "cone", "capsule"].includes(kind)
+    ? kind
+    : "sphere";
+}
+
+function cloneTransform(value) {
+  const transform = normalizeWorldTransform(value);
+  return {
+    position: [...transform.position],
+    rotation: [...transform.rotation],
+    scale: [...transform.scale],
+  };
+}
+
 export class WorldRenderer {
   constructor(canvas, {
     background = "#09101a",
@@ -47,6 +71,8 @@ export class WorldRenderer {
     onWorldDrop,
     onAudioSource,
     audioSourceRoot,
+    entityOverlayRoot,
+    onWorldEntity,
     onCameraChange,
   } = {}) {
     this.canvas = canvas;
@@ -54,16 +80,21 @@ export class WorldRenderer {
     this.onTouchpoint = onTouchpoint || (() => {});
     this.onWorldDrop = onWorldDrop || (() => {});
     this.onAudioSource = onAudioSource || (() => {});
+    this.onWorldEntity = onWorldEntity || (() => {});
     this.onCameraChange = onCameraChange || (() => {});
     this.touchpointRoot = touchpointRoot;
     this.audioSourceRoot = audioSourceRoot;
+    this.entityOverlayRoot = entityOverlayRoot;
     this.assets = new Map();
     this.entities = [];
     this.touchpoints = [];
     this.audioSources = new Map();
+    this.worldEntities = new Map();
+    this.editor = editorState();
     this.bounds = null;
     this.destroyed = false;
     this.abort = new AbortController();
+    this.gizmo = null;
 
     this.app = new Application(canvas, {
       graphicsDeviceOptions: { antialias: false, alpha: false, powerPreference: "high-performance" },
@@ -88,8 +119,9 @@ export class WorldRenderer {
     if (camera?.fov) this.camera.camera.fov = camera.fov;
     this.hasSuppliedCamera = Boolean(supplied);
     this.installControls();
+    this.createEditorGizmo();
     this.updateCamera();
-    this.app.on("update", () => this.updateOverlays());
+    this.app.on("update", this.updateOverlays, this);
     this.app.start();
   }
 
@@ -172,7 +204,15 @@ export class WorldRenderer {
       pointers.delete(event.pointerId);
       if (pointers.size < 2) pinch = null;
       if (!pointers.size) drag = null;
-      if (shouldActivate) this.activateTouchpointAt(event.clientX, event.clientY);
+      if (shouldActivate) {
+        const entity = this.editor.mode === "edit"
+          ? this.activateWorldEntityAt(event.clientX, event.clientY)
+          : null;
+        const touchpoint = entity ? null : this.activateTouchpointAt(event.clientX, event.clientY);
+        if (!entity && !touchpoint && this.editor.mode === "edit") {
+          this.onWorldEntity({ action: "select", target: null });
+        }
+      }
       click = null;
     };
     this.canvas.addEventListener("pointerup", end, { signal });
@@ -262,6 +302,10 @@ export class WorldRenderer {
     return [point.x, point.y, point.z];
   }
 
+  editorSpawnPosition() {
+    return [this.orbit.target.x, this.orbit.target.y + 0.5, this.orbit.target.z];
+  }
+
   assetFor(url) {
     if (this.assets.has(url)) return this.assets.get(url);
     const asset = new Asset(url.split("/").pop(), "gsplat", { url });
@@ -317,19 +361,19 @@ export class WorldRenderer {
   createTouchpointButton(touchpoint) {
     if (!this.touchpointRoot) return null;
     const document = this.touchpointRoot.ownerDocument ?? globalThis.document;
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "hodos-touchpoint";
-    button.setAttribute("aria-label", touchpoint.label);
+    const control = document.createElement("button");
+    control.type = "button";
+    control.className = "hodos-touchpoint";
+    control.setAttribute("aria-label", touchpoint.label);
     const text = document.createElement("span");
     text.textContent = touchpoint.label;
     const hint = document.createElement("small");
     hint.textContent = "Open surface";
     text.append(hint);
-    button.append(text);
-    button.addEventListener("click", () => this.onTouchpoint(touchpoint));
-    this.touchpointRoot.append(button);
-    return button;
+    control.append(text);
+    control.addEventListener("click", () => this.onTouchpoint(touchpoint));
+    this.touchpointRoot.append(control);
+    return control;
   }
 
   addTouchpoint(touchpoint) {
@@ -349,11 +393,11 @@ export class WorldRenderer {
     }
     parent.addChild(anchor);
     this.entities.push(anchor);
-    const button = this.createTouchpointButton(touchpoint);
+    const control = this.createTouchpointButton(touchpoint);
     const inheritedScale = touchpoint.anchor === "scene-center"
       ? 1
       : (touchpoint.transformChain ?? []).reduce((scale, transform) => scale * (transform.scale ?? 1), 1);
-    const entry = { touchpoint, anchor, button, radius: touchpoint.radius * inheritedScale, projected: new Vec3() };
+    const entry = { touchpoint, anchor, button: control, radius: touchpoint.radius * inheritedScale, projected: new Vec3() };
     this.touchpoints.push(entry);
     return entry;
   }
@@ -386,6 +430,166 @@ export class WorldRenderer {
     return nearest.entry.touchpoint;
   }
 
+  makeMaterial(color, opacity = 1) {
+    const material = new StandardMaterial();
+    material.diffuse.copy(hexColor(color));
+    material.emissive.set(0, 0, 0);
+    material.opacity = clamp(Number(opacity ?? 1), 0.05, 1);
+    if (material.opacity < 1) {
+      material.blendType = BLEND_NORMAL;
+      material.depthWrite = false;
+    }
+    material.metalness = 0.05;
+    material.gloss = 0.35;
+    material.update();
+    return material;
+  }
+
+  createWorldEntityEntry(value) {
+    const data = normalizeWorldEntity(value);
+    const root = new Entity(data.name);
+    this.app.root.addChild(root);
+    let visual = root;
+    let material;
+
+    if (data.kind === "point-light") {
+      const light = data.components.light ?? {};
+      root.addComponent("light", {
+        type: "omni",
+        color: hexColor(light.color || "#fff1ca"),
+        intensity: Number(light.intensity ?? 1),
+        range: Number(light.range ?? 12),
+        castShadows: Boolean(light.castShadows),
+      });
+      visual = new Entity(`${data.name} helper`);
+      material = this.makeMaterial(light.color || "#fff1ca", 0.9);
+      visual.addComponent("render", { type: "sphere", material });
+      visual.setLocalScale(0.18, 0.18, 0.18);
+      root.addChild(visual);
+    } else if (data.kind === "empty") {
+      visual = new Entity(`${data.name} helper`);
+      material = this.makeMaterial("#9eb7aa", 0.55);
+      visual.addComponent("render", { type: "sphere", material });
+      visual.setLocalScale(0.13, 0.13, 0.13);
+      root.addChild(visual);
+    } else {
+      const primitive = data.components.primitive ?? {};
+      material = this.makeMaterial(primitive.color || "#c8ad73", primitive.opacity ?? 1);
+      root.addComponent("render", { type: primitiveType(primitive.shape || data.kind), material });
+    }
+
+    const entry = { data, root, visual, material, radius: worldEntityRadius(data) };
+    this.worldEntities.set(data.id, entry);
+    this.entities.push(root);
+    this.updateWorldEntityEntry(entry, data);
+    return entry;
+  }
+
+  updateMaterial(entry, selected) {
+    if (!entry.material) return;
+    const data = entry.data;
+    const color = data.components.primitive?.color
+      ?? data.components.light?.color
+      ?? "#9eb7aa";
+    entry.material.diffuse.copy(hexColor(color));
+    if (selected) {
+      entry.material.emissive.copy(hexColor("#7a5e20"));
+      entry.material.emissiveIntensity = 0.75;
+    } else {
+      entry.material.emissive.set(0, 0, 0);
+      entry.material.emissiveIntensity = 1;
+    }
+    if (data.components.primitive) {
+      entry.material.opacity = clamp(Number(data.components.primitive.opacity ?? 1), 0.05, 1);
+      entry.material.blendType = entry.material.opacity < 1 ? BLEND_NORMAL : 0;
+      entry.material.depthWrite = entry.material.opacity >= 1;
+    }
+    entry.material.update();
+  }
+
+  updateWorldEntityEntry(entry, value) {
+    const data = normalizeWorldEntity(value);
+    entry.data = data;
+    entry.root.name = data.name;
+    entry.root.enabled = data.visible !== false;
+    entry.root.setLocalPosition(...data.transform.position);
+    entry.root.setLocalEulerAngles(...data.transform.rotation);
+    entry.root.setLocalScale(...data.transform.scale);
+    entry.radius = worldEntityRadius(data);
+    if (entry.root.light && data.components.light) {
+      entry.root.light.color = hexColor(data.components.light.color || "#fff1ca");
+      entry.root.light.intensity = Number(data.components.light.intensity ?? 1);
+      entry.root.light.range = Number(data.components.light.range ?? 12);
+      entry.root.light.castShadows = Boolean(data.components.light.castShadows);
+    }
+    const active = this.editor.active;
+    this.updateMaterial(entry, active?.type === "entity" && active.id === data.id);
+  }
+
+  removeWorldEntity(id) {
+    const entry = this.worldEntities.get(id);
+    if (!entry) return;
+    entry.material?.destroy?.();
+    entry.root.destroy();
+    this.worldEntities.delete(id);
+  }
+
+  syncWorldEntities(values = [], editor = this.editor) {
+    this.editor = editorState(editor);
+    const normalized = values.map(normalizeWorldEntity);
+    const nextIds = new Set(normalized.map((entity) => entity.id));
+    for (const id of [...this.worldEntities.keys()]) if (!nextIds.has(id)) this.removeWorldEntity(id);
+    for (const data of normalized) {
+      const entry = this.worldEntities.get(data.id);
+      if (!entry || entry.data.kind !== data.kind) {
+        if (entry) this.removeWorldEntity(data.id);
+        this.createWorldEntityEntry(data);
+      } else {
+        this.updateWorldEntityEntry(entry, data);
+      }
+    }
+    for (const data of normalized) {
+      const entry = this.worldEntities.get(data.id);
+      const parent = data.parent ? this.worldEntities.get(data.parent)?.root : null;
+      const desired = parent || this.app.root;
+      if (entry?.root.parent !== desired) desired.addChild(entry.root);
+      if (entry) this.updateWorldEntityEntry(entry, data);
+    }
+    for (const entry of this.worldEntities.values()) this.updateMaterial(
+      entry,
+      this.editor.active?.type === "entity" && this.editor.active.id === entry.data.id,
+    );
+    this.updateEditorGizmo();
+    this.updateOverlays();
+  }
+
+  activateWorldEntityAt(clientX, clientY) {
+    const ray = this.screenRay(clientX, clientY);
+    if (!ray) return null;
+    let nearest = null;
+    const candidates = [];
+    for (const entry of this.worldEntities.values()) {
+      if (entry.data.visible === false || entry.data.locked) continue;
+      candidates.push({ type: "entity", id: entry.data.id, anchor: entry.root, radius: entry.radius });
+    }
+    for (const entry of this.audioSources.values()) {
+      candidates.push({ type: "audio", id: entry.source.id, anchor: entry.anchor, radius: 0.4 });
+    }
+    for (const candidate of candidates) {
+      const center = candidate.anchor.getPosition();
+      const offset = center.clone().sub(ray.origin);
+      const along = offset.dot(ray.direction);
+      if (along < 0) continue;
+      const closest = ray.origin.clone().add(ray.direction.clone().mulScalar(along));
+      if (center.clone().sub(closest).length() > candidate.radius) continue;
+      if (!nearest || along < nearest.distance) nearest = { candidate, distance: along };
+    }
+    if (!nearest) return null;
+    const target = { type: nearest.candidate.type, id: nearest.candidate.id };
+    this.onWorldEntity({ action: "select", target });
+    return target;
+  }
+
   createAudioSourceElement(source) {
     if (!this.audioSourceRoot) return null;
     const document = this.audioSourceRoot.ownerDocument ?? globalThis.document;
@@ -404,7 +608,14 @@ export class WorldRenderer {
     remove.className = "hodos-audio-source-remove";
     remove.textContent = "×";
     remove.setAttribute("aria-label", `Remove ${source.label || source.id}`);
-    main.addEventListener("click", () => this.onAudioSource({ action: "toggle", source: this.audioSources.get(source.id)?.source || source }));
+    main.addEventListener("click", () => {
+      const current = this.audioSources.get(source.id)?.source || source;
+      if (this.editor.mode === "edit") {
+        this.onWorldEntity({ action: "select", target: { type: "audio", id: current.id } });
+      } else {
+        this.onAudioSource({ action: "toggle", source: current });
+      }
+    });
     remove.addEventListener("click", () => this.onAudioSource({ action: "remove", source: this.audioSources.get(source.id)?.source || source }));
     root.append(main, remove);
     this.audioSourceRoot.append(root);
@@ -428,9 +639,10 @@ export class WorldRenderer {
     entry.anchor.setPosition(...sourcePosition(source));
     if (!entry.controls) return;
     entry.controls.root.dataset.playing = String(Boolean(source.playing));
+    entry.controls.root.dataset.selected = String(this.editor.active?.type === "audio" && this.editor.active.id === source.id);
     entry.controls.label.textContent = source.label || source.id;
     entry.controls.state.textContent = source.playing ? "Playing in world" : "Paused in world";
-    entry.controls.main.setAttribute("aria-label", `${source.playing ? "Pause" : "Play"} ${source.label || source.id}`);
+    entry.controls.main.setAttribute("aria-label", `${this.editor.mode === "edit" ? "Select" : source.playing ? "Pause" : "Play"} ${source.label || source.id}`);
     entry.controls.remove.setAttribute("aria-label", `Remove ${source.label || source.id}`);
   }
 
@@ -444,15 +656,130 @@ export class WorldRenderer {
 
   syncAudioSources(sources = []) {
     const nextIds = new Set(sources.map((source) => source.id));
-    for (const id of this.audioSources.keys()) {
-      if (!nextIds.has(id)) this.removeAudioSource(id);
-    }
+    for (const id of this.audioSources.keys()) if (!nextIds.has(id)) this.removeAudioSource(id);
     for (const source of sources) {
       const entry = this.audioSources.get(source.id);
       if (entry) this.updateAudioSourceEntry(entry, source);
       else this.addAudioSource(source);
     }
+    this.updateEditorGizmo();
     this.updateOverlays();
+  }
+
+  createEditorGizmo() {
+    if (!this.entityOverlayRoot) return;
+    const document = this.entityOverlayRoot.ownerDocument ?? globalThis.document;
+    const root = document.createElement("div");
+    root.className = "hodos-entity-gizmo";
+    root.hidden = true;
+    for (const [axis, label] of AXES.entries()) {
+      const control = document.createElement("button");
+      control.type = "button";
+      control.dataset.axis = label;
+      control.innerHTML = `<span>${label.toUpperCase()}</span>`;
+      control.setAttribute("aria-label", `Transform ${label.toUpperCase()} axis`);
+      this.installGizmoDrag(control, axis);
+      root.append(control);
+    }
+    this.entityOverlayRoot.append(root);
+    this.gizmo = { root, projected: new Vec3() };
+  }
+
+  activeEditorTarget() {
+    const active = this.editor.active;
+    if (!active) return null;
+    if (active.type === "audio") {
+      const entry = this.audioSources.get(active.id);
+      return entry ? {
+        type: "audio",
+        id: active.id,
+        anchor: entry.anchor,
+        source: entry.source,
+        transform: { position: sourcePosition(entry.source), rotation: [0, 0, 0], scale: [1, 1, 1] },
+      } : null;
+    }
+    const entry = this.worldEntities.get(active.id);
+    return entry ? {
+      type: "entity",
+      id: active.id,
+      anchor: entry.root,
+      entity: entry.data,
+      transform: cloneTransform(entry.data.transform),
+    } : null;
+  }
+
+  previewTargetTransform(target, transform) {
+    if (target.type === "audio") {
+      target.anchor.setPosition(...transform.position);
+    } else {
+      target.anchor.setLocalPosition(...transform.position);
+      target.anchor.setLocalEulerAngles(...transform.rotation);
+      target.anchor.setLocalScale(...transform.scale);
+    }
+    this.updateOverlays();
+  }
+
+  installGizmoDrag(control, axis) {
+    let drag = null;
+    control.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0 || this.editor.mode !== "edit") return;
+      const target = this.activeEditorTarget();
+      if (!target) return;
+      control.setPointerCapture(event.pointerId);
+      drag = {
+        pointer: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        target,
+        original: cloneTransform(target.transform),
+        next: cloneTransform(target.transform),
+      };
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    control.addEventListener("pointermove", (event) => {
+      if (!drag || drag.pointer !== event.pointerId) return;
+      const screenDelta = (event.clientX - drag.x) - (event.clientY - drag.y);
+      const tool = drag.target.type === "audio" ? "translate" : this.editor.tool;
+      const next = cloneTransform(drag.original);
+      if (tool === "translate") {
+        const raw = drag.original.position[axis] + screenDelta * Math.max(0.001, this.orbit.distance * 0.0022);
+        next.position[axis] = event.shiftKey ? Math.round(raw * 4) / 4 : raw;
+      } else if (tool === "rotate") {
+        const raw = drag.original.rotation[axis] + screenDelta * 0.45;
+        next.rotation[axis] = event.shiftKey ? Math.round(raw / 5) * 5 : raw;
+      } else if (tool === "scale") {
+        const raw = Math.max(0.01, drag.original.scale[axis] + screenDelta * 0.01);
+        next.scale[axis] = event.shiftKey ? Math.round(raw * 10) / 10 : raw;
+      }
+      drag.next = next;
+      this.previewTargetTransform(drag.target, next);
+    });
+    const finish = (event) => {
+      if (!drag || drag.pointer !== event.pointerId) return;
+      const { target, next } = drag;
+      drag = null;
+      if (target.type === "audio") {
+        this.onWorldEntity({ action: "audio-transform", source: target.id, position: next.position });
+      } else {
+        this.onWorldEntity({ action: "transform", entity: target.id, transform: next });
+      }
+    };
+    control.addEventListener("pointerup", finish);
+    control.addEventListener("pointercancel", () => {
+      if (drag) this.previewTargetTransform(drag.target, drag.original);
+      drag = null;
+    });
+  }
+
+  updateEditorGizmo() {
+    if (!this.gizmo) return;
+    const target = this.activeEditorTarget();
+    const visible = this.editor.mode === "edit" && target && this.editor.tool !== "select";
+    this.gizmo.root.hidden = !visible;
+    if (!visible) return;
+    this.gizmo.root.dataset.tool = target.type === "audio" ? "translate" : this.editor.tool;
+    this.gizmo.root.dataset.audio = String(target.type === "audio");
   }
 
   projectOverlay(entry, element, marginX = 80, marginY = 60) {
@@ -480,6 +807,20 @@ export class WorldRenderer {
     if (this.destroyed) return;
     for (const entry of this.touchpoints) this.projectOverlay(entry, entry.button);
     for (const entry of this.audioSources.values()) this.projectOverlay(entry, entry.controls?.root, 100, 70);
+    if (this.gizmo && !this.gizmo.root.hidden) {
+      const target = this.activeEditorTarget();
+      if (target) this.projectOverlay({ anchor: target.anchor, projected: this.gizmo.projected }, this.gizmo.root, 100, 100);
+    }
+  }
+
+  focusEditorSelection() {
+    const target = this.activeEditorTarget();
+    if (!target) return;
+    const position = target.anchor.getPosition();
+    this.orbit.target.copy(position);
+    const radius = target.type === "entity" ? worldEntityRadius(target.entity) : 0.4;
+    this.orbit.distance = Math.max(radius * 4.5, 1.5);
+    this.updateCamera();
   }
 
   focusCamera(camera) {
@@ -500,8 +841,11 @@ export class WorldRenderer {
   destroy() {
     this.destroyed = true;
     this.abort.abort();
-    for (const { button } of this.touchpoints) button?.remove();
+    this.app.off("update", this.updateOverlays, this);
+    for (const { button: control } of this.touchpoints) control?.remove();
     for (const id of [...this.audioSources.keys()]) this.removeAudioSource(id);
+    for (const id of [...this.worldEntities.keys()]) this.removeWorldEntity(id);
+    this.gizmo?.root.remove();
     this.touchpoints = [];
     this.app.destroy();
     this.assets.clear();

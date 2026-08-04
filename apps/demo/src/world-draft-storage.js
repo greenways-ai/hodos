@@ -20,6 +20,48 @@ function repositoryIdentity(repository) {
   throw new Error("World draft requires a repository identity");
 }
 
+function vector3(value, label, { positive = false } = {}) {
+  if (!Array.isArray(value) || value.length !== 3 || value.some((entry) => !Number.isFinite(entry))) {
+    throw new Error(`${label} must contain three finite numbers`);
+  }
+  if (positive && value.some((entry) => entry <= 0)) throw new Error(`${label} values must be positive`);
+  return [...value];
+}
+
+function validateEntity(entity, index, ids) {
+  if (!entity || typeof entity !== "object" || !entity.id || !entity.kind) {
+    throw new Error(`World draft entity ${index} is invalid`);
+  }
+  if (ids.has(entity.id)) throw new Error(`World draft contains duplicate entity id: ${entity.id}`);
+  ids.add(entity.id);
+  const transform = entity.transform ?? {};
+  vector3(transform.position ?? [0, 0, 0], `World draft entity ${index} position`);
+  vector3(transform.rotation ?? [0, 0, 0], `World draft entity ${index} rotation`);
+  vector3(transform.scale ?? [1, 1, 1], `World draft entity ${index} scale`, { positive: true });
+  if (entity.parent && entity.parent === entity.id) throw new Error(`World draft entity ${index} cannot parent itself`);
+  if (entity.components !== undefined && (!entity.components || typeof entity.components !== "object" || Array.isArray(entity.components))) {
+    throw new Error(`World draft entity ${index} components must be an object`);
+  }
+}
+
+function validateEntityHierarchy(entities, ids) {
+  const byId = new Map(entities.map((entity) => [entity.id, entity]));
+  for (const [index, entity] of entities.entries()) {
+    if (entity.parent && !ids.has(entity.parent)) {
+      throw new Error(`World draft entity ${index} references an unknown parent: ${entity.parent}`);
+    }
+    const visited = new Set([entity.id]);
+    let parent = entity.parent;
+    while (parent) {
+      if (visited.has(parent)) {
+        throw new Error(`World draft entity ${index} parent hierarchy contains a cycle`);
+      }
+      visited.add(parent);
+      parent = byId.get(parent)?.parent ?? null;
+    }
+  }
+}
+
 export function worldDraftKey(identity) {
   const repository = repositoryIdentity(identity?.repository);
   const commit = String(identity?.commit || "").trim();
@@ -38,15 +80,23 @@ export function validateWorldDraft(draft) {
     throw new Error("World draft revision must be a non-negative integer");
   }
   if (!Array.isArray(draft.audioSources)) throw new Error("World draft audioSources must be an array");
+  const sourceIds = new Set();
   for (const [index, source] of draft.audioSources.entries()) {
     if (!source?.id || !source?.kind || !Array.isArray(source.position) || source.position.length !== 3) {
       throw new Error(`World draft source ${index} is invalid`);
     }
+    if (sourceIds.has(source.id)) throw new Error(`World draft contains duplicate source id: ${source.id}`);
+    sourceIds.add(source.id);
     if (source.position.some((value) => !Number.isFinite(value))) {
       throw new Error(`World draft source ${index} position must be finite`);
     }
   }
-  return cloneData(draft);
+  const entities = draft.entities ?? [];
+  if (!Array.isArray(entities)) throw new Error("World draft entities must be an array");
+  const ids = new Set();
+  entities.forEach((entity, index) => validateEntity(entity, index, ids));
+  validateEntityHierarchy(entities, ids);
+  return cloneData({ ...draft, entities });
 }
 
 export class WorldDraftStore {
