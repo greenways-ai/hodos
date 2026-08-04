@@ -38,8 +38,10 @@ const entity = (id, overrides = {}) => ({
   name: id.toUpperCase(),
   kind: "box",
   parent: null,
+  collection: null,
   visible: true,
   locked: false,
+  origin: [0, 0, 0],
   transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
   components: { primitive: { shape: "box", color: "#c8ad73", opacity: 1 } },
   ...overrides,
@@ -50,7 +52,11 @@ const current = {
   version: "0.1.0",
   revision: 4,
   audioSources: [source("a"), source("remove")],
-  entities: [entity("cube"), entity("old")],
+  entities: [entity("cube", { collection: "set" }), entity("old")],
+  collections: [{ id: "set", name: "Set", parent: null, visible: true, locked: false }],
+  assets: [{ id: "chair", name: "Chair", kind: "gltf", url: "https://example.test/chair.glb", thumbnail: null, metadata: {} }],
+  prefabs: [{ id: "pair", name: "Pair", description: "", rootIds: ["old"], entities: [entity("old")] }],
+  animations: [{ id: "main", name: "Main", duration: 4, fps: 30, tracks: [] }],
 };
 
 const candidate = {
@@ -63,6 +69,7 @@ const candidate = {
   ],
   entities: [
     entity("cube", {
+      collection: "set",
       transform: { position: [4, 0, 0], rotation: [0, 45, 0], scale: [2, 1, 1] },
     }),
     entity("light", {
@@ -71,11 +78,33 @@ const candidate = {
       components: { light: { type: "point", color: "#fff1ca", intensity: 2, range: 15 } },
     }),
   ],
+  collections: [{ id: "set", name: "Set Dressing", parent: null, visible: true, locked: false }],
+  assets: [
+    { id: "chair", name: "Chair", kind: "gltf", url: "https://example.test/chair.glb", thumbnail: null, metadata: {} },
+    { id: "lamp", name: "Lamp", kind: "gltf", url: "https://example.test/lamp.glb", thumbnail: null, metadata: {} },
+  ],
+  prefabs: [],
+  animations: [{
+    id: "main",
+    name: "Main",
+    duration: 6,
+    fps: 30,
+    tracks: [{
+      id: "cube-position",
+      entity: "cube",
+      property: "position",
+      enabled: true,
+      keyframes: [
+        { id: "start", time: 0, value: [0, 0, 0], easing: "linear" },
+        { id: "end", time: 6, value: [6, 0, 0], easing: "linear" },
+      ],
+    }],
+  }],
 };
 
-test("world draft diff reports entity and source changes with fields", () => {
+test("world draft diff reports every authoring collection with field changes", () => {
   const result = diffWorldDrafts(current, candidate);
-  assert.deepEqual(result.summary, { add: 2, remove: 2, replace: 2, unchanged: 0 });
+  assert.deepEqual(result.summary, { add: 3, remove: 3, replace: 4, unchanged: 1 });
   assert.deepEqual(result.changes.map(({ id, collection, op }) => [id, collection, op]), [
     ["entity:cube", "entities", "replace"],
     ["entity:light", "entities", "add"],
@@ -83,9 +112,14 @@ test("world draft diff reports entity and source changes with fields", () => {
     ["source:a", "audioSources", "replace"],
     ["source:b", "audioSources", "add"],
     ["source:remove", "audioSources", "remove"],
+    ["collection:set", "collections", "replace"],
+    ["asset:lamp", "assets", "add"],
+    ["prefab:pair", "prefabs", "remove"],
+    ["animation:main", "animations", "replace"],
   ]);
   assert.deepEqual(result.changes[0].fields.map(({ field }) => field), ["transform"]);
   assert.deepEqual(result.changes[3].fields.map(({ field }) => field), ["gainDb", "position"]);
+  assert.deepEqual(result.changes[6].fields.map(({ field }) => field), ["name"]);
 });
 
 test("world draft export becomes an exact-world Hara proposal", () => {
@@ -99,10 +133,11 @@ test("world draft export becomes an exact-world Hara proposal", () => {
   });
   assert.equal(proposal.id, "proposal-test");
   assert.equal(proposal.baseRevision, 4);
-  assert.equal(proposal.changes.length, 6);
+  assert.equal(proposal.changes.length, 10);
   assert.deepEqual(proposal.selected, [
     "entity:cube", "entity:light", "entity:old",
     "source:a", "source:b", "source:remove",
+    "collection:set", "asset:lamp", "prefab:pair", "animation:main",
   ]);
   assert.equal(proposal.identity.commit, identity.commit);
 });
