@@ -45,6 +45,10 @@ export function evaluateHodosScript({ source, event = {}, entity = {}, world = {
   ));
 }
 
+if (typeof globalThis !== "undefined") {
+  globalThis.HodosScriptRuntime = Object.freeze({ evaluate: evaluateHodosScript });
+}
+
 export const hodosCapabilities = () => invokeHodos("app/capabilities");
 export const activateLockedPackages = (lockSource, request) =>
   installLockedPackages(runtime, lockSource, { fetch: request });
