@@ -6,14 +6,14 @@ import { start } from "../../kernel/runtime/hara-vm.mjs";
 import { encodeHalValue } from "../../kernel/runtime/hal-transport.js";
 
 const resources = {
-  "gw.hodos.adaptor": fs.readFileSync(new URL("../../kernel/src/gw/hodos/adaptor.hal", import.meta.url), "utf8"),
-  "gw.hodos.bundle": fs.readFileSync(new URL("../../kernel/src/gw/hodos/bundle.hal", import.meta.url), "utf8"),
-  "gw.hodos.package": fs.readFileSync(new URL("../../kernel/src/gw/hodos/package.hal", import.meta.url), "utf8"),
-  "gw.hodos.scene": fs.readFileSync(new URL("../../kernel/src/gw/hodos/scene.hal", import.meta.url), "utf8"),
-  "gw.hodos.session": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session.hal", import.meta.url), "utf8"),
-  "gw.hodos.session-draft": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_draft.hal", import.meta.url), "utf8"),
-  "gw.hodos.session-publication": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_publication.hal", import.meta.url), "utf8"),
-  "gw.hodos.session-authoring": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_authoring.hal", import.meta.url), "utf8"),
+  "gw.hodos.adaptor": fs.readFileSync(new URL("../../core/src/gw/hodos/adaptor.hal", import.meta.url), "utf8"),
+  "gw.hodos.bundle": fs.readFileSync(new URL("../../core/src/gw/hodos/bundle.hal", import.meta.url), "utf8"),
+  "gw.hodos.package": fs.readFileSync(new URL("../../core/src/gw/hodos/package.hal", import.meta.url), "utf8"),
+  "gw.hodos.scene": fs.readFileSync(new URL("../../core/src/gw/hodos/scene.hal", import.meta.url), "utf8"),
+  "gw.hodos.session": fs.readFileSync(new URL("../../core/src/gw/hodos/session.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-draft": fs.readFileSync(new URL("../../addon-drafts/src/gw/hodos/session_draft.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-publication": fs.readFileSync(new URL("../../addon-publication/src/gw/hodos/session_publication.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-authoring": fs.readFileSync(new URL("../../addon-authoring/src/gw/hodos/session_authoring.hal", import.meta.url), "utf8"),
   "gw.hodos.kernel": fs.readFileSync(new URL("../../kernel/src/gw/hodos/kernel.hal", import.meta.url), "utf8"),
 };
 

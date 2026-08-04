@@ -5,13 +5,19 @@ describes an immutable base world with `project.edn`; the Hara kernel resolves
 its bundle and locked packages, carries the editable scene document, and the
 viewer projects both through PlayCanvas and classical web interfaces.
 
-The repository deliberately separates reusable technology from presentation:
+The repository is a package workspace. Hodos Core stays independent of any
+runtime or projection, while first-party features activate through the same
+add-on contract available to third parties:
 
-- `packages/kernel` owns the `gw.hodos.*` HAL surface, bundling, persistent
-  browser sessions, package plans, scene commands, the canonical authoring
-  document, editor state, animation definitions, Hara script components,
-  semantic review, and publication intent.
-- `packages/viewer` is an embeddable browser editor with no featured-world or
+- `packages/core` owns the dependency-free add-on host and the stable
+  `gw.hodos` bundle, package, scene, and session primitives.
+- `packages/addon-drafts` owns reversible world draft sessions.
+- `packages/addon-publication` owns semantic review and publication intent.
+- `packages/addon-authoring` composes drafts and publication into the complete
+  semantic editor session.
+- `packages/kernel` is the lazy Hara runtime adapter and compatibility kernel
+  composition; it no longer owns the feature modules it loads.
+- `packages/viewer` is an embeddable browser projection with no featured-world or
   landing-page policy. It renders Gaussian splats and editable PlayCanvas
   entities, provides an Outliner, properties, multi-selection, transform
   gizmos, assets, prefabs, collections, animation, scripting, review controls,
@@ -20,6 +26,10 @@ The repository deliberately separates reusable technology from presentation:
   [greenways-worlds](https://github.com/greenways-worlds). Its Splat Garden
   experience combines the editor, tour, live Hara inspector, command deck and
   browser-native multitrack Studio.
+
+Each reusable directory is both an npm workspace package and a Hara HARP
+package. See [`docs/packages-and-addons.md`](docs/packages-and-addons.md) for
+the extension contract, package graph, validation, and release workflow.
 
 ## Complete world editor
 
@@ -99,6 +109,8 @@ for semantic acceptance, repository patches and signed Hestia contributions.
 
 ```sh
 npm install
+npm run check:packages
+npm run pack:check
 npm test
 npm run build
 ```

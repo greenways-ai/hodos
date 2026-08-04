@@ -1,7 +1,6 @@
-import { evaluateHodosScript } from "../../../packages/kernel/runtime/hodos-runtime.js";
-
-export async function handleHaraScriptEffect(effect, state, context) {
+export async function handleHaraScriptEffect(effect, state, context, evaluateHodosScript) {
   if (effect?.effect !== "script" || effect?.method !== "evaluate") return false;
+  if (typeof evaluateHodosScript !== "function") throw new Error("Hodos script effect requires a Hara runtime add-on");
   const [request = {}] = effect.args ?? [];
   try {
     const result = evaluateHodosScript({

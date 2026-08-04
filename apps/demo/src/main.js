@@ -1,4 +1,10 @@
 import "./world.css";
+import { createHodosHost } from "@greenways/hodos-core";
+import {
+  hodosHaraDistribution,
+  HODOS_HARA_RUNTIME_ADDON_ID,
+} from "@greenways/hodos-runtime-hara";
+import { hodosViewerAddon, HODOS_VIEWER_ADDON_ID } from "@greenways/hodos-viewer";
 import { FEATURED_WORLDS, featuredWorld } from "./featured-worlds.js";
 import { handleHaraScriptEffect } from "./hara-script-host.js";
 import { SpatialAudioRuntime } from "./spatial-audio.js";
@@ -18,9 +24,24 @@ import {
 import { readWorldDraftProposal } from "./world-draft-review.js";
 import { createWorldDraftStore, saveWorldDraftFile } from "./world-draft-storage.js";
 import { saveHestiaContribution, saveRepositoryPatch } from "./world-publication.js";
-import { createHodosViewer } from "../../../packages/viewer/src/index.js";
-import { searchWorldRepositories } from "../../../packages/viewer/src/github-worlds.js";
-import { activateLockedPackages, invokeHodos } from "../../../packages/kernel/runtime/hodos-runtime.js";
+
+const host = createHodosHost({
+  capabilities: [
+    "publication.intent",
+    "runtime.hara",
+    "workspace.authoring",
+    "workspace.drafts",
+    "world.render",
+  ],
+});
+host.register(hodosHaraDistribution, hodosViewerAddon);
+await host.activate([HODOS_HARA_RUNTIME_ADDON_ID, HODOS_VIEWER_ADDON_ID]);
+const haraRuntime = host.getContribution("runtime", "hara");
+const worldsViewer = host.getContribution("viewer", "worlds");
+const invokeHodos = haraRuntime.invoke;
+const activateLockedPackages = haraRuntime.activatePackages;
+const createHodosViewer = worldsViewer.create;
+const searchWorldRepositories = worldsViewer.searchRepositories;
 
 const root = document.querySelector("#hodos-app");
 const spatialAudio = new SpatialAudioRuntime();
@@ -52,7 +73,7 @@ const viewer = createHodosViewer({
     currentDraft: state?.world?.draft,
   }),
   onEffect: async (effect, state, context) => {
-    if (await handleHaraScriptEffect(effect, state, context)) return;
+    if (await handleHaraScriptEffect(effect, state, context, haraRuntime.evaluateScript)) return;
     if (effect.effect === "audio" && effect.method === "sync-world-sources") {
       return spatialAudio.sync(effect.args[0] ?? [], effect.args[1]);
     }

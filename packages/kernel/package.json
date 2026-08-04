@@ -1,7 +1,25 @@
 {
-  "name": "@greenways/hodos-kernel",
+  "name": "@greenways/hodos-runtime-hara",
   "version": "0.1.0",
-  "private": true,
+  "description": "Hara runtime adapter and composed Hodos kernel",
   "type": "module",
-  "dependencies": { "edn-data": "1.1.2", "fflate": "^0.8.2" }
+  "license": "EPL-2.0",
+  "repository": { "type": "git", "url": "git+https://github.com/greenways-ai/hodos.git", "directory": "packages/kernel" },
+  "exports": {
+    ".": "./src/index.js",
+    "./runtime": "./runtime/hodos-runtime.js",
+    "./packages": "./runtime/hara-packages.js",
+    "./transport": "./runtime/hal-transport.js"
+  },
+  "files": ["src", "runtime", "project.edn", "project.lock.edn", "hara.recipe.edn", "README.md"],
+  "publishConfig": { "access": "public" },
+  "dependencies": {
+    "@greenways/hodos-addon-authoring": "0.1.0",
+    "@greenways/hodos-addon-drafts": "0.1.0",
+    "@greenways/hodos-addon-publication": "0.1.0",
+    "@greenways/hodos-core": "0.1.0",
+    "edn-data": "1.1.2",
+    "fflate": "^0.8.2"
+  },
+  "engines": { "node": ">=20" }
 }
