@@ -125,7 +125,7 @@ test("world draft import rejects identity drift and duplicate item ids", () => {
       expectedIdentity: identity,
       currentDraft: current,
     }),
-    /duplicate id/,
+    /duplicate source id/,
   );
   const duplicateEntity = {
     ...envelope,
