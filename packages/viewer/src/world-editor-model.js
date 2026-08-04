@@ -7,9 +7,12 @@ export const WORLD_ENTITY_KINDS = Object.freeze([
   "cone",
   "capsule",
   "point-light",
+  "camera",
+  "trigger",
+  "asset-instance",
 ]);
 
-export const WORLD_EDITOR_TOOLS = Object.freeze(["select", "translate", "rotate", "scale"]);
+export const WORLD_EDITOR_TOOLS = Object.freeze(["select", "box", "translate", "rotate", "scale"]);
 export const WORLD_EDITOR_MODES = Object.freeze(["edit", "preview"]);
 
 const DEFAULT_COLOR = "#c8ad73";
@@ -48,6 +51,35 @@ function defaultComponents(kind) {
       },
     };
   }
+  if (kind === "camera") {
+    return {
+      camera: {
+        fov: 60,
+        nearClip: 0.05,
+        farClip: 1000,
+        active: false,
+      },
+    };
+  }
+  if (kind === "trigger") {
+    return {
+      trigger: {
+        shape: "box",
+        size: [1, 1, 1],
+        event: "world/trigger-enter",
+        once: false,
+      },
+    };
+  }
+  if (kind === "asset-instance") {
+    return {
+      asset: {
+        id: null,
+        url: null,
+        format: "gltf",
+      },
+    };
+  }
   if (kind === "empty") return {};
   return {
     primitive: {
@@ -83,13 +115,40 @@ export function normalizeWorldEntity(value = {}) {
     components.light.range = Math.max(0.1, finite(components.light.range, 12));
     components.light.castShadows = Boolean(components.light.castShadows);
   }
+  if (components.camera) {
+    components.camera.fov = Math.max(10, Math.min(150, finite(components.camera.fov, 60)));
+    components.camera.nearClip = Math.max(0.001, finite(components.camera.nearClip, 0.05));
+    components.camera.farClip = Math.max(components.camera.nearClip + 0.01, finite(components.camera.farClip, 1000));
+    components.camera.active = Boolean(components.camera.active);
+  }
+  if (components.trigger) {
+    components.trigger.shape = ["box", "sphere"].includes(components.trigger.shape) ? components.trigger.shape : "box";
+    components.trigger.size = worldScale3(components.trigger.size, [1, 1, 1]);
+    components.trigger.event = String(components.trigger.event || "world/trigger-enter");
+    components.trigger.once = Boolean(components.trigger.once);
+  }
+  if (components.asset) {
+    components.asset.id = components.asset.id ? String(components.asset.id) : null;
+    components.asset.url = components.asset.url ? String(components.asset.url) : null;
+    components.asset.format = String(components.asset.format || "gltf");
+  }
+  if (components.script) {
+    components.script.language = "hara";
+    components.script.enabled = components.script.enabled !== false;
+    components.script.events = Array.isArray(components.script.events)
+      ? [...new Set(components.script.events.map(String).filter(Boolean))]
+      : [];
+    components.script.source = String(components.script.source || "");
+  }
   return {
     id,
     name: String(value.name || id),
     kind,
     parent: value.parent ? String(value.parent) : null,
+    collection: value.collection ? String(value.collection) : null,
     visible: value.visible !== false,
     locked: Boolean(value.locked),
+    origin: worldVector3(value.origin, [0, 0, 0]),
     transform: normalizeWorldTransform(value.transform),
     components,
   };
@@ -105,6 +164,7 @@ export function createWorldEntity(kind, {
   name,
   position = [0, 0, 0],
   parent = null,
+  collection = null,
 } = {}) {
   if (!WORLD_ENTITY_KINDS.includes(kind)) throw new Error(`Unsupported world entity kind: ${kind}`);
   const entityId = String(id || "").trim();
@@ -118,12 +178,17 @@ export function createWorldEntity(kind, {
     cone: "Cone",
     capsule: "Capsule",
     "point-light": "Point Light",
+    camera: "Camera",
+    trigger: "Trigger Volume",
+    "asset-instance": "Asset Instance",
   };
   return normalizeWorldEntity({
     id: entityId,
     name: name || labels[kind] || kind,
     kind,
     parent,
+    collection,
+    origin: [0, 0, 0],
     transform: {
       position,
       rotation: [0, 0, 0],
@@ -205,7 +270,31 @@ export function editorState(value = {}) {
   const active = value.active?.id && ["entity", "audio"].includes(value.active.type)
     ? { type: value.active.type, id: String(value.active.id) }
     : selection.at(-1) ?? null;
-  return { mode, tool, space: value.space === "local" ? "local" : "world", selection, active };
+  const snap = value.snap ?? {};
+  const timeline = value.timeline ?? {};
+  return {
+    mode,
+    tool,
+    space: value.space === "local" ? "local" : "world",
+    pivot: ["median", "active", "individual", "cursor"].includes(value.pivot) ? value.pivot : "median",
+    cursor: worldVector3(value.cursor, [0, 0, 0]),
+    snap: {
+      enabled: Boolean(snap.enabled),
+      translate: Math.max(0.0001, finite(snap.translate, 0.25)),
+      rotate: Math.max(0.1, finite(snap.rotate, 5)),
+      scale: Math.max(0.001, finite(snap.scale, 0.1)),
+    },
+    isolation: value.isolation ? String(value.isolation) : null,
+    activeCollection: value.activeCollection ? String(value.activeCollection) : null,
+    selection,
+    active,
+    timeline: {
+      animation: String(timeline.animation || "main"),
+      time: Math.max(0, finite(timeline.time, 0)),
+      playing: Boolean(timeline.playing),
+      loop: Boolean(timeline.loop),
+    },
+  };
 }
 
 export function activeWorldItem(state) {
@@ -221,8 +310,20 @@ export function activeWorldItem(state) {
   return entity ? { type: "entity", value: normalizeWorldEntity(entity) } : null;
 }
 
+export function selectedWorldItems(state) {
+  const editor = editorState(state?.world?.editor ?? state?.world?.draft?.editor);
+  const entities = new Map((state?.world?.draft?.entities ?? []).map((entry) => [entry.id, normalizeWorldEntity(entry)]));
+  const audio = new Map((state?.world?.draft?.audioSources ?? state?.world?.audioSources ?? []).map((entry) => [entry.id, entry]));
+  return editor.selection.flatMap((target) => {
+    const value = target.type === "entity" ? entities.get(target.id) : audio.get(target.id);
+    return value ? [{ type: target.type, value }] : [];
+  });
+}
+
 export function worldEntityRadius(entity) {
   const normalized = normalizeWorldEntity(entity);
   const scale = normalized.transform.scale;
+  if (normalized.kind === "camera") return Math.max(0.25, Math.hypot(...scale) * 0.3);
+  if (normalized.kind === "trigger") return Math.max(0.25, Math.hypot(...normalized.components.trigger.size) * 0.45);
   return Math.max(0.18, Math.hypot(scale[0], scale[1], scale[2]) * 0.42);
 }

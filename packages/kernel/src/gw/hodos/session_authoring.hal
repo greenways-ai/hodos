@@ -1,0 +1,909 @@
+(ns gw.hodos.session-authoring
+  (:require [gw.hodos.session :as base]
+            [gw.hodos.session-draft :as draft]
+            [gw.hodos.session-publication :as publication]))
+
+(def ^:private *authoring* (atom {}))
+
+(defn empty-history []
+  {"undo" [] "redo" []})
+
+(defn default-snap []
+  {"enabled" false
+   "translate" 0.25
+   "rotate" 5
+   "scale" 0.1})
+
+(defn default-timeline []
+  {"time" 0
+   "playing" false
+   "loop" false
+   "animation" "main"})
+
+(defn default-animation []
+  {"id" "main"
+   "name" "Main"
+   "duration" 10
+   "fps" 30
+   "tracks" []})
+
+(defn normalize-snap [value]
+  (let [snap (or value {})]
+    {"enabled" (= (get snap "enabled") true)
+     "translate" (or (get snap "translate") 0.25)
+     "rotate" (or (get snap "rotate") 5)
+     "scale" (or (get snap "scale") 0.1)}))
+
+(defn normalize-timeline [value]
+  (let [timeline (or value {})]
+    {"time" (or (get timeline "time") 0)
+     "playing" (= (get timeline "playing") true)
+     "loop" (= (get timeline "loop") true)
+     "animation" (or (get timeline "animation") "main")}))
+
+(defn normalize-editor [value]
+  (let [base-editor (draft/normalize-editor value)
+        editor (or value {})]
+    (assoc
+     (assoc
+      (assoc
+       (assoc
+        (assoc
+         (assoc base-editor
+                "pivot" (or (get editor "pivot") "median"))
+         "cursor" (or (get editor "cursor") [0 0 0]))
+        "snap" (normalize-snap (get editor "snap")))
+       "isolation" (get editor "isolation"))
+      "activeCollection" (get editor "activeCollection"))
+     "timeline" (normalize-timeline (get editor "timeline")))))
+
+(defn normalize-document [value]
+  (let [document (or value {})]
+    {"collections" (or (get document "collections") [])
+     "assets" (or (get document "assets") [])
+     "prefabs" (or (get document "prefabs") [])
+     "animations" (or (get document "animations") [(default-animation)])}))
+
+(defn empty-authoring [world base-editor]
+  (let [source (or (get world "draft") world)]
+    {"document" (normalize-document source)
+     "editor" (normalize-editor (or (get source "editor") base-editor))
+     "history" (empty-history)
+     "traces" []}))
+
+(defn authoring-value [session-id]
+  (let [value (get (deref *authoring*) session-id)]
+    (if value
+      value
+      (throw (str "Unknown Hodos authoring session: " session-id)))))
+
+(defn store-authoring [session-id value]
+  (do
+    (swap! *authoring* (fn [sessions]
+                         (assoc sessions session-id value)))
+    value))
+
+(defn vector-contains? [values target]
+  (loop [index 0]
+    (if (= index (count values))
+      false
+      (if (= (nth values index) target)
+        true
+        (recur (+ index 1))))))
+
+(defn vector-remove [values target]
+  (vec (filter (fn [value] (not (= value target))) values)))
+
+(defn item-present? [items item-id]
+  (loop [index 0]
+    (if (= index (count items))
+      false
+      (if (= (get (nth items index) "id") item-id)
+        true
+        (recur (+ index 1))))))
+
+(defn item-value [items item-id]
+  (loop [index 0]
+    (if (= index (count items))
+      nil
+      (let [item (nth items index)]
+        (if (= (get item "id") item-id)
+          item
+          (recur (+ index 1)))))))
+
+(defn update-item [items item-id update-fn]
+  (base/map-vector
+   items
+   (fn [item]
+     (if (= (get item "id") item-id)
+       (update-fn item)
+       item))))
+
+(defn remove-item [items item-id]
+  (vec (filter (fn [item]
+                 (not (= (get item "id") item-id)))
+               items)))
+
+(defn document-content [session-id]
+  (let [base-draft (draft/draft-value session-id)
+        authoring (authoring-value session-id)
+        document (get authoring "document")]
+    {"audioSources" (or (get base-draft "audioSources") [])
+     "entities" (or (get base-draft "entities") [])
+     "collections" (or (get document "collections") [])
+     "assets" (or (get document "assets") [])
+     "prefabs" (or (get document "prefabs") [])
+     "animations" (or (get document "animations") [(default-animation)])}))
+
+(defn combined-snapshot [session-id]
+  (let [base-draft (draft/draft-value session-id)
+        content (document-content session-id)]
+    {"format" "hodos-world-draft"
+     "version" "0.1.0"
+     "revision" (or (get base-draft "revision") 0)
+     "audioSources" (get content "audioSources")
+     "entities" (get content "entities")
+     "collections" (get content "collections")
+     "assets" (get content "assets")
+     "prefabs" (get content "prefabs")
+     "animations" (get content "animations")}))
+
+(defn combined-draft [session-id]
+  (let [base-draft (draft/draft-value session-id)
+        authoring (authoring-value session-id)
+        snapshot (combined-snapshot session-id)]
+    (assoc
+     (assoc
+      (assoc snapshot
+             "dirty" (get base-draft "dirty"))
+      "editor" (get authoring "editor"))
+     "history" (get authoring "history"))))
+
+(defn merge-authoring-state [session-id state]
+  (let [authoring (authoring-value session-id)
+        document (get authoring "document")
+        editor (get authoring "editor")
+        world (get state "world")
+        next-world (assoc
+                    (assoc
+                     (assoc
+                      (assoc
+                       (assoc
+                        (assoc world
+                               "draft" (combined-draft session-id))
+                        "editor" editor)
+                       "collections" (get document "collections"))
+                      "assets" (get document "assets"))
+                     "prefabs" (get document "prefabs"))
+                    "animations" (get document "animations"))]
+    (assoc state "world"
+           (assoc next-world "scripting"
+                  {"traces" (or (get authoring "traces") [])}))))
+
+(defn replace-second [values replacement]
+  (if (> (count values) 1)
+    (loop [index 0 output []]
+      (if (= index (count values))
+        output
+        (recur (+ index 1)
+               (conj output (if (= index 1)
+                              replacement
+                              (nth values index))))))
+    values))
+
+(defn rewrite-effect [session-id effect]
+  (let [service (get effect "effect")
+        method (get effect "method")
+        args (or (get effect "args") [])
+        snapshot (combined-snapshot session-id)
+        editor (get (authoring-value session-id) "editor")]
+    (cond
+      (and (= service "scene") (= method "sync-world-entities"))
+      (assoc effect "args" [(get snapshot "entities") editor])
+
+      (and (= service "storage") (= method "save-world-draft"))
+      (assoc effect "args" (replace-second args snapshot))
+
+      (and (= service "export") (= method "world-draft"))
+      (assoc effect "args" (replace-second args snapshot))
+
+      (and (= service "publication") (= method "repository-patch"))
+      (assoc effect "args" (replace-second args snapshot))
+
+      (and (= service "publication") (= method "hestia-contribution"))
+      (assoc effect "args" (replace-second args snapshot))
+
+      :else effect)))
+
+(defn editor-document-effect [session-id]
+  {"effect" "scene"
+   "method" "sync-editor-document"
+   "args" [(combined-snapshot session-id)
+           (get (authoring-value session-id) "editor")]})
+
+(defn merge-result [session-id result]
+  (let [effects (base/map-vector (or (get result "effects") [])
+                                 (fn [effect]
+                                   (rewrite-effect session-id effect)))
+        with-editor (conj effects (editor-document-effect session-id))]
+    {"state" (merge-authoring-state session-id (get result "state"))
+     "effects" with-editor}))
+
+(defn append-effects [result effects]
+  (assoc result "effects"
+         (loop [index 0 output (or (get result "effects") [])]
+           (if (= index (count effects))
+             output
+             (recur (+ index 1) (conj output (nth effects index)))))))
+
+(defn script-component [entity]
+  (get (get entity "components") "script"))
+
+(defn script-subscribed? [entity event-type]
+  (let [script (script-component entity)
+        events (if script (or (get script "events") []) [])]
+    (and script
+         (not (= (get script "enabled") false))
+         (vector-contains? events event-type))))
+
+(defn script-effect [entity event trace-id]
+  (let [script (script-component entity)]
+    {"effect" "script"
+     "method" "evaluate"
+     "args" [{"trace" trace-id
+              "entity" entity
+              "event" event
+              "source" (get script "source")
+              "enabled" (not (= (get script "enabled") false))}]}))
+
+(defn subscribed-script-effects [entities event-type event revision]
+  (loop [index 0 output []]
+    (if (= index (count entities))
+      output
+      (let [entity (nth entities index)]
+        (recur (+ index 1)
+               (if (script-subscribed? entity event-type)
+                 (conj output
+                       (script-effect entity event
+                                      (str "trace-" (get entity "id") "-" revision "-" index)))
+                 output))))))
+
+(defn open [session-id world]
+  (let [result (publication/open session-id world)
+        base-editor (get (get (get result "state") "world") "editor")]
+    (store-authoring session-id (empty-authoring world base-editor))
+    (let [merged (merge-result session-id result)
+          effects (subscribed-script-effects
+                   (get (document-content session-id) "entities")
+                   "world/start"
+                   {"event/type" "world/start"}
+                   0)]
+      (append-effects merged effects))))
+
+(defn get-session [session-id]
+  (merge-result session-id (publication/get-session session-id)))
+
+(defn close [session-id]
+  (do
+    (swap! *authoring* (fn [sessions]
+                         (dissoc sessions session-id)))
+    (publication/close session-id)))
+
+(defn target-present? [session-id target]
+  (let [target-type (get target "type")
+        target-id (get target "id")
+        content (document-content session-id)]
+    (or (and (= target-type "entity")
+             (item-present? (get content "entities") target-id))
+        (and (= target-type "audio")
+             (item-present? (get content "audioSources") target-id)))))
+
+(defn normalize-targets [session-id targets]
+  (vec (filter (fn [target]
+                 (and target (target-present? session-id target)))
+               (or targets []))))
+
+(defn select-targets [session-id state event]
+  (let [authoring (authoring-value session-id)
+        editor (get authoring "editor")
+        current (or (get editor "selection") [])
+        supplied (or (get event "targets")
+                     (if (get event "target") [(get event "target")] []))
+        targets (normalize-targets session-id supplied)
+        mode (or (get event "mode") "replace")
+        selected (cond
+                   (= mode "add")
+                   (loop [index 0 output current]
+                     (if (= index (count targets))
+                       output
+                       (let [target (nth targets index)]
+                         (recur (+ index 1)
+                                (if (vector-contains? output target)
+                                  output
+                                  (conj output target))))))
+
+                   (= mode "toggle")
+                   (loop [index 0 output current]
+                     (if (= index (count targets))
+                       output
+                       (let [target (nth targets index)]
+                         (recur (+ index 1)
+                                (if (vector-contains? output target)
+                                  (vector-remove output target)
+                                  (conj output target))))))
+
+                   (= mode "subtract")
+                   (loop [index 0 output current]
+                     (if (= index (count targets))
+                       output
+                       (recur (+ index 1)
+                              (vector-remove output (nth targets index)))))
+
+                   :else targets)
+        active (if (= (count selected) 0)
+                 nil
+                 (nth selected (- (count selected) 1)))
+        next-editor (assoc (assoc editor "selection" selected) "active" active)
+        next-authoring (assoc authoring "editor" next-editor)]
+    (store-authoring session-id next-authoring)
+    {"state" (merge-authoring-state session-id state)
+     "effects" [(editor-document-effect session-id)]}))
+
+(defn patch-value [patch current key]
+  (let [missing "__hodos_missing_editor_value__"
+        value (get patch key missing)]
+    (if (= value missing)
+      (get current key)
+      value)))
+
+(defn patch-timeline [patch current]
+  (let [input (patch-value patch current "timeline")]
+    (if input
+      (let [timeline (or (get current "timeline") (default-timeline))]
+        (normalize-timeline
+         {"time" (patch-value input timeline "time")
+          "playing" (patch-value input timeline "playing")
+          "loop" (patch-value input timeline "loop")
+          "animation" (patch-value input timeline "animation")}))
+      (normalize-timeline (get current "timeline")))))
+
+(defn patch-editor [current patch]
+  (normalize-editor
+   {"mode" (patch-value patch current "mode")
+    "tool" (patch-value patch current "tool")
+    "space" (patch-value patch current "space")
+    "pivot" (patch-value patch current "pivot")
+    "cursor" (patch-value patch current "cursor")
+    "snap" (patch-value patch current "snap")
+    "isolation" (patch-value patch current "isolation")
+    "activeCollection" (patch-value patch current "activeCollection")
+    "selection" (patch-value patch current "selection")
+    "active" (patch-value patch current "active")
+    "timeline" (patch-timeline patch current)}))
+
+(defn update-editor [session-id state patch]
+  (let [authoring (authoring-value session-id)
+        editor (get authoring "editor")
+        next-editor (patch-editor editor (or patch {}))
+        next-authoring (assoc authoring "editor" next-editor)]
+    (store-authoring session-id next-authoring)
+    {"state" (merge-authoring-state session-id state)
+     "effects" [(editor-document-effect session-id)]}))
+
+(defn base-document [document]
+  {"audioSources" (or (get document "audioSources") [])
+   "entities" (or (get document "entities") [])})
+
+(defn advanced-document [document]
+  (normalize-document document))
+
+(defn mark-review-stale [session-id]
+  (let [review (publication/review-value session-id)]
+    (if (nil? (get review "proposal"))
+      review
+      (let [next-review (assoc review "stale" true)]
+        (publication/store-review session-id next-review)
+        next-review))))
+
+(defn commit-document* [session-id state document history]
+  (let [authoring (authoring-value session-id)
+        next-authoring (assoc
+                        (assoc authoring "document" (advanced-document document))
+                        "history" history)]
+    (store-authoring session-id next-authoring)
+    (let [result (draft/draft-document-change
+                  session-id state
+                  (assoc
+                   (assoc (draft/draft-value session-id)
+                          "audioSources" (get (base-document document) "audioSources"))
+                   "entities" (get (base-document document) "entities")))
+          review (mark-review-stale session-id)]
+      (publication/merge-review-result
+       (merge-result session-id result)
+       review))))
+
+(defn commit-document [session-id state event]
+  (let [document (get event "document")
+        current (document-content session-id)
+        authoring (authoring-value session-id)
+        history (get authoring "history")
+        next-history {"undo" (conj (or (get history "undo") []) current)
+                      "redo" []}]
+    (if (not document)
+      (throw "World document commit requires a document")
+      (commit-document* session-id state document next-history))))
+
+(defn restore-combined-draft [session-id state event]
+  (let [input (get event "draft")
+        base-input {"format" "hodos-world-draft"
+                    "version" "0.1.0"
+                    "revision" (or (get input "revision") 0)
+                    "audioSources" (or (get input "audioSources") [])
+                    "entities" (or (get input "entities") [])}
+        result (publication/event session-id
+                                  {"event/type" "world/draft-restore"
+                                   "draft" base-input})
+        authoring (authoring-value session-id)
+        next-authoring (assoc
+                        (assoc
+                         (assoc authoring "document" (advanced-document input))
+                         "history" (empty-history))
+                        "editor" (normalize-editor (get authoring "editor")))]
+    (store-authoring session-id next-authoring)
+    (merge-result session-id result)))
+
+(defn undo [session-id state]
+  (let [authoring (authoring-value session-id)
+        history (get authoring "history")
+        undo-values (or (get history "undo") [])]
+    (if (= (count undo-values) 0)
+      {"state" (merge-authoring-state session-id state) "effects" []}
+      (let [current (document-content session-id)
+            previous (nth undo-values (- (count undo-values) 1))
+            next-history {"undo" (base/without-last undo-values)
+                          "redo" (conj (or (get history "redo") []) current)}]
+        (commit-document* session-id state previous next-history)))))
+
+(defn redo [session-id state]
+  (let [authoring (authoring-value session-id)
+        history (get authoring "history")
+        redo-values (or (get history "redo") [])]
+    (if (= (count redo-values) 0)
+      {"state" (merge-authoring-state session-id state) "effects" []}
+      (let [current (document-content session-id)
+            next-content (nth redo-values (- (count redo-values) 1))
+            next-history {"undo" (conj (or (get history "undo") []) current)
+                          "redo" (base/without-last redo-values)}]
+        (commit-document* session-id state next-content next-history)))))
+
+(defn transform-selection [session-id state event]
+  (let [content (document-content session-id)
+        items (or (get event "items") [])
+        entities (get content "entities")
+        sources (get content "audioSources")
+        next-entities (loop [index 0 output entities]
+                        (if (= index (count items))
+                          output
+                          (let [item (nth items index)]
+                            (recur (+ index 1)
+                                   (if (= (get item "type") "entity")
+                                     (update-item output (get item "id")
+                                                  (fn [entity]
+                                                    (if (= (get entity "locked") true)
+                                                      entity
+                                                      (assoc entity "transform"
+                                                             (draft/normalize-transform
+                                                              (get item "transform"))))))
+                                     output)))))
+        next-sources (loop [index 0 output sources]
+                       (if (= index (count items))
+                         output
+                         (let [item (nth items index)]
+                           (recur (+ index 1)
+                                  (if (= (get item "type") "audio")
+                                    (update-item output (get item "id")
+                                                 (fn [source]
+                                                   (assoc source "position"
+                                                          (or (get item "position")
+                                                              (get source "position")))))
+                                    output)))))
+        changed (assoc (assoc content "entities" next-entities)
+                       "audioSources" next-sources)]
+    (commit-document session-id state {"document" changed})))
+
+(defn remove-target-selection [editor target]
+  (let [selected (vector-remove (or (get editor "selection") []) target)
+        active (if (= (count selected) 0)
+                 nil
+                 (nth selected (- (count selected) 1)))]
+    (assoc (assoc editor "selection" selected) "active" active)))
+
+(defn validate-parent [entities entity]
+  (let [entity-id (get entity "id")
+        parent-id (get entity "parent")]
+    (cond
+      (= parent-id entity-id) (throw "World entity cannot parent itself")
+      (and parent-id (not (item-present? entities parent-id)))
+      (throw (str "World entity parent does not exist: " parent-id))
+      :else entity)))
+
+(defn create-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity (get event "entity")
+        entity-id (get entity "id")]
+    (cond
+      (nil? entity-id) (throw "World entity requires an id")
+      (item-present? entities entity-id) (throw (str "World entity id already exists: " entity-id))
+      :else
+      (let [validated (validate-parent entities entity)
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities" (conj entities validated))})
+            authoring (authoring-value session-id)
+            editor (get authoring "editor")
+            target {"type" "entity" "id" entity-id}]
+        (store-authoring session-id
+                         (assoc authoring "editor"
+                                (assoc (assoc editor "selection" [target]) "active" target)))
+        (append-effects
+         (assoc result "state" (merge-authoring-state session-id (get result "state")))
+         (subscribed-script-effects [validated] "world/entity-create" event
+                                    (get (draft/draft-value session-id) "revision")))))))
+
+(defn update-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity (get event "entity")
+        entity-id (get entity "id")]
+    (if (not (item-present? entities entity-id))
+      (throw (str "Unknown world entity: " entity-id))
+      (let [validated (validate-parent entities entity)
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities"
+                                                       (update-item entities entity-id
+                                                                    (fn [old] validated)))})]
+        (append-effects result
+                        (subscribed-script-effects [validated] "world/entity-update" event
+                                                   (get (draft/draft-value session-id) "revision")))))))
+
+(defn transform-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity-id (get event "entity")
+        transform (draft/normalize-transform (get event "transform"))
+        entity (item-value entities entity-id)]
+    (if (nil? entity)
+      (throw (str "Unknown world entity: " entity-id))
+      (if (= (get entity "locked") true)
+        {"state" (merge-authoring-state session-id state) "effects" []}
+        (let [changed (assoc entity "transform" transform)
+              result (commit-document session-id state
+                                      {"document" (assoc content "entities"
+                                                         (update-item entities entity-id
+                                                                      (fn [old] changed)))})]
+          (append-effects result
+                          (subscribed-script-effects [changed] "world/entity-transform" event
+                                                     (get (draft/draft-value session-id) "revision"))))))))
+
+(defn delete-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity-id (get event "entity")
+        target {"type" "entity" "id" entity-id}]
+    (if (not (item-present? entities entity-id))
+      (throw (str "Unknown world entity: " entity-id))
+      (let [remaining (base/map-vector
+                       (remove-item entities entity-id)
+                       (fn [entity]
+                         (if (= (get entity "parent") entity-id)
+                           (assoc entity "parent" nil)
+                           entity)))
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities" remaining)})
+            authoring (authoring-value session-id)
+            next-editor (remove-target-selection (get authoring "editor") target)]
+        (store-authoring session-id (assoc authoring "editor" next-editor))
+        (assoc result "state" (merge-authoring-state session-id (get result "state")))))))
+
+(defn duplicate-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        source-id (get event "source")
+        entity (get event "entity")
+        entity-id (get entity "id")]
+    (cond
+      (not (item-present? entities source-id)) (throw (str "Unknown world entity: " source-id))
+      (item-present? entities entity-id) (throw (str "World entity id already exists: " entity-id))
+      :else
+      (let [validated (validate-parent entities entity)
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities" (conj entities validated))})
+            target {"type" "entity" "id" entity-id}
+            authoring (authoring-value session-id)
+            editor (get authoring "editor")]
+        (store-authoring session-id
+                         (assoc authoring "editor"
+                                (assoc (assoc editor "selection" [target]) "active" target)))
+        (assoc result "state" (merge-authoring-state session-id (get result "state")))))))
+
+(defn change-target [change]
+  (or (get change "entity")
+      (get change "source")
+      (get change "item")))
+
+(defn apply-change [items change]
+  (let [operation (get change "op")
+        item-id (change-target change)
+        after (get change "after")]
+    (cond
+      (= operation "add")
+      (if (item-present? items item-id)
+        (throw (str "Imported item already exists: " item-id))
+        (conj items after))
+
+      (= operation "remove")
+      (if (item-present? items item-id)
+        (remove-item items item-id)
+        (throw (str "Imported removal references an unknown item: " item-id)))
+
+      (= operation "replace")
+      (if (item-present? items item-id)
+        (update-item items item-id (fn [item] after))
+        (throw (str "Imported change references an unknown item: " item-id)))
+
+      :else
+      (throw (str "Unsupported imported operation: " operation)))))
+
+(defn apply-collection-changes [items changes selected collection]
+  (loop [index 0 output items]
+    (if (= index (count changes))
+      output
+      (let [change (nth changes index)]
+        (recur (+ index 1)
+               (if (and (= (or (get change "collection") "audioSources") collection)
+                        (vector-contains? selected (get change "id")))
+                 (apply-change output change)
+                 output))))))
+
+(defn accept-review [session-id state]
+  (let [review (publication/review-value session-id)
+        proposal (get review "proposal")
+        selected (or (get review "selected") [])
+        current (document-content session-id)]
+    (cond
+      (nil? proposal) (throw "There is no world draft proposal to accept")
+      (get review "stale") (throw "World draft proposal is stale and must be imported again")
+      (not (= (get proposal "baseRevision")
+              (get (draft/draft-value session-id) "revision")))
+      (throw "World draft proposal is stale and must be imported again")
+      (= (count selected) 0) (throw "Select at least one world draft change")
+      :else
+      (let [changes (or (get proposal "changes") [])
+            collections ["audioSources" "entities" "collections" "assets" "prefabs" "animations"]
+            changed (loop [index 0 output current]
+                      (if (= index (count collections))
+                        output
+                        (let [collection (nth collections index)]
+                          (recur (+ index 1)
+                                 (assoc output collection
+                                        (apply-collection-changes
+                                         (or (get output collection) [])
+                                         changes selected collection))))))
+            next-review (publication/clear-proposal review)
+            authoring (authoring-value session-id)
+            history (get authoring "history")
+            next-history {"undo" (conj (or (get history "undo") []) current)
+                          "redo" []}]
+        (publication/store-review session-id next-review)
+        (publication/merge-review-result
+         (commit-document* session-id state changed next-history)
+         next-review)))))
+
+(defn animations-have-tracks? [animations]
+  (loop [index 0]
+    (if (= index (count animations))
+      false
+      (if (> (count (or (get (nth animations index) "tracks") [])) 0)
+        true
+        (recur (+ index 1))))))
+
+(defn publishable? [document]
+  (or (> (count (or (get document "entities") [])) 0)
+      (> (count (or (get document "audioSources") [])) 0)
+      (> (count (or (get document "collections") [])) 0)
+      (> (count (or (get document "assets") [])) 0)
+      (> (count (or (get document "prefabs") [])) 0)
+      (animations-have-tracks? (or (get document "animations") []))))
+
+(defn publish [session-id state event]
+  (let [review (publication/review-value session-id)
+        document (combined-snapshot session-id)
+        event-type (get event "event/type")]
+    (cond
+      (not (nil? (get review "proposal")))
+      (throw "Finish or reject the active world draft review before publishing")
+      (not (publishable? document))
+      (throw "World draft has no editable content to publish")
+      (= event-type "world/publish-repository")
+      {"state" (merge-authoring-state session-id state)
+       "effects" [{"effect" "publication"
+                   "method" "repository-patch"
+                   "args" [(draft/world-identity state) document]}]}
+      :else
+      (let [room (get event "room")]
+        (if (or (nil? room) (= room ""))
+          (throw "Hestia publication requires a room identifier")
+          {"state" (merge-authoring-state session-id state)
+           "effects" [{"effect" "publication"
+                       "method" "hestia-contribution"
+                       "args" [(draft/world-identity state) document room]}]})))))
+
+(defn run-script [session-id state event]
+  (let [entity-id (get event "entity")
+        entity (item-value (get (document-content session-id) "entities") entity-id)
+        script (if entity (script-component entity) nil)
+        trace-id (or (get event "trace")
+                     (str "trace-" entity-id "-" (get (draft/draft-value session-id) "revision")))]
+    (cond
+      (nil? entity) (throw (str "Unknown world entity: " entity-id))
+      (nil? script) (throw "World entity has no Hara script component")
+      (= (get script "enabled") false) (throw "World entity script is disabled")
+      :else
+      {"state" (merge-authoring-state session-id state)
+       "effects" [(script-effect entity
+                                  (or (get event "event")
+                                      {"event/type" "world/script-run"})
+                                  trace-id)]})))
+
+(defn trim-traces [values]
+  (let [total (count values)
+        start (if (> total 200) (- total 200) 0)]
+    (loop [index start output []]
+      (if (= index total)
+        output
+        (recur (+ index 1) (conj output (nth values index)))))))
+
+(defn script-result [session-id state event]
+  (let [authoring (authoring-value session-id)
+        trace {"id" (get event "trace")
+               "entity" (get event "entity")
+               "event" (get event "scriptEvent")
+               "status" (or (get event "status") "completed")
+               "result" (get event "result")
+               "error" (get event "error")
+               "at" (get event "at")}
+        traces (trim-traces (conj (or (get authoring "traces") []) trace))
+        next-authoring (assoc authoring "traces" traces)
+        result-value (get event "result")
+        updated-entity (if result-value (get result-value "entity") nil)]
+    (store-authoring session-id next-authoring)
+    (if updated-entity
+      (let [content (document-content session-id)
+            entity-id (get updated-entity "id")
+            entities (get content "entities")]
+        (if (item-present? entities entity-id)
+          (commit-document
+           session-id state
+           {"document" (assoc content "entities"
+                               (update-item entities entity-id
+                                            (fn [entity] updated-entity)))})
+          {"state" (merge-authoring-state session-id state)
+           "effects" [(editor-document-effect session-id)]}))
+      {"state" (merge-authoring-state session-id state)
+       "effects" [(editor-document-effect session-id)]})))
+
+(defn clear-traces [session-id state]
+  (let [authoring (authoring-value session-id)]
+    (store-authoring session-id (assoc authoring "traces" []))
+    {"state" (merge-authoring-state session-id state)
+     "effects" [(editor-document-effect session-id)]}))
+
+(defn base-mutating-event? [event-type]
+  (or (= event-type "world/drop")
+      (= event-type "world/audio-move")
+      (= event-type "world/audio-gain")
+      (= event-type "world/audio-range")
+      (= event-type "world/audio-loop")
+      (= event-type "world/audio-toggle")
+      (= event-type "world/audio-remove")))
+
+(defn sync-audio-selection [session-id event-type input]
+  (let [authoring (authoring-value session-id)
+        editor (get authoring "editor")]
+    (cond
+      (= event-type "world/drop")
+      (let [source-id (get (get input "payload") "id")
+            target {"type" "audio" "id" source-id}]
+        (store-authoring session-id
+                         (assoc authoring "editor"
+                                (assoc (assoc editor "selection" [target]) "active" target))))
+
+      (= event-type "world/audio-remove")
+      (store-authoring session-id
+                       (assoc authoring "editor"
+                              (remove-target-selection
+                               editor {"type" "audio" "id" (get input "source")})))
+
+      :else authoring)))
+
+(defn wrap-base-event [session-id input]
+  (let [event-type (get input "event/type")
+        before (document-content session-id)
+        result (publication/event session-id input)]
+    (if (base-mutating-event? event-type)
+      (let [authoring (authoring-value session-id)
+            history (get authoring "history")
+            next-authoring (assoc authoring "history"
+                                  {"undo" (conj (or (get history "undo") []) before)
+                                   "redo" []})]
+        (store-authoring session-id next-authoring)
+        (sync-audio-selection session-id event-type input)
+        (merge-result session-id result))
+      (merge-result session-id result))))
+
+(defn event [session-id input]
+  (let [event-type (get input "event/type")
+        state (get (publication/get-session session-id) "state")]
+    (cond
+      (= event-type "world/editor-select")
+      (select-targets session-id state input)
+
+      (= event-type "world/editor-settings")
+      (update-editor session-id state (or (get input "patch") {}))
+
+      (= event-type "world/editor-tool")
+      (update-editor session-id state {"tool" (get input "tool")})
+
+      (= event-type "world/editor-mode")
+      (update-editor session-id state {"mode" (get input "mode")})
+
+      (= event-type "world/editor-transform-selection")
+      (transform-selection session-id state input)
+
+      (= event-type "world/document-commit")
+      (commit-document session-id state input)
+
+      (= event-type "world/entity-create")
+      (create-world-entity session-id state input)
+
+      (= event-type "world/entity-update")
+      (update-world-entity session-id state input)
+
+      (= event-type "world/entity-transform")
+      (transform-world-entity session-id state input)
+
+      (= event-type "world/entity-delete")
+      (delete-world-entity session-id state input)
+
+      (= event-type "world/entity-duplicate")
+      (duplicate-world-entity session-id state input)
+
+      (= event-type "world/history-undo")
+      (undo session-id state)
+
+      (= event-type "world/history-redo")
+      (redo session-id state)
+
+      (= event-type "world/draft-restore")
+      (restore-combined-draft session-id state input)
+
+      (= event-type "world/draft-review-accept")
+      (accept-review session-id state)
+
+      (= event-type "world/publish-repository")
+      (publish session-id state input)
+
+      (= event-type "world/publish-hestia")
+      (publish session-id state input)
+
+      (= event-type "world/script-run")
+      (run-script session-id state input)
+
+      (= event-type "world/script-result")
+      (script-result session-id state input)
+
+      (= event-type "world/script-clear-traces")
+      (clear-traces session-id state)
+
+      :else
+      (wrap-base-event session-id input))))

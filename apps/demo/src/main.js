@@ -1,5 +1,6 @@
 import "./world.css";
 import { FEATURED_WORLDS, featuredWorld } from "./featured-worlds.js";
+import { handleHaraScriptEffect } from "./hara-script-host.js";
 import { SpatialAudioRuntime } from "./spatial-audio.js";
 import { withStudioBundleImport } from "./studio-bundle-import.js";
 import { withStudioClipEditing } from "./studio-clip-edit.js";
@@ -50,7 +51,8 @@ const viewer = createHodosViewer({
     expectedIdentity: worldIdentity(state),
     currentDraft: state?.world?.draft,
   }),
-  onEffect: async (effect, _state, context) => {
+  onEffect: async (effect, state, context) => {
+    if (await handleHaraScriptEffect(effect, state, context)) return;
     if (effect.effect === "audio" && effect.method === "sync-world-sources") {
       return spatialAudio.sync(effect.args[0] ?? [], effect.args[1]);
     }

@@ -23,6 +23,17 @@ function operationLabel(operation) {
   return "Change";
 }
 
+function draftHasContent(draft = {}) {
+  return Boolean(
+    draft.audioSources?.length
+    || draft.entities?.length
+    || draft.collections?.length
+    || draft.assets?.length
+    || draft.prefabs?.length
+    || draft.animations?.some((animation) => animation.tracks?.length),
+  );
+}
+
 export class WorldDraftReviewPanel {
   constructor(root, { dispatch, importDraft } = {}) {
     if (!root) throw new Error("WorldDraftReviewPanel requires a root element");
@@ -127,7 +138,7 @@ export class WorldDraftReviewPanel {
     }));
     const copy = document.createElement("span");
     const name = document.createElement("strong");
-    const target = change.source || change.entity || change.id;
+    const target = change.entity || change.source || change.item || change.id;
     name.textContent = `${operationLabel(change.op)} ${change.label || target}`;
     const id = document.createElement("small");
     id.textContent = `${change.collection || "audioSources"} · ${target}`;
@@ -217,7 +228,7 @@ export class WorldDraftReviewPanel {
     const draft = state?.world?.draft;
     const review = state?.world?.review;
     const publications = state?.world?.publications ?? [];
-    const hasContent = Boolean(draft?.audioSources?.length || draft?.entities?.length);
+    const hasContent = draftHasContent(draft);
     const reviewing = Boolean(review?.proposal);
     this.repositoryButton.disabled = !hasContent || reviewing;
     this.hestiaButton.disabled = !hasContent || reviewing;
@@ -228,14 +239,14 @@ export class WorldDraftReviewPanel {
     if (proposal) {
       this.content.append(proposal);
       this.status.textContent = review.stale
-        ? "The proposal is stale because the draft changed. Reject it and import again."
-        : "Select the entity and source changes Hara should accept as one reversible world transaction.";
+        ? "The proposal is stale because the authoring document changed. Reject it and import again."
+        : "Select any object, sound, collection, asset, prefab or animation changes Hara should accept as one reversible transaction.";
     } else {
       this.content.append(this.renderPublications(publications));
       if (!this.status.textContent || this.status.textContent.includes("ready for review")) {
         this.status.textContent = hasContent
-          ? "Import an exact-world draft for semantic review, or publish the accepted scene draft."
-          : "Create a scene object or place Studio audio before importing or publishing a world draft.";
+          ? "Import an exact-world document for semantic review, or publish the accepted authoring draft."
+          : "Create scene content before importing or publishing a world draft.";
       }
     }
   }

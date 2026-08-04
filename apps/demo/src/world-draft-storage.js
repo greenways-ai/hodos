@@ -28,7 +28,33 @@ function vector3(value, label, { positive = false } = {}) {
   return [...value];
 }
 
-function validateEntity(entity, index, ids) {
+function object(value, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object`);
+  return value;
+}
+
+function uniqueItems(values, label) {
+  if (!Array.isArray(values)) throw new Error(`${label} must be an array`);
+  const ids = new Set();
+  for (const [index, value] of values.entries()) {
+    if (!value?.id) throw new Error(`${label} item ${index} requires an id`);
+    if (ids.has(value.id)) throw new Error(`${label} contains duplicate id: ${value.id}`);
+    ids.add(value.id);
+  }
+  return ids;
+}
+
+function validateScript(script, label) {
+  object(script, label);
+  if (script.language !== undefined && script.language !== "hara") throw new Error(`${label} language must be hara`);
+  if (script.source !== undefined && typeof script.source !== "string") throw new Error(`${label} source must be text`);
+  if (script.source && textEncoder.encode(script.source).byteLength > 64 * 1024) throw new Error(`${label} exceeds 64 KiB`);
+  if (script.events !== undefined && (!Array.isArray(script.events) || script.events.some((event) => typeof event !== "string"))) {
+    throw new Error(`${label} events must be an array of strings`);
+  }
+}
+
+function validateEntity(entity, index, ids, collectionIds) {
   if (!entity || typeof entity !== "object" || !entity.id || !entity.kind) {
     throw new Error(`World draft entity ${index} is invalid`);
   }
@@ -38,9 +64,22 @@ function validateEntity(entity, index, ids) {
   vector3(transform.position ?? [0, 0, 0], `World draft entity ${index} position`);
   vector3(transform.rotation ?? [0, 0, 0], `World draft entity ${index} rotation`);
   vector3(transform.scale ?? [1, 1, 1], `World draft entity ${index} scale`, { positive: true });
+  vector3(entity.origin ?? [0, 0, 0], `World draft entity ${index} origin`);
   if (entity.parent && entity.parent === entity.id) throw new Error(`World draft entity ${index} cannot parent itself`);
-  if (entity.components !== undefined && (!entity.components || typeof entity.components !== "object" || Array.isArray(entity.components))) {
-    throw new Error(`World draft entity ${index} components must be an object`);
+  if (entity.collection && !collectionIds.has(entity.collection)) {
+    throw new Error(`World draft entity ${index} references an unknown collection: ${entity.collection}`);
+  }
+  if (entity.components !== undefined) {
+    object(entity.components, `World draft entity ${index} components`);
+    if (entity.components.script) validateScript(entity.components.script, `World draft entity ${index} script`);
+    if (entity.components.camera) {
+      const camera = object(entity.components.camera, `World draft entity ${index} camera`);
+      if (!Number.isFinite(camera.fov ?? 60) || (camera.fov ?? 60) < 1) throw new Error(`World draft entity ${index} camera fov is invalid`);
+    }
+    if (entity.components.trigger) {
+      const trigger = object(entity.components.trigger, `World draft entity ${index} trigger`);
+      vector3(trigger.size ?? [1, 1, 1], `World draft entity ${index} trigger size`, { positive: true });
+    }
   }
 }
 
@@ -53,11 +92,65 @@ function validateEntityHierarchy(entities, ids) {
     const visited = new Set([entity.id]);
     let parent = entity.parent;
     while (parent) {
-      if (visited.has(parent)) {
-        throw new Error(`World draft entity ${index} parent hierarchy contains a cycle`);
-      }
+      if (visited.has(parent)) throw new Error(`World draft entity ${index} parent hierarchy contains a cycle`);
       visited.add(parent);
       parent = byId.get(parent)?.parent ?? null;
+    }
+  }
+}
+
+function validateCollections(collections) {
+  const ids = uniqueItems(collections, "World draft collections");
+  const byId = new Map(collections.map((collection) => [collection.id, collection]));
+  for (const [index, collection] of collections.entries()) {
+    if (collection.parent && !ids.has(collection.parent)) {
+      throw new Error(`World draft collection ${index} references an unknown parent: ${collection.parent}`);
+    }
+    const visited = new Set([collection.id]);
+    let parent = collection.parent;
+    while (parent) {
+      if (visited.has(parent)) throw new Error(`World draft collection ${index} hierarchy contains a cycle`);
+      visited.add(parent);
+      parent = byId.get(parent)?.parent ?? null;
+    }
+  }
+  return ids;
+}
+
+function validateAssets(assets) {
+  uniqueItems(assets, "World draft assets");
+  for (const [index, asset] of assets.entries()) {
+    if (asset.url !== null && asset.url !== undefined && typeof asset.url !== "string") {
+      throw new Error(`World draft asset ${index} url must be text`);
+    }
+  }
+}
+
+function validatePrefabs(prefabs) {
+  uniqueItems(prefabs, "World draft prefabs");
+  for (const [index, prefab] of prefabs.entries()) {
+    if (!Array.isArray(prefab.entities)) throw new Error(`World draft prefab ${index} entities must be an array`);
+    const ids = uniqueItems(prefab.entities, `World draft prefab ${index} entities`);
+    for (const entity of prefab.entities) {
+      if (entity.parent && !ids.has(entity.parent)) throw new Error(`World draft prefab ${index} has an external parent`);
+    }
+  }
+}
+
+function validateAnimations(animations, entityIds) {
+  uniqueItems(animations, "World draft animations");
+  for (const [animationIndex, animation] of animations.entries()) {
+    if (!Number.isFinite(animation.duration) || animation.duration <= 0) throw new Error(`World draft animation ${animationIndex} duration is invalid`);
+    if (!Array.isArray(animation.tracks)) throw new Error(`World draft animation ${animationIndex} tracks must be an array`);
+    uniqueItems(animation.tracks, `World draft animation ${animationIndex} tracks`);
+    for (const [trackIndex, track] of animation.tracks.entries()) {
+      if (!entityIds.has(track.entity)) throw new Error(`World draft animation ${animationIndex} track ${trackIndex} references an unknown entity`);
+      if (!Array.isArray(track.keyframes)) throw new Error(`World draft animation ${animationIndex} track ${trackIndex} keyframes must be an array`);
+      for (const [keyIndex, keyframe] of track.keyframes.entries()) {
+        if (!Number.isFinite(keyframe.time) || keyframe.time < 0 || keyframe.time > animation.duration) {
+          throw new Error(`World draft animation ${animationIndex} keyframe ${keyIndex} time is invalid`);
+        }
+      }
     }
   }
 }
@@ -91,12 +184,25 @@ export function validateWorldDraft(draft) {
       throw new Error(`World draft source ${index} position must be finite`);
     }
   }
+
+  const collections = draft.collections ?? [];
+  const assets = draft.assets ?? [];
+  const prefabs = draft.prefabs ?? [];
+  const animations = draft.animations ?? [{ id: "main", duration: 10, fps: 30, tracks: [] }];
+  if (!Array.isArray(collections) || !Array.isArray(assets) || !Array.isArray(prefabs) || !Array.isArray(animations)) {
+    throw new Error("World draft authoring collections must be arrays");
+  }
+  const collectionIds = validateCollections(collections);
+  validateAssets(assets);
+  validatePrefabs(prefabs);
+
   const entities = draft.entities ?? [];
   if (!Array.isArray(entities)) throw new Error("World draft entities must be an array");
   const ids = new Set();
-  entities.forEach((entity, index) => validateEntity(entity, index, ids));
+  entities.forEach((entity, index) => validateEntity(entity, index, ids, collectionIds));
   validateEntityHierarchy(entities, ids);
-  return cloneData({ ...draft, entities });
+  validateAnimations(animations, ids);
+  return cloneData({ ...draft, entities, collections, assets, prefabs, animations });
 }
 
 export class WorldDraftStore {
