@@ -1,3 +1,4 @@
+import "./world-editor-workspace.css";
 import { WorldEditorPanel } from "./world-editor-panel.js";
 import { WorldEditorAdvanced } from "./world-editor-advanced.js";
 import { installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
