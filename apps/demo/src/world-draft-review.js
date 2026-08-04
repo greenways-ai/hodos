@@ -52,7 +52,7 @@ function fieldChanges(before, after) {
 function diffCollection(beforeValues, afterValues, {
   collection,
   prefix,
-  targetField,
+  targetField = "item",
   label,
   labelFor,
 }) {
@@ -66,6 +66,7 @@ function diffCollection(beforeValues, afterValues, {
     const common = {
       id: `${prefix}:${id}`,
       collection,
+      item: id,
       [targetField]: id,
       label: labelFor(next ?? previous, id),
     };
@@ -98,25 +99,57 @@ function diffCollection(beforeValues, afterValues, {
   return { changes, total: ids.length };
 }
 
-export function diffWorldDrafts(currentDraft, candidateDraft) {
-  const current = validateWorldDraft(currentDraft);
-  const candidate = validateWorldDraft(candidateDraft);
-  const audio = diffCollection(current.audioSources, candidate.audioSources, {
-    collection: "audioSources",
-    prefix: "source",
-    targetField: "source",
-    label: "audio source collection",
-    labelFor: (value, id) => value?.label || id,
-  });
-  const entities = diffCollection(current.entities, candidate.entities, {
+const COLLECTIONS = Object.freeze([
+  Object.freeze({
     collection: "entities",
     prefix: "entity",
     targetField: "entity",
     label: "entity collection",
     labelFor: (value, id) => value?.name || id,
-  });
-  const changes = [...entities.changes, ...audio.changes];
-  const total = entities.total + audio.total;
+  }),
+  Object.freeze({
+    collection: "audioSources",
+    prefix: "source",
+    targetField: "source",
+    label: "audio source collection",
+    labelFor: (value, id) => value?.label || id,
+  }),
+  Object.freeze({
+    collection: "collections",
+    prefix: "collection",
+    label: "scene collection",
+    labelFor: (value, id) => value?.name || id,
+  }),
+  Object.freeze({
+    collection: "assets",
+    prefix: "asset",
+    label: "asset registry",
+    labelFor: (value, id) => value?.name || id,
+  }),
+  Object.freeze({
+    collection: "prefabs",
+    prefix: "prefab",
+    label: "prefab library",
+    labelFor: (value, id) => value?.name || id,
+  }),
+  Object.freeze({
+    collection: "animations",
+    prefix: "animation",
+    label: "animation library",
+    labelFor: (value, id) => value?.name || id,
+  }),
+]);
+
+export function diffWorldDrafts(currentDraft, candidateDraft) {
+  const current = validateWorldDraft(currentDraft);
+  const candidate = validateWorldDraft(candidateDraft);
+  const results = COLLECTIONS.map((descriptor) => diffCollection(
+    current[descriptor.collection] ?? [],
+    candidate[descriptor.collection] ?? [],
+    descriptor,
+  ));
+  const changes = results.flatMap((result) => result.changes);
+  const total = results.reduce((sum, result) => sum + result.total, 0);
   return {
     changes,
     summary: {
