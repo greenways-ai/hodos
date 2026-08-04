@@ -12,6 +12,6 @@
     "@greenways/hodos-world-model": "0.1.0"
   },
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=esm --platform=browser --target=es2022 --loader:.hal=text --loader:.png=file --external:node:worker_threads --entry-names=hodos --asset-names=hodos --outdir=dist && cp index.html dist/index.html"
+    "build": "esbuild src/main.js --bundle --format=esm --platform=browser --target=es2022 --loader:.hal=text --loader:.png=file --external:node:worker_threads --entry-names=hodos --asset-names=hodos --outdir=dist && cp index.html dist/index.html && cp public/* dist/"
   }
 }
