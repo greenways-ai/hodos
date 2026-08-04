@@ -1,3 +1,4 @@
+@import "./world-editor-overlay.css";
 .hodos-world-editor{--editor-toolbar:48px;--editor-left:260px;--editor-right:310px;position:fixed;z-index:6;inset:0;pointer-events:none;color:#f4f1e8;font-family:var(--body,Inter,system-ui,sans-serif)}
 .hodos-editor-toolbar,.hodos-editor-outliner,.hodos-editor-inspector,.hodos-editor-status{pointer-events:auto;border-color:rgba(247,245,239,.16);background:rgba(8,13,11,.91);backdrop-filter:blur(18px)}
 .hodos-editor-toolbar{position:absolute;top:12px;left:50%;display:flex;align-items:center;gap:6px;min-height:var(--editor-toolbar);max-width:calc(100vw - 36px);padding:5px;border:1px solid rgba(247,245,239,.18);box-shadow:0 14px 50px rgba(0,0,0,.32);transform:translateX(-50%)}
