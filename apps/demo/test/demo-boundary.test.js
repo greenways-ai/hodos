@@ -16,23 +16,34 @@ test("demo consumes the viewer package and installs the spatial Studio host", ()
   assert.match(source, /createWorldDraftStore/);
   assert.match(source, /save-world-draft/);
   assert.match(source, /world\/draft-restore/);
+  assert.match(source, /handleHaraScriptEffect/);
   assert.doesNotMatch(source, /class WorldRenderer/);
 });
 
-test("viewer package owns the generic Blender-like editor", () => {
+test("viewer package owns the complete Blender-like editor", () => {
   const viewer = fs.readFileSync(new URL("../../../packages/viewer/src/index.js", import.meta.url), "utf8");
+  const workspace = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-workspace.js", import.meta.url), "utf8");
   const panel = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-panel.js", import.meta.url), "utf8");
-  const renderer = fs.readFileSync(new URL("../../../packages/viewer/src/world-renderer.js", import.meta.url), "utf8");
-  assert.match(viewer, /WorldEditorPanel/);
-  assert.match(viewer, /sync-world-entities/);
+  const advanced = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-advanced.js", import.meta.url), "utf8");
+  const renderer = fs.readFileSync(new URL("../../../packages/viewer/src/advanced-world-renderer.js", import.meta.url), "utf8");
+  const model = fs.readFileSync(new URL("../../../packages/viewer/src/world-authoring-model.js", import.meta.url), "utf8");
+  assert.match(viewer, /WorldEditorWorkspace/);
+  assert.match(workspace, /installAdvancedWorldRendererPrototype/);
+  assert.match(workspace, /MultiSelectionEditorPanel/);
   assert.match(panel, /Outliner/);
-  assert.match(panel, /world\/entity-create/);
-  assert.match(panel, /world\/entity-transform/);
-  assert.match(panel, /world\/entity-duplicate/);
-  assert.match(panel, /world\/entity-delete/);
-  assert.match(renderer, /syncWorldEntities/);
-  assert.match(renderer, /activateWorldEntityAt/);
-  assert.match(renderer, /createEditorGizmo/);
+  assert.match(advanced, /Assets/);
+  assert.match(advanced, /Prefabs/);
+  assert.match(advanced, /Collections/);
+  assert.match(advanced, /Animation/);
+  assert.match(advanced, /Hara Scripts/);
+  assert.match(advanced, /world\/document-commit/);
+  assert.match(renderer, /installBoxSelection/);
+  assert.match(renderer, /createGeometricGizmo/);
+  assert.match(renderer, /applyTimeline/);
+  assert.match(renderer, /loadAssetInstance/);
+  assert.match(model, /capturePrefab/);
+  assert.match(model, /setAnimationKeyframe/);
+  assert.match(model, /attachScript/);
 });
 
 test("demo installs the guided tour, inspector and command deck", () => {
