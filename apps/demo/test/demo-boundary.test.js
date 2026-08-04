@@ -20,15 +20,17 @@ test("demo consumes the viewer package and installs the spatial Studio host", ()
   assert.doesNotMatch(source, /class WorldRenderer/);
 });
 
-test("viewer package owns the complete Blender-like editor", () => {
+test("the complete world editor composes from modular viewer packages", () => {
   const viewer = fs.readFileSync(new URL("../../../packages/viewer/src/index.js", import.meta.url), "utf8");
-  const workspace = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-workspace.js", import.meta.url), "utf8");
-  const panel = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-panel.js", import.meta.url), "utf8");
-  const advanced = fs.readFileSync(new URL("../../../packages/viewer/src/world-editor-advanced.js", import.meta.url), "utf8");
-  const renderer = fs.readFileSync(new URL("../../../packages/viewer/src/advanced-world-renderer.js", import.meta.url), "utf8");
-  const model = fs.readFileSync(new URL("../../../packages/viewer/src/world-authoring-model.js", import.meta.url), "utf8");
-  assert.match(viewer, /WorldEditorWorkspace/);
-  assert.match(workspace, /installAdvancedWorldRendererPrototype/);
+  const addon = fs.readFileSync(new URL("../../../packages/ui-world-authoring/src/index.js", import.meta.url), "utf8");
+  const workspace = fs.readFileSync(new URL("../../../packages/ui-world-authoring/src/world-editor-workspace.js", import.meta.url), "utf8");
+  const panel = fs.readFileSync(new URL("../../../packages/ui-world-authoring/src/world-editor-panel.js", import.meta.url), "utf8");
+  const advanced = fs.readFileSync(new URL("../../../packages/ui-world-authoring/src/world-editor-advanced.js", import.meta.url), "utf8");
+  const renderer = fs.readFileSync(new URL("../../../packages/renderer-playcanvas/src/advanced-world-renderer.js", import.meta.url), "utf8");
+  const model = fs.readFileSync(new URL("../../../packages/world-model/src/world-authoring-model.js", import.meta.url), "utf8");
+  assert.match(viewer, /getContribution\("world\.ui", "authoring"\)/);
+  assert.doesNotMatch(viewer, /ui-world-authoring/);
+  assert.match(addon, /renderer\.installAdvanced/);
   assert.match(workspace, /MultiSelectionEditorPanel/);
   assert.match(panel, /Outliner/);
   assert.match(advanced, /Assets/);

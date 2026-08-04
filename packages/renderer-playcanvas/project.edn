@@ -1,15 +1,12 @@
 {:hara/type :project
  :hara/version "1.0.0"
- :project/id greenways/hodos-runtime-hara
+ :project/id greenways/hodos-renderer-playcanvas
  :project/version "0.1.0"
  :project/source-paths ["src"]
  :project/test-paths ["test"]
  :project/extension-paths []
- :project/main gw.hodos.kernel
  :project/capabilities #{}
  :project/dependencies
  {"hara:greenways/hodos-core" {:version "^0.1.0"}
-  "hara:greenways/hodos-addon-drafts" {:version "^0.1.0"}
-  "hara:greenways/hodos-addon-publication" {:version "^0.1.0"}
-  "hara:greenways/hodos-addon-authoring" {:version "^0.1.0"}}
+  "hara:greenways/hodos-world-model" {:version "^0.1.0"}}
  :project/recipe "hara.recipe.edn"}

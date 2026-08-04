@@ -46,8 +46,10 @@ async function validateHaraProject(label, directory, version) {
     if (!recipe["recipe/toolchain"] || !recipe["recipe/inputs"] || !Array.isArray(recipe["recipe/outputs"])) {
       errors.push(`${label}: recipe requires toolchain, inputs, and outputs`);
     }
+    return project;
   } catch (error) {
     errors.push(`${label}: invalid Hara package metadata (${error.message})`);
+    return null;
   }
 }
 
@@ -62,10 +64,17 @@ for (const [name, { directory, manifest }] of manifests) {
     try { await access(path.join(packageDirectory, filename)); }
     catch { errors.push(`${name}: missing ${filename}`); }
   }
-  await validateHaraProject(name, packageDirectory, manifest.version);
+  const haraProject = await validateHaraProject(name, packageDirectory, manifest.version);
   for (const [dependency, range] of Object.entries(manifest.dependencies ?? {})) {
     const workspace = manifests.get(dependency)?.manifest;
-    if (workspace && range !== workspace.version) errors.push(`${name}: ${dependency} must use workspace release ${workspace.version}, found ${range}`);
+    if (!workspace) continue;
+    if (range !== workspace.version) errors.push(`${name}: ${dependency} must use workspace release ${workspace.version}, found ${range}`);
+    const haraDependency = `hara:${dependency.slice(1)}`;
+    const haraRange = haraProject?.["project/dependencies"]?.[haraDependency]?.version;
+    if (!haraRange) errors.push(`${name}: project.edn must declare ${haraDependency}`);
+    else if (haraRange !== `^${workspace.version}`) {
+      errors.push(`${name}: ${haraDependency} must use ^${workspace.version}, found ${haraRange}`);
+    }
   }
 }
 await validateHaraProject("greenways/hodos", root, JSON.parse(await readFile(path.join(root, "package.json"), "utf8")).version);

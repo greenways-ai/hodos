@@ -1,0 +1,5 @@
+{:recipe/format 1
+ :recipe/adapter :node-hta
+ :recipe/toolchain {:node ">=20"}
+ :recipe/inputs {:project "project.edn" :sources ["src"]}
+ :recipe/outputs ["greenways-hodos-source-github.harp"]}

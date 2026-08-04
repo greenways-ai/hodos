@@ -3,7 +3,7 @@ import {
   nudgePosition,
   sourcePosition,
   WORLD_DRAFT_NUDGE_STEP,
-} from "./world-draft-model.js";
+} from "@greenways/hodos-world-model/drafts";
 
 function button(document, label, action, className = "") {
   const element = document.createElement("button");

@@ -1,6 +1,6 @@
 import "./studio-track-management.css";
 import { normalizeProject } from "./studio-export.js";
-import { installHodosWorldDrag } from "@greenways/hodos-viewer/drag";
+import { installHodosWorldDrag } from "@greenways/hodos-world-model/drag";
 
 const randomId = (prefix) => `${prefix}-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
 

@@ -38,18 +38,67 @@ owner, and removes contributions during deactivation.
 | `@greenways/hodos-addon-publication` | core, drafts | `gw.hodos.session-publication` |
 | `@greenways/hodos-addon-authoring` | core, drafts, publication | `gw.hodos.session-authoring` |
 | `@greenways/hodos-runtime-hara` | semantic add-ons | lazy Hara runtime |
-| `@greenways/hodos-viewer` | core | Worlds browser projection |
-| `greenways/hodos` | runtime and viewer | curated distribution |
+| `@greenways/hodos-world-model` | core | runtime-neutral world models |
+| `@greenways/hodos-source-github` | core | `world.source/github` |
+| `@greenways/hodos-renderer-playcanvas` | core, world model | `world.renderer/playcanvas` |
+| `@greenways/hodos-ui-world-authoring` | world model, renderer | optional `world.ui/authoring` |
+| `@greenways/hodos-ui-world-publication` | core | optional `world.ui/publication` |
+| `@greenways/hodos-viewer` | core | adapter-neutral `viewer/worlds` shell |
+| `@greenways/hodos-viewer-defaults` | viewer, source, renderer | GitHub + PlayCanvas preset |
+| `greenways/hodos` | runtime, viewer and optional UI | curated distribution |
 
-The current viewer remains a deliberately broad projection while its panels
-are extracted in later steps. The semantic state and deployment boundaries no
-longer depend on that extraction.
+The base viewer is read-only. Authoring and publication panels appear only when
+their add-ons are activated before a viewer instance is created. GitHub and
+PlayCanvas are selected by `@greenways/hodos-viewer-defaults` rather than Core
+assumptions; another source or projection can implement the same contribution
+kinds and activate the shell directly.
+
+### Composing Hodos Worlds
+
+Curated distributions are ordinary add-on arrays and may share the same Core
+instance. A complete authoring host composes them explicitly:
+
+```js
+import { createHodosHost } from "@greenways/hodos-core";
+import { hodosHaraDistribution, HODOS_HARA_RUNTIME_ADDON_ID } from "@greenways/hodos-runtime-hara";
+import { hodosViewerDistribution, HODOS_DEFAULT_VIEWER_ADDON_ID } from "@greenways/hodos-viewer-defaults";
+import { hodosWorldAuthoringUiAddon, HODOS_WORLD_AUTHORING_UI_ADDON_ID } from "@greenways/hodos-ui-world-authoring";
+import { hodosWorldPublicationUiAddon, HODOS_WORLD_PUBLICATION_UI_ADDON_ID } from "@greenways/hodos-ui-world-publication";
+
+const host = createHodosHost({
+  capabilities: [
+    "network.github",
+    "publication.intent",
+    "runtime.hara",
+    "workspace.authoring",
+    "workspace.drafts",
+    "world.render",
+  ],
+});
+host.register(
+  hodosHaraDistribution,
+  hodosViewerDistribution,
+  hodosWorldAuthoringUiAddon,
+  hodosWorldPublicationUiAddon,
+);
+await host.activate([
+  HODOS_HARA_RUNTIME_ADDON_ID,
+  HODOS_WORLD_AUTHORING_UI_ADDON_ID,
+  HODOS_WORLD_PUBLICATION_UI_ADDON_ID,
+  HODOS_DEFAULT_VIEWER_ADDON_ID,
+]);
+```
+
+Omit either UI add-on and its authority grant to produce a smaller viewer. The
+source and renderer packages can likewise be replaced by add-ons contributing
+the same `world.source` and `world.renderer` contracts.
 
 ## npm packages
 
 All reusable workspaces are public, carry explicit exports and release files,
-and use exact in-workspace versions. Validate their manifests and tarball
-contents without publishing:
+and use exact in-workspace versions. Validation also requires every internal
+npm dependency to have a matching Hara package dependency. Check manifests and
+tarball contents without publishing:
 
 ```sh
 npm ci

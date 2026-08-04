@@ -45,15 +45,20 @@ function normalizeManifest(manifest = {}) {
   return Object.freeze({ ...manifest, id, version, requires: Object.freeze(requires), capabilities: Object.freeze(capabilities) });
 }
 
+const NORMALIZED_ADDONS = new WeakSet();
+
 export function defineAddon(addon) {
   if (!addon || typeof addon !== "object") throw new TypeError("Hodos add-on must be an object");
+  if (NORMALIZED_ADDONS.has(addon)) return addon;
   if (addon.activate !== undefined && typeof addon.activate !== "function") {
     throw new TypeError("Hodos add-on activate must be a function");
   }
   if (addon.deactivate !== undefined && typeof addon.deactivate !== "function") {
     throw new TypeError("Hodos add-on deactivate must be a function");
   }
-  return Object.freeze({ ...addon, manifest: normalizeManifest(addon.manifest) });
+  const normalized = Object.freeze({ ...addon, manifest: normalizeManifest(addon.manifest) });
+  NORMALIZED_ADDONS.add(normalized);
+  return normalized;
 }
 
 const values = (value) => Array.isArray(value) ? value : [value];
@@ -72,7 +77,9 @@ export class HodosHost {
   register(...addons) {
     for (const candidate of addons.flat(Infinity)) {
       const addon = defineAddon(candidate);
-      if (this.#addons.has(addon.manifest.id)) throw new Error(`Hodos add-on is already registered: ${addon.manifest.id}`);
+      const registered = this.#addons.get(addon.manifest.id);
+      if (registered === addon) continue;
+      if (registered) throw new Error(`Hodos add-on is already registered: ${addon.manifest.id}`);
       this.#addons.set(addon.manifest.id, addon);
     }
     return this;

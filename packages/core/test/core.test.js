@@ -67,3 +67,13 @@ test("dependency ranges use semantic-version compatibility", async () => {
   );
   await assert.rejects(host.activate("future"), /requires core \^2\.0\.0; registered 1\.0\.0/);
 });
+
+test("curated distributions can share the same add-on instance", () => {
+  const core = addon("core");
+  const host = createHodosHost().register([core], [core]);
+  assert.deepEqual(host.registered().map(({ id }) => id), ["core"]);
+  assert.throws(
+    () => host.register(addon("core")),
+    /already registered: core/,
+  );
+});

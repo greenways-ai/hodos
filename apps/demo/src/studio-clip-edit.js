@@ -7,7 +7,7 @@ import {
   trimClipStart,
 } from "./studio-clip-model.js";
 import { normalizeProject } from "./studio-export.js";
-import { installHodosWorldDrag } from "@greenways/hodos-viewer/drag";
+import { installHodosWorldDrag } from "@greenways/hodos-world-model/drag";
 
 const PIXELS_PER_SECOND = 42;
 const SNAP_SECONDS = 0.25;

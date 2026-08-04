@@ -1,0 +1,31 @@
+import { defineAddon, HODOS_CORE_ADDON_ID } from "@greenways/hodos-core";
+import * as authoring from "./world-authoring-model.js";
+import * as drafts from "./world-draft-model.js";
+import * as drag from "./world-drag.js";
+import * as editor from "./world-editor-model.js";
+
+export * from "./world-authoring-model.js";
+export * from "./world-draft-model.js";
+export * from "./world-drag.js";
+export * from "./world-editor-model.js";
+
+export const HODOS_WORLD_MODEL_ADDON_ID = "@greenways/hodos-world-model";
+
+export const hodosWorldModelAddon = defineAddon({
+  manifest: {
+    id: HODOS_WORLD_MODEL_ADDON_ID,
+    version: "0.1.0",
+    requires: { [HODOS_CORE_ADDON_ID]: "^0.1.0" },
+    capabilities: [],
+  },
+  activate(context) {
+    context.contribute("world.model", "authoring", Object.freeze({
+      authoring: Object.freeze({ ...authoring }),
+      drafts: Object.freeze({ ...drafts }),
+      drag: Object.freeze({ ...drag }),
+      editor: Object.freeze({ ...editor }),
+    }));
+  },
+});
+
+export default hodosWorldModelAddon;

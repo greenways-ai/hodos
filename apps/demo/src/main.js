@@ -4,7 +4,18 @@ import {
   hodosHaraDistribution,
   HODOS_HARA_RUNTIME_ADDON_ID,
 } from "@greenways/hodos-runtime-hara";
-import { hodosViewerAddon, HODOS_VIEWER_ADDON_ID } from "@greenways/hodos-viewer";
+import {
+  hodosViewerDistribution,
+  HODOS_DEFAULT_VIEWER_ADDON_ID,
+} from "@greenways/hodos-viewer-defaults";
+import {
+  hodosWorldAuthoringUiAddon,
+  HODOS_WORLD_AUTHORING_UI_ADDON_ID,
+} from "@greenways/hodos-ui-world-authoring";
+import {
+  hodosWorldPublicationUiAddon,
+  HODOS_WORLD_PUBLICATION_UI_ADDON_ID,
+} from "@greenways/hodos-ui-world-publication";
 import { FEATURED_WORLDS, featuredWorld } from "./featured-worlds.js";
 import { handleHaraScriptEffect } from "./hara-script-host.js";
 import { SpatialAudioRuntime } from "./spatial-audio.js";
@@ -28,14 +39,25 @@ import { saveHestiaContribution, saveRepositoryPatch } from "./world-publication
 const host = createHodosHost({
   capabilities: [
     "publication.intent",
+    "network.github",
     "runtime.hara",
     "workspace.authoring",
     "workspace.drafts",
     "world.render",
   ],
 });
-host.register(hodosHaraDistribution, hodosViewerAddon);
-await host.activate([HODOS_HARA_RUNTIME_ADDON_ID, HODOS_VIEWER_ADDON_ID]);
+host.register(
+  hodosHaraDistribution,
+  hodosViewerDistribution,
+  hodosWorldAuthoringUiAddon,
+  hodosWorldPublicationUiAddon,
+);
+await host.activate([
+  HODOS_HARA_RUNTIME_ADDON_ID,
+  HODOS_WORLD_AUTHORING_UI_ADDON_ID,
+  HODOS_WORLD_PUBLICATION_UI_ADDON_ID,
+  HODOS_DEFAULT_VIEWER_ADDON_ID,
+]);
 const haraRuntime = host.getContribution("runtime", "hara");
 const worldsViewer = host.getContribution("viewer", "worlds");
 const invokeHodos = haraRuntime.invoke;
@@ -201,7 +223,7 @@ function renderDemo(error = "") {
     const results = root.querySelector(".catalog-results");
     results.innerHTML = "<p>Searching…</p>";
     try {
-      await viewer.requestGitHubAccess();
+      await viewer.requestSourceAccess();
       const matches = await searchWorldRepositories(
         new FormData(event.currentTarget).get("query"),
         (...args) => globalThis.fetch(...args),
@@ -225,7 +247,7 @@ function renderDemo(error = "") {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     try {
-      await viewer.requestGitHubAccess();
+      await viewer.requestSourceAccess();
       navigate({
         repository: data.get("repo"),
         ref: data.get("ref"),
@@ -240,7 +262,7 @@ function renderDemo(error = "") {
     const world = featuredWorld(button.dataset.featuredWorld);
     if (!world) return;
     try {
-      await viewer.requestGitHubAccess();
+      await viewer.requestSourceAccess();
       navigate({
         repository: world.repository,
         ref: world.ref || "",

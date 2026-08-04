@@ -11,13 +11,13 @@ import {
   StandardMaterial,
   Vec3,
 } from "playcanvas";
-import { hasHodosWorldDrag, readHodosWorldDrag } from "./world-drag.js";
+import { hasHodosWorldDrag, readHodosWorldDrag } from "@greenways/hodos-world-model/drag";
 import {
   editorState,
   normalizeWorldEntity,
   normalizeWorldTransform,
   worldEntityRadius,
-} from "./world-editor-model.js";
+} from "@greenways/hodos-world-model/editor";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const AXES = Object.freeze(["x", "y", "z"]);

@@ -12,5 +12,11 @@
   "hara:greenways/hodos-addon-publication" {:version "^0.1.0"}
   "hara:greenways/hodos-addon-authoring" {:version "^0.1.0"}
   "hara:greenways/hodos-runtime-hara" {:version "^0.1.0"}
-  "hara:greenways/hodos-viewer" {:version "^0.1.0"}}
+  "hara:greenways/hodos-world-model" {:version "^0.1.0"}
+  "hara:greenways/hodos-source-github" {:version "^0.1.0"}
+  "hara:greenways/hodos-renderer-playcanvas" {:version "^0.1.0"}
+  "hara:greenways/hodos-ui-world-authoring" {:version "^0.1.0"}
+  "hara:greenways/hodos-ui-world-publication" {:version "^0.1.0"}
+  "hara:greenways/hodos-viewer" {:version "^0.1.0"}
+  "hara:greenways/hodos-viewer-defaults" {:version "^0.1.0"}}
  :project/recipe "hara.recipe.edn"}
