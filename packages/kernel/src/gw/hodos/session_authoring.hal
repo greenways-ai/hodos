@@ -27,6 +27,20 @@
    "fps" 30
    "tracks" []})
 
+(defn normalize-snap [value]
+  (let [snap (or value {})]
+    {"enabled" (= (get snap "enabled") true)
+     "translate" (or (get snap "translate") 0.25)
+     "rotate" (or (get snap "rotate") 5)
+     "scale" (or (get snap "scale") 0.1)}))
+
+(defn normalize-timeline [value]
+  (let [timeline (or value {})]
+    {"time" (or (get timeline "time") 0)
+     "playing" (= (get timeline "playing") true)
+     "loop" (= (get timeline "loop") true)
+     "animation" (or (get timeline "animation") "main")}))
+
 (defn normalize-editor [value]
   (let [base-editor (draft/normalize-editor value)
         editor (or value {})]
@@ -35,15 +49,13 @@
       (assoc
        (assoc
         (assoc
-         (assoc
-          (assoc base-editor
-                 "pivot" (or (get editor "pivot") "median"))
-          "cursor" (or (get editor "cursor") [0 0 0]))
-         "snap" (or (get editor "snap") (default-snap)))
-        "isolation" (get editor "isolation"))
-       "activeCollection" (get editor "activeCollection"))
-      "timeline" (or (get editor "timeline") (default-timeline)))
-     "boxSelect" (= (get editor "boxSelect") true))))
+         (assoc base-editor
+                "pivot" (or (get editor "pivot") "median"))
+         "cursor" (or (get editor "cursor") [0 0 0]))
+        "snap" (normalize-snap (get editor "snap")))
+       "isolation" (get editor "isolation"))
+      "activeCollection" (get editor "activeCollection"))
+     "timeline" (normalize-timeline (get editor "timeline")))))
 
 (defn normalize-document [value]
   (let [document (or value {})]
@@ -106,6 +118,11 @@
      (if (= (get item "id") item-id)
        (update-fn item)
        item))))
+
+(defn remove-item [items item-id]
+  (vec (filter (fn [item]
+                 (not (= (get item "id") item-id)))
+               items)))
 
 (defn document-content [session-id]
   (let [base-draft (draft/draft-value session-id)
@@ -212,11 +229,56 @@
     {"state" (merge-authoring-state session-id (get result "state"))
      "effects" with-editor}))
 
+(defn append-effects [result effects]
+  (assoc result "effects"
+         (loop [index 0 output (or (get result "effects") [])]
+           (if (= index (count effects))
+             output
+             (recur (+ index 1) (conj output (nth effects index)))))))
+
+(defn script-component [entity]
+  (get (get entity "components") "script"))
+
+(defn script-subscribed? [entity event-type]
+  (let [script (script-component entity)
+        events (if script (or (get script "events") []) [])]
+    (and script
+         (not (= (get script "enabled") false))
+         (vector-contains? events event-type))))
+
+(defn script-effect [entity event trace-id]
+  (let [script (script-component entity)]
+    {"effect" "script"
+     "method" "evaluate"
+     "args" [{"trace" trace-id
+              "entity" entity
+              "event" event
+              "source" (get script "source")
+              "enabled" (not (= (get script "enabled") false))}]}))
+
+(defn subscribed-script-effects [entities event-type event revision]
+  (loop [index 0 output []]
+    (if (= index (count entities))
+      output
+      (let [entity (nth entities index)]
+        (recur (+ index 1)
+               (if (script-subscribed? entity event-type)
+                 (conj output
+                       (script-effect entity event
+                                      (str "trace-" (get entity "id") "-" revision "-" index)))
+                 output))))))
+
 (defn open [session-id world]
   (let [result (publication/open session-id world)
         base-editor (get (get (get result "state") "world") "editor")]
     (store-authoring session-id (empty-authoring world base-editor))
-    (merge-result session-id result)))
+    (let [merged (merge-result session-id result)
+          effects (subscribed-script-effects
+                   (get (document-content session-id) "entities")
+                   "world/start"
+                   {"event/type" "world/start"}
+                   0)]
+      (append-effects merged effects))))
 
 (defn get-session [session-id]
   (merge-result session-id (publication/get-session session-id)))
@@ -287,16 +349,43 @@
     {"state" (merge-authoring-state session-id state)
      "effects" [(editor-document-effect session-id)]}))
 
+(defn patch-value [patch current key]
+  (let [missing "__hodos_missing_editor_value__"
+        value (get patch key missing)]
+    (if (= value missing)
+      (get current key)
+      value)))
+
+(defn patch-timeline [patch current]
+  (let [input (patch-value patch current "timeline")]
+    (if input
+      (let [timeline (or (get current "timeline") (default-timeline))]
+        (normalize-timeline
+         {"time" (patch-value input timeline "time")
+          "playing" (patch-value input timeline "playing")
+          "loop" (patch-value input timeline "loop")
+          "animation" (patch-value input timeline "animation")}))
+      (normalize-timeline (get current "timeline")))))
+
+(defn patch-editor [current patch]
+  (normalize-editor
+   {"mode" (patch-value patch current "mode")
+    "tool" (patch-value patch current "tool")
+    "space" (patch-value patch current "space")
+    "pivot" (patch-value patch current "pivot")
+    "cursor" (patch-value patch current "cursor")
+    "snap" (patch-value patch current "snap")
+    "isolation" (patch-value patch current "isolation")
+    "activeCollection" (patch-value patch current "activeCollection")
+    "selection" (patch-value patch current "selection")
+    "active" (patch-value patch current "active")
+    "timeline" (patch-timeline patch current)}))
+
 (defn update-editor [session-id state patch]
   (let [authoring (authoring-value session-id)
         editor (get authoring "editor")
-        next-editor (loop [keys (keys patch) output editor]
-                      (if (= (count keys) 0)
-                        output
-                        (let [key (first keys)]
-                          (recur (rest keys)
-                                 (assoc output key (get patch key))))))
-        next-authoring (assoc authoring "editor" (normalize-editor next-editor))]
+        next-editor (patch-editor editor (or patch {}))
+        next-authoring (assoc authoring "editor" next-editor)]
     (store-authoring session-id next-authoring)
     {"state" (merge-authoring-state session-id state)
      "effects" [(editor-document-effect session-id)]}))
@@ -327,11 +416,11 @@
                   (assoc
                    (assoc (draft/draft-value session-id)
                           "audioSources" (get (base-document document) "audioSources"))
-                   "entities" (get (base-document document) "entities")))]
-      (publication/store-review session-id (mark-review-stale session-id))
+                   "entities" (get (base-document document) "entities")))
+          review (mark-review-stale session-id)]
       (publication/merge-review-result
        (merge-result session-id result)
-       (publication/review-value session-id)))))
+       review))))
 
 (defn commit-document [session-id state event]
   (let [document (get event "document")
@@ -422,18 +511,120 @@
                        "audioSources" next-sources)]
     (commit-document session-id state {"document" changed})))
 
-(defn selected-change-ids [proposal selected collection]
-  (vec (filter
-        (fn [change-id]
-          (let [changes (or (get proposal "changes") [])]
-            (loop [index 0]
-              (if (= index (count changes))
-                false
-                (let [change (nth changes index)]
-                  (if (= (get change "id") change-id)
-                    (= (or (get change "collection") "audioSources") collection)
-                    (recur (+ index 1))))))))
-        selected)))
+(defn remove-target-selection [editor target]
+  (let [selected (vector-remove (or (get editor "selection") []) target)
+        active (if (= (count selected) 0)
+                 nil
+                 (nth selected (- (count selected) 1)))]
+    (assoc (assoc editor "selection" selected) "active" active)))
+
+(defn validate-parent [entities entity]
+  (let [entity-id (get entity "id")
+        parent-id (get entity "parent")]
+    (cond
+      (= parent-id entity-id) (throw "World entity cannot parent itself")
+      (and parent-id (not (item-present? entities parent-id)))
+      (throw (str "World entity parent does not exist: " parent-id))
+      :else entity)))
+
+(defn create-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity (get event "entity")
+        entity-id (get entity "id")]
+    (cond
+      (nil? entity-id) (throw "World entity requires an id")
+      (item-present? entities entity-id) (throw (str "World entity id already exists: " entity-id))
+      :else
+      (let [validated (validate-parent entities entity)
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities" (conj entities validated))})
+            authoring (authoring-value session-id)
+            editor (get authoring "editor")
+            target {"type" "entity" "id" entity-id}]
+        (store-authoring session-id
+                         (assoc authoring "editor"
+                                (assoc (assoc editor "selection" [target]) "active" target)))
+        (append-effects
+         (assoc result "state" (merge-authoring-state session-id (get result "state")))
+         (subscribed-script-effects [validated] "world/entity-create" event
+                                    (get (draft/draft-value session-id) "revision")))))))
+
+(defn update-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity (get event "entity")
+        entity-id (get entity "id")]
+    (if (not (item-present? entities entity-id))
+      (throw (str "Unknown world entity: " entity-id))
+      (let [validated (validate-parent entities entity)
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities"
+                                                       (update-item entities entity-id
+                                                                    (fn [old] validated)))})]
+        (append-effects result
+                        (subscribed-script-effects [validated] "world/entity-update" event
+                                                   (get (draft/draft-value session-id) "revision")))))))
+
+(defn transform-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity-id (get event "entity")
+        transform (draft/normalize-transform (get event "transform"))
+        entity (item-value entities entity-id)]
+    (if (nil? entity)
+      (throw (str "Unknown world entity: " entity-id))
+      (if (= (get entity "locked") true)
+        {"state" (merge-authoring-state session-id state) "effects" []}
+        (let [changed (assoc entity "transform" transform)
+              result (commit-document session-id state
+                                      {"document" (assoc content "entities"
+                                                         (update-item entities entity-id
+                                                                      (fn [old] changed)))})]
+          (append-effects result
+                          (subscribed-script-effects [changed] "world/entity-transform" event
+                                                     (get (draft/draft-value session-id) "revision"))))))))
+
+(defn delete-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        entity-id (get event "entity")
+        target {"type" "entity" "id" entity-id}]
+    (if (not (item-present? entities entity-id))
+      (throw (str "Unknown world entity: " entity-id))
+      (let [remaining (base/map-vector
+                       (remove-item entities entity-id)
+                       (fn [entity]
+                         (if (= (get entity "parent") entity-id)
+                           (assoc entity "parent" nil)
+                           entity)))
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities" remaining)})
+            authoring (authoring-value session-id)
+            next-editor (remove-target-selection (get authoring "editor") target)]
+        (store-authoring session-id (assoc authoring "editor" next-editor))
+        (assoc result "state" (merge-authoring-state session-id (get result "state")))))))
+
+(defn duplicate-world-entity [session-id state event]
+  (let [content (document-content session-id)
+        entities (get content "entities")
+        source-id (get event "source")
+        entity (get event "entity")
+        entity-id (get entity "id")]
+    (cond
+      (not (item-present? entities source-id)) (throw (str "Unknown world entity: " source-id))
+      (item-present? entities entity-id) (throw (str "World entity id already exists: " entity-id))
+      :else
+      (let [validated (validate-parent entities entity)
+            result (commit-document session-id state
+                                    {"document" (assoc content "entities" (conj entities validated))})
+            target {"type" "entity" "id" entity-id}
+            authoring (authoring-value session-id)
+            editor (get authoring "editor")]
+        (store-authoring session-id
+                         (assoc authoring "editor"
+                                (assoc (assoc editor "selection" [target]) "active" target)))
+        (assoc result "state" (merge-authoring-state session-id (get result "state")))))))
 
 (defn change-target [change]
   (or (get change "entity")
@@ -452,8 +643,7 @@
 
       (= operation "remove")
       (if (item-present? items item-id)
-        (vec (filter (fn [item]
-                       (not (= (get item "id") item-id))) items))
+        (remove-item items item-id)
         (throw (str "Imported removal references an unknown item: " item-id)))
 
       (= operation "replace")
@@ -509,13 +699,21 @@
          (commit-document* session-id state changed next-history)
          next-review)))))
 
+(defn animations-have-tracks? [animations]
+  (loop [index 0]
+    (if (= index (count animations))
+      false
+      (if (> (count (or (get (nth animations index) "tracks") [])) 0)
+        true
+        (recur (+ index 1))))))
+
 (defn publishable? [document]
   (or (> (count (or (get document "entities") [])) 0)
       (> (count (or (get document "audioSources") [])) 0)
       (> (count (or (get document "collections") [])) 0)
       (> (count (or (get document "assets") [])) 0)
       (> (count (or (get document "prefabs") [])) 0)
-      (> (count (or (get document "animations") [])) 0)))
+      (animations-have-tracks? (or (get document "animations") []))))
 
 (defn publish [session-id state event]
   (let [review (publication/review-value session-id)
@@ -540,19 +738,6 @@
                        "method" "hestia-contribution"
                        "args" [(draft/world-identity state) document room]}]})))))
 
-(defn script-component [entity]
-  (get (get entity "components") "script"))
-
-(defn script-effect [entity event trace-id]
-  (let [script (script-component entity)]
-    {"effect" "script"
-     "method" "evaluate"
-     "args" [{"trace" trace-id
-              "entity" entity
-              "event" event
-              "source" (get script "source")
-              "enabled" (not (= (get script "enabled") false))}]}))
-
 (defn run-script [session-id state event]
   (let [entity-id (get event "entity")
         entity (item-value (get (document-content session-id) "entities") entity-id)
@@ -571,9 +756,12 @@
                                   trace-id)]})))
 
 (defn trim-traces [values]
-  (if (> (count values) 200)
-    (vec (drop (- (count values) 200) values))
-    values))
+  (let [total (count values)
+        start (if (> total 200) (- total 200) 0)]
+    (loop [index start output []]
+      (if (= index total)
+        output
+        (recur (+ index 1) (conj output (nth values index)))))))
 
 (defn script-result [session-id state event]
   (let [authoring (authoring-value session-id)
@@ -612,17 +800,31 @@
 
 (defn base-mutating-event? [event-type]
   (or (= event-type "world/drop")
-      (= event-type "world/entity-create")
-      (= event-type "world/entity-update")
-      (= event-type "world/entity-transform")
-      (= event-type "world/entity-delete")
-      (= event-type "world/entity-duplicate")
       (= event-type "world/audio-move")
       (= event-type "world/audio-gain")
       (= event-type "world/audio-range")
       (= event-type "world/audio-loop")
       (= event-type "world/audio-toggle")
       (= event-type "world/audio-remove")))
+
+(defn sync-audio-selection [session-id event-type input]
+  (let [authoring (authoring-value session-id)
+        editor (get authoring "editor")]
+    (cond
+      (= event-type "world/drop")
+      (let [source-id (get (get input "payload") "id")
+            target {"type" "audio" "id" source-id}]
+        (store-authoring session-id
+                         (assoc authoring "editor"
+                                (assoc (assoc editor "selection" [target]) "active" target))))
+
+      (= event-type "world/audio-remove")
+      (store-authoring session-id
+                       (assoc authoring "editor"
+                              (remove-target-selection
+                               editor {"type" "audio" "id" (get input "source")})))
+
+      :else authoring)))
 
 (defn wrap-base-event [session-id input]
   (let [event-type (get input "event/type")
@@ -635,6 +837,7 @@
                                   {"undo" (conj (or (get history "undo") []) before)
                                    "redo" []})]
         (store-authoring session-id next-authoring)
+        (sync-audio-selection session-id event-type input)
         (merge-result session-id result))
       (merge-result session-id result))))
 
@@ -648,11 +851,32 @@
       (= event-type "world/editor-settings")
       (update-editor session-id state (or (get input "patch") {}))
 
+      (= event-type "world/editor-tool")
+      (update-editor session-id state {"tool" (get input "tool")})
+
+      (= event-type "world/editor-mode")
+      (update-editor session-id state {"mode" (get input "mode")})
+
       (= event-type "world/editor-transform-selection")
       (transform-selection session-id state input)
 
       (= event-type "world/document-commit")
       (commit-document session-id state input)
+
+      (= event-type "world/entity-create")
+      (create-world-entity session-id state input)
+
+      (= event-type "world/entity-update")
+      (update-world-entity session-id state input)
+
+      (= event-type "world/entity-transform")
+      (transform-world-entity session-id state input)
+
+      (= event-type "world/entity-delete")
+      (delete-world-entity session-id state input)
+
+      (= event-type "world/entity-duplicate")
+      (duplicate-world-entity session-id state input)
 
       (= event-type "world/history-undo")
       (undo session-id state)
