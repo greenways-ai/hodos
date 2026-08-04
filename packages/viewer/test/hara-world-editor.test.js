@@ -108,7 +108,7 @@ test("Hara duplicates, parents, deletes and undoes scene objects", async () => {
   }]);
   state = dispatch("session/get", ["hierarchy-session"]).state;
   assert.deepEqual(state.world.entities.map(({ id, parent }) => [id, parent]), [["cube-2", null]]);
-  assert.equal(state.world.editor.active, null);
+  assert.deepEqual(state.world.editor.active, { type: "entity", id: "cube-2" });
 
   dispatch("session/event", ["hierarchy-session", { "event/type": "world/history-undo" }]);
   state = dispatch("session/get", ["hierarchy-session"]).state;
