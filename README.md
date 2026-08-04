@@ -1,22 +1,45 @@
 # Hodos
 
-Hodos is an open-world kernel and browser viewer. A repository describes a
-world with `project.edn`; the Hara kernel resolves its bundle and locked
-packages, and the viewer renders its Gaussian-splat scene.
+Hodos is an open-world kernel and browser-native 3D editor. A repository
+describes an immutable base world with `project.edn`; the Hara kernel resolves
+its bundle and locked packages, carries the editable scene document, and the
+viewer projects both through PlayCanvas and classical web interfaces.
 
 The repository deliberately separates reusable technology from presentation:
 
 - `packages/kernel` owns the `gw.hodos.*` HAL surface, bundling, persistent
-  browser sessions, package plans, scene commands, editable world drafts,
-  semantic review, and publication intent.
-- `packages/viewer` is an embeddable browser viewer with no featured-world or
-  landing-page policy. It projects spatial touchpoints and world-owned audio
-  sources into the scene, provides direct draft and review controls, and mounts
-  only trusted, host-registered 2D application surfaces.
-- `apps/demo` is the Hodos Worlds demonstration using public repositories from
+  browser sessions, package plans, scene commands, generic scene entities,
+  editable world drafts, semantic review, and publication intent.
+- `packages/viewer` is an embeddable browser editor with no featured-world or
+  landing-page policy. It renders Gaussian splats and editable PlayCanvas
+  entities, provides an outliner, properties inspector, transform tools,
+  viewport selection, draft/review controls, and mounts only trusted,
+  host-registered 2D application surfaces.
+- `apps/demo` is the Hodos Worlds application using public repositories from
   [greenways-worlds](https://github.com/greenways-worlds). Its guided Splat
-  Garden experience combines a tour, live Hara inspector, command deck and the
-  browser-native multitrack Studio.
+  Garden experience combines the editor, tour, live Hara inspector, command
+  deck and browser-native multitrack Studio.
+
+## World editor
+
+The World Editor layers a reversible Hara scene document over an immutable
+repository world. The initial Blender-like authoring loop includes:
+
+- scene outliner with base layers, touchpoints, draft hierarchy and spatial
+  audio;
+- viewport selection and framing;
+- edit and preview modes;
+- `Q/W/E/R` select, move, rotate and scale tools;
+- axis transform controls with preview and one semantic commit on release;
+- Empty, Cube, Sphere, Plane, Cylinder, Cone, Capsule and Point Light creation;
+- exact transform, parenting, visibility and locking properties;
+- primitive colour/opacity and point-light properties;
+- duplicate, delete, undo and redo;
+- OPFS persistence, portable scene export, semantic import/review, repository
+  patches and signed Hestia contributions.
+
+See [`docs/world-editor.md`](docs/world-editor.md) for the scene schema,
+interaction model, command surface and follow-up editor layers.
 
 ## Touchpoints and classical interfaces
 
@@ -27,20 +50,21 @@ the browser then mounts the matching trusted HTML application.
 
 This keeps the boundary explicit:
 
-- Hara carries world, world-draft, proposal, publication-receipt, surface,
-  Studio project, track, clip, mixer, spatial-source, transport,
-  command-history, and revision state.
-- PlayCanvas renders and picks the 3D scene, resolves world drop positions, and
-  projects source controls.
-- HTML and Canvas render precise classical interfaces such as Studio, the
-  spatial world-draft inspector, semantic review, the guided tour and command
-  deck.
+- Hara carries world identity, generic entities, hierarchy, transforms,
+  components, editor selection/tool state, world draft, proposal,
+  publication-receipt, surface, Studio project, track, clip, mixer,
+  spatial-source, transport, command-history, and revision state.
+- PlayCanvas renders and picks the immutable and editable 3D scene, resolves
+  world drop positions, projects transform controls, and renders lights and
+  primitive materials.
+- HTML and Canvas render precise classical interfaces such as the World Editor,
+  Studio, semantic review, guided tour, Inspector and Command Deck.
 - Web Audio owns decoded buffers, offline rendering, HRTF panners, and the
   real-time audio clock.
 - Web Crypto hashes repository artifacts and signs Hestia contribution
   envelopes; signing keys remain browser-owned.
-- OPFS owns durable local media, Studio project snapshots, and world-draft
-  snapshots.
+- OPFS owns durable local media, Studio project snapshots, and exact-world scene
+  drafts.
 - A world can request a registered surface by ID, but cannot inject arbitrary
   HTML or obtain direct DOM, audio-node, signing-key, or filesystem access.
 
@@ -71,36 +95,29 @@ npm run build
 The guided showcase opens the composed `greenways-worlds/splat-garden` world
 and derives a five-step journey directly from live Hara state: resolve the
 immutable world, create in Studio, place audio spatially, edit the world draft,
-and produce an accountable publication artifact. The inspector exposes the
+and produce an accountable publication artifact. The Inspector exposes the
 serializable session and declared capabilities; the `M-x`-style command deck
 invokes the same semantic events as the graphical controls.
 
-The current Studio slice supports opening a classical interface from a 3D
-touchpoint, dragging local audio into the arrangement, storing content-addressed
-media in origin-private browser storage, restoring the Hara project on a later
-visit, creating tracks, moving clips horizontally or between tracks,
-non-destructively trimming, splitting, duplicating and deleting clips, editing
-track gain and mute, undoing and redoing committed edits through Hara, playing
-through Web Audio, rendering a WAV mix, and exporting and reopening a verified
-portable project bundle.
+The Studio supports opening a classical interface from a spatial touchpoint,
+dragging local audio into the arrangement, storing content-addressed media in
+origin-private browser storage, restoring the Hara project, creating tracks,
+moving clips horizontally or between tracks, non-destructive trim, split,
+duplicate and delete, mixer controls, undo/redo, Web Audio playback, WAV export
+and verified portable project bundles.
 
-A complete track or individual clip can also be dragged from Studio into the
-3D world. Hara creates and owns the spatial source; the browser renders its
-marker, tracks the camera as the Web Audio listener, and projects the selected
-clip graph through an HRTF `PannerNode`.
+A complete track or individual clip can be dragged from Studio into the 3D
+world. It becomes a first-class editable spatial-audio object in the same
+outliner and world draft as primitives and lights. Hara owns its position,
+playback, gain, audible range, looping and history; Web Audio projects the
+current state through an HRTF `PannerNode`.
 
-Those spatial placements form a versioned Hara world draft tied to the exact
-repository commit. Makers can reposition sources, enter precise XYZ
-coordinates, nudge axes, tune gain and audible range, toggle looping and
-playback, remove placements, undo and redo world changes, recover the draft
-from OPFS, and export a portable `.hodos-world.json` document.
-
-Portable drafts can be imported back against the exact immutable world as
-semantic proposals. Makers review source additions, removals, and field-level
+Portable world drafts include generic entities and audio sources. Makers can
+review entity/source additions, removals, hierarchy, components and field-level
 changes, accept any subset as one undoable Hara transaction, then produce a
-`git apply`-compatible repository patch or an independently verifiable,
+`git apply`-compatible repository patch or independently verifiable,
 ECDSA-signed Hestia-room contribution.
 
-Fades, automation, recording, generated stems, a musical tick/tempo timebase,
-general world components, direct GitHub PR creation, Hestia network submission,
-collaboration, and model providers remain subsequent slices.
+Mesh edit mode, UVs, rigging, animation curves, shader graphs, multi-selection,
+asset/prefab libraries, direct GitHub PR creation, Hestia network submission,
+collaboration and model providers remain subsequent layers.
