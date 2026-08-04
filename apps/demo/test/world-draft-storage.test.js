@@ -14,6 +14,23 @@ const identity = {
   project: { id: "greenways-worlds/room", version: "1.0.0" },
 };
 
+const entity = {
+  id: "cube-1",
+  name: "Cube",
+  kind: "box",
+  parent: null,
+  visible: true,
+  locked: false,
+  transform: {
+    position: [1, 0.5, -2],
+    rotation: [0, 45, 0],
+    scale: [1, 2, 1],
+  },
+  components: {
+    primitive: { shape: "box", color: "#c8ad73", opacity: 1 },
+  },
+};
+
 const draft = {
   format: "hodos-world-draft",
   version: "0.1.0",
@@ -32,6 +49,7 @@ const draft = {
     maxDistance: 40,
     rolloffFactor: 1,
   }],
+  entities: [entity],
 };
 
 test("world draft storage is isolated by immutable world identity", async () => {
@@ -60,6 +78,31 @@ test("queued writes preserve the latest world draft revision", async () => {
   assert.equal((await store.load(identity)).revision, 2);
 });
 
+test("world draft validates scene transforms and hierarchy", () => {
+  assert.throws(
+    () => validateWorldDraft({
+      ...draft,
+      entities: [{ ...entity, transform: { ...entity.transform, position: [0, Number.NaN, 0] } }],
+    }),
+    /position must contain three finite numbers/,
+  );
+  assert.throws(
+    () => validateWorldDraft({
+      ...draft,
+      entities: [{ ...entity, transform: { ...entity.transform, scale: [1, 0, 1] } }],
+    }),
+    /scale values must be positive/,
+  );
+  assert.throws(
+    () => validateWorldDraft({ ...draft, entities: [entity, { ...entity }] }),
+    /duplicate entity id/,
+  );
+  assert.throws(
+    () => validateWorldDraft({ ...draft, entities: [{ ...entity, parent: "missing" }] }),
+    /unknown parent/,
+  );
+});
+
 test("world draft validation and export fail closed", () => {
   assert.throws(
     () => validateWorldDraft({ ...draft, audioSources: [{ ...draft.audioSources[0], position: [0, Number.NaN, 0] }] }),
@@ -69,4 +112,9 @@ test("world draft validation and export fail closed", () => {
   assert.equal(exported.format, "hodos-world-draft-export");
   assert.equal(exported.exportedAt, "2026-08-04T00:00:00.000Z");
   assert.deepEqual(exported.draft, draft);
+});
+
+test("older audio-only drafts migrate to an empty entity collection", () => {
+  const { entities: _entities, ...legacy } = draft;
+  assert.deepEqual(validateWorldDraft(legacy).entities, []);
 });
