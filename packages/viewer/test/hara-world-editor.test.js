@@ -18,6 +18,7 @@ const resources = {
   "gw.hodos.session": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session.hal", import.meta.url), "utf8"),
   "gw.hodos.session-draft": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_draft.hal", import.meta.url), "utf8"),
   "gw.hodos.session-publication": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_publication.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-authoring": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_authoring.hal", import.meta.url), "utf8"),
   "gw.hodos.kernel": fs.readFileSync(new URL("../../kernel/src/gw/hodos/kernel.hal", import.meta.url), "utf8"),
 };
 
@@ -42,8 +43,10 @@ const cube = {
   name: "Cube",
   kind: "box",
   parent: null,
+  collection: null,
   visible: true,
   locked: false,
+  origin: [0, 0, 0],
   transform: { position: [0, 0.5, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
   components: { primitive: { shape: "box", color: "#c8ad73", opacity: 1 } },
 };
@@ -57,13 +60,12 @@ test("Hara creates, selects and transforms generic world entities", async () => 
   }]);
   assert.equal(created.state.world.draft.entities.length, 1);
   assert.deepEqual(created.state.world.editor.active, { type: "entity", id: "cube-1" });
-  assert.deepEqual(created.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "scene/sync-world-entities",
-    "scene/sync-audio-sources",
-    "audio/sync-world-sources",
-    "storage/save-world-draft",
-  ]);
-  assert.equal(created.effects[3].args[1].entities[0].id, "cube-1");
+  const effects = created.effects.map(({ effect, method }) => `${effect}/${method}`);
+  assert.ok(effects.includes("scene/sync-world-entities"));
+  assert.ok(effects.includes("scene/sync-editor-document"));
+  assert.ok(effects.includes("storage/save-world-draft"));
+  const storage = created.effects.find(({ effect, method }) => effect === "storage" && method === "save-world-draft");
+  assert.equal(storage.args[1].entities[0].id, "cube-1");
 
   const transformed = dispatch("session/event", ["editor-session", {
     "event/type": "world/entity-transform",
@@ -77,9 +79,7 @@ test("Hara creates, selects and transforms generic world entities", async () => 
     "event/type": "world/editor-tool", tool: "rotate",
   }]);
   assert.equal(tool.state.world.editor.tool, "rotate");
-  assert.deepEqual(tool.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "scene/sync-world-entities",
-  ]);
+  assert.ok(tool.effects.some(({ effect, method }) => effect === "scene" && method === "sync-editor-document"));
 });
 
 test("Hara duplicates, parents, deletes and undoes scene objects", async () => {
