@@ -1,7 +1,16 @@
-{:project/name "hodos"
- :project/id gw/hodos
+{:hara/type :project
+ :hara/version "1.0.0"
+ :project/id greenways/hodos
  :project/version "0.1.0"
- :project/license "EPL-2.0"
- :project/main gw.hodos.kernel
- :project/source-paths ["packages/kernel/src"]
- :project/test-paths ["packages/kernel/test"]}
+ :project/source-paths ["src"]
+ :project/test-paths []
+ :project/extension-paths []
+ :project/capabilities #{}
+ :project/dependencies
+ {"hara:greenways/hodos-core" {:version "^0.1.0"}
+  "hara:greenways/hodos-addon-drafts" {:version "^0.1.0"}
+  "hara:greenways/hodos-addon-publication" {:version "^0.1.0"}
+  "hara:greenways/hodos-addon-authoring" {:version "^0.1.0"}
+  "hara:greenways/hodos-runtime-hara" {:version "^0.1.0"}
+  "hara:greenways/hodos-viewer" {:version "^0.1.0"}}
+ :project/recipe "hara.recipe.edn"}

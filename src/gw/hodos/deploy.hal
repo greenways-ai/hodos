@@ -1,0 +1,54 @@
+(ns gw.hodos.deploy
+  (:require [code.deploy :as deploy]
+            [std.lib.task :as task]))
+
+(def +packages+
+  {'greenways/hodos-core
+   {:path "packages/core"}
+
+   'greenways/hodos-addon-drafts
+   {:path "packages/addon-drafts"
+    :depends ['greenways/hodos-core]}
+
+   'greenways/hodos-addon-publication
+   {:path "packages/addon-publication"
+    :depends ['greenways/hodos-addon-drafts]}
+
+   'greenways/hodos-addon-authoring
+   {:path "packages/addon-authoring"
+    :depends ['greenways/hodos-addon-publication]}
+
+   'greenways/hodos-runtime-hara
+   {:path "packages/kernel"
+    :depends ['greenways/hodos-addon-authoring]}
+
+   'greenways/hodos-viewer
+   {:path "packages/viewer"
+    :depends ['greenways/hodos-core]}
+
+   'greenways/hodos
+   {:path "."
+    :depends ['greenways/hodos-runtime-hara
+              'greenways/hodos-viewer]}})
+
+(defn check
+  ([] (check :all))
+  ([selector]
+   (task/invoke deploy/check selector {:packages +packages+})))
+
+(defn package
+  ([] (package :all))
+  ([selector]
+   (task/invoke deploy/package selector {:packages +packages+})))
+
+(defn install
+  ([] (install :all))
+  ([selector]
+   (task/invoke deploy/install selector {:packages +packages+})))
+
+(defn publish
+  ([] (publish :all {}))
+  ([selector] (publish selector {}))
+  ([selector options]
+   (task/invoke deploy/publish selector
+                (merge {:packages +packages+} options))))

@@ -1,0 +1,5 @@
+{:recipe/format 1
+ :recipe/adapter :hal
+ :recipe/toolchain {:hara ">=0.1.0"}
+ :recipe/inputs {:project "project.edn"}
+ :recipe/outputs ["greenways-hodos.harp"]}

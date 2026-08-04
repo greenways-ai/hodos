@@ -1,6 +1,7 @@
 import "./viewer.css";
 import "./world-placement.css";
-import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph } from "./github-worlds.js";
+import { defineAddon, HODOS_CORE_ADDON_ID } from "@greenways/hodos-core";
+import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph, searchWorldRepositories } from "./github-worlds.js";
 import { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
 import { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
 import { WorldEditorWorkspace } from "./world-editor-workspace.js";
@@ -361,3 +362,20 @@ export {
   setWorldDragPresentation,
   writeHodosWorldDrag,
 } from "./world-drag.js";
+
+export const HODOS_VIEWER_ADDON_ID = "@greenways/hodos-viewer";
+
+export const hodosViewerAddon = defineAddon({
+  manifest: {
+    id: HODOS_VIEWER_ADDON_ID,
+    version: "0.1.0",
+    requires: { [HODOS_CORE_ADDON_ID]: "^0.1.0" },
+    capabilities: ["world.render"],
+  },
+  activate(context) {
+    context.contribute("viewer", "worlds", Object.freeze({
+      create: createHodosViewer,
+      searchRepositories: searchWorldRepositories,
+    }));
+  },
+});
