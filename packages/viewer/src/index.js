@@ -3,7 +3,7 @@ import "./world-placement.css";
 import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph } from "./github-worlds.js";
 import { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
 import { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
-import { WorldEditorPanel } from "./world-editor-panel.js";
+import { WorldEditorWorkspace } from "./world-editor-workspace.js";
 import { WorldRenderer } from "./world-renderer.js";
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
@@ -93,7 +93,7 @@ export function createHodosViewer({
     root.querySelector('[data-action="mode"]').addEventListener("click", () => navigate({ ...next, mode: next.mode === "strict" ? "dev" : "strict" }));
     root.querySelector('[data-action="reset"]').addEventListener("click", () => renderer?.resetCamera());
     surfaceHost = new SurfaceHost(root.querySelector(".hodos-surface-layer"), { registry });
-    worldEditor = new WorldEditorPanel(root.querySelector(".world-editor-root"), {
+    worldEditor = new WorldEditorWorkspace(root.querySelector(".world-editor-root"), {
       dispatch,
       getRenderer: () => renderer,
     });
@@ -148,6 +148,8 @@ export function createHodosViewer({
         surfaceHost.close();
       } else if (effect.effect === "scene" && effect.method === "sync-world-entities") {
         renderer?.syncWorldEntities(effect.args[0] ?? [], effect.args[1] ?? lastSessionState?.world?.editor);
+      } else if (effect.effect === "scene" && effect.method === "sync-editor-document") {
+        renderer?.syncEditorDocument(effect.args[0] ?? lastSessionState?.world?.draft, effect.args[1] ?? lastSessionState?.world?.editor);
       } else if (effect.effect === "scene" && effect.method === "sync-audio-sources") {
         renderer?.syncAudioSources(effect.args[0] ?? []);
       } else if (effect.effect === "audio") {
@@ -157,6 +159,7 @@ export function createHodosViewer({
         forwardEffect(effect, result?.state);
       }
     }
+    renderer?.syncEditorDocument(lastSessionState?.world?.draft ?? {}, lastSessionState?.world?.editor ?? {});
     surfaceHost?.update(result?.state);
     worldEditor?.update(result?.state);
     draftReviewPanel?.update(result?.state);
@@ -226,8 +229,22 @@ export function createHodosViewer({
           payload,
           position,
         }),
-        onWorldEntity: ({ action, target, entity, transform, source, position }) => {
-          if (action === "select") return dispatch({ "event/type": "world/editor-select", target });
+        onWorldEntity: ({ action, target, targets, mode, entity, transform, source, position, items, time, playing }) => {
+          if (action === "select") return dispatch({
+            "event/type": "world/editor-select",
+            target,
+            targets,
+            mode: mode || "replace",
+          });
+          if (action === "box-select") return dispatch({
+            "event/type": "world/editor-select",
+            targets: targets ?? [],
+            mode: mode || "replace",
+          });
+          if (action === "transform-selection") return dispatch({
+            "event/type": "world/editor-transform-selection",
+            items: items ?? [],
+          });
           if (action === "transform") return dispatch({
             "event/type": "world/entity-transform",
             entity,
@@ -237,6 +254,10 @@ export function createHodosViewer({
             "event/type": "world/audio-move",
             source,
             position,
+          });
+          if (action === "timeline") return dispatch({
+            "event/type": "world/editor-settings",
+            patch: { timeline: { ...(lastSessionState?.world?.editor?.timeline ?? {}), time, playing } },
           });
           return null;
         },
@@ -258,11 +279,10 @@ export function createHodosViewer({
       stage = "Gaussian splat rendering";
       await renderer.loadLayers(graph.layers);
       renderer.loadTouchpoints(touchpoints);
-      renderer.syncWorldEntities(
-        lastSessionState?.world?.draft?.entities ?? [],
+      renderer.syncEditorDocument(
+        lastSessionState?.world?.draft ?? {},
         lastSessionState?.world?.editor ?? lastSessionState?.world?.draft?.editor,
       );
-      renderer.syncAudioSources(lastSessionState?.world?.draft?.audioSources ?? []);
       view.title.textContent = `${loaded}/${graph.layers.length} layers loaded${issues.length ? " — incomplete" : ""}`;
       worldEditor?.update(lastSessionState);
       return { ...graph, touchpoints };
@@ -304,7 +324,7 @@ export function createHodosViewer({
 
 export { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
 export { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
-export { WorldEditorPanel } from "./world-editor-panel.js";
+export { WorldEditorWorkspace } from "./world-editor-workspace.js";
 export {
   activeWorldItem,
   createWorldEntity,
@@ -314,10 +334,25 @@ export {
   normalizeWorldEntity,
   normalizeWorldTransform,
   patchWorldEntity,
+  selectedWorldItems,
   WORLD_EDITOR_MODES,
   WORLD_EDITOR_TOOLS,
   WORLD_ENTITY_KINDS,
 } from "./world-editor-model.js";
+export {
+  applySelectionMode,
+  attachScript,
+  capturePrefab,
+  createCollection,
+  evaluateAnimation,
+  instantiatePrefab,
+  normalizeAdvancedEditor,
+  normalizeAuthoringDocument,
+  projectedTargetsInRect,
+  selectionPivot,
+  setAnimationKeyframe,
+  transformSelectionItems,
+} from "./world-authoring-model.js";
 export {
   HODOS_WORLD_DRAG_TYPE,
   hasHodosWorldDrag,
