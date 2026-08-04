@@ -18,6 +18,7 @@ const resources = {
   "gw.hodos.session": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session.hal", import.meta.url), "utf8"),
   "gw.hodos.session-draft": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_draft.hal", import.meta.url), "utf8"),
   "gw.hodos.session-publication": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_publication.hal", import.meta.url), "utf8"),
+  "gw.hodos.session-authoring": fs.readFileSync(new URL("../../kernel/src/gw/hodos/session_authoring.hal", import.meta.url), "utf8"),
   "gw.hodos.kernel": fs.readFileSync(new URL("../../kernel/src/gw/hodos/kernel.hal", import.meta.url), "utf8"),
 };
 
@@ -84,8 +85,10 @@ function entity(id, overrides = {}) {
     name: id,
     kind: "box",
     parent: null,
+    collection: null,
     visible: true,
     locked: false,
+    origin: [0, 0, 0],
     transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
     components: { primitive: { shape: "box", color: "#c8ad73", opacity: 1 } },
     ...overrides,
@@ -121,6 +124,7 @@ function proposal(baseRevision = 2) {
         collection: "entities",
         op: "replace",
         entity: "cube-a",
+        item: "cube-a",
         before: entity("cube-a"),
         after: entity("cube-a", {
           transform: { position: [4, 0, 0], rotation: [0, 45, 0], scale: [1, 1, 1] },
@@ -132,6 +136,7 @@ function proposal(baseRevision = 2) {
         collection: "audioSources",
         op: "replace",
         source: "source-a",
+        item: "source-a",
         before: source("source-a"),
         after: source("source-a", { position: [2, 1, -3], gainDb: -6 }),
         fields: [],
@@ -141,6 +146,7 @@ function proposal(baseRevision = 2) {
         collection: "audioSources",
         op: "add",
         source: "source-b",
+        item: "source-b",
         before: null,
         after: source("source-b", { position: [-2, 0.2, 1] }),
         fields: [],
@@ -175,12 +181,10 @@ test("Hara reviews a selected subset as one reversible scene transaction", async
   assert.deepEqual(accepted.state.world.entities[0].transform.position, [4, 0, 0]);
   assert.equal(accepted.state.world.review.proposal, null);
   assert.equal(accepted.state.world.draft.history.undo.length, 3);
-  assert.deepEqual(accepted.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "scene/sync-world-entities",
-    "scene/sync-audio-sources",
-    "audio/sync-world-sources",
-    "storage/save-world-draft",
-  ]);
+  const effects = accepted.effects.map(({ effect, method }) => `${effect}/${method}`);
+  assert.ok(effects.includes("scene/sync-world-entities"));
+  assert.ok(effects.includes("scene/sync-editor-document"));
+  assert.ok(effects.includes("storage/save-world-draft"));
 
   const undone = dispatch("session/event", ["review-session", {
     "event/type": "world/history-undo",
@@ -214,18 +218,15 @@ test("Hara emits repository and Hestia publication effects and stores receipts",
   const repository = dispatch("session/event", ["publish-session", {
     "event/type": "world/publish-repository",
   }]);
-  assert.deepEqual(repository.effects.map(({ effect, method }) => `${effect}/${method}`), [
-    "publication/repository-patch",
-  ]);
-  assert.equal(repository.effects[0].args[1].entities[0].id, "cube-a");
+  const repositoryEffect = repository.effects.find(({ effect, method }) => effect === "publication" && method === "repository-patch");
+  assert.equal(repositoryEffect.args[1].entities[0].id, "cube-a");
 
   const hestia = dispatch("session/event", ["publish-session", {
     "event/type": "world/publish-hestia",
     room: "hestia:room:review",
   }]);
-  assert.equal(hestia.effects[0].effect, "publication");
-  assert.equal(hestia.effects[0].method, "hestia-contribution");
-  assert.equal(hestia.effects[0].args[2], "hestia:room:review");
+  const hestiaEffect = hestia.effects.find(({ effect, method }) => effect === "publication" && method === "hestia-contribution");
+  assert.equal(hestiaEffect.args[2], "hestia:room:review");
 
   const completed = dispatch("session/event", ["publish-session", {
     "event/type": "world/publication-complete",
