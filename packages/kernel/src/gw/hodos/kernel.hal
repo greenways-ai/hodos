@@ -3,7 +3,7 @@
             [gw.hodos.bundle :as bundle]
             [gw.hodos.package :as package]
             [gw.hodos.scene :as scene]
-            [gw.hodos.session-publication :as session]
+            [gw.hodos.session-authoring :as session]
             [std.substrate :as substrate]))
 
 (defn host-capabilities []
@@ -11,9 +11,15 @@
    "github/world"
    "packages/locked"
    "scene/gaussian-splat"
+   "scene/world-editor"
    "world/touchpoints"
    "world/draft"
    "world/draft-review"
+   "world/multi-selection"
+   "world/collections"
+   "world/prefabs"
+   "world/animation"
+   "world/hara-scripting"
    "ui/surfaces"
    "audio/browser"
    "storage/world-draft"
@@ -48,11 +54,13 @@
     "session/event" {"effects" ["ui/surfaces"
                                   "audio/browser"
                                   "scene/gaussian-splat"
+                                  "scene/world-editor"
                                   "storage/world-draft"
                                   "files/world-draft-import"
                                   "files/world-draft-export"
                                   "publication/repository-patch"
-                                  "publication/hestia-contribution"]}}))
+                                  "publication/hestia-contribution"
+                                  "script/hara-evaluate"]}}))
 
 (def NODE
   (adaptor/install-direct
