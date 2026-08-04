@@ -103,15 +103,18 @@ test("Hara world draft owns placement, transforms, acoustics, persistence and un
     maxDistance: 30,
     rolloffFactor: 1,
   }]);
+  assert.deepEqual(placed.state.world.draft.entities, []);
   assert.equal(placed.state.world.draft.dirty, true);
   assert.equal(placed.state.world.draft.history.undo.length, 1);
   assert.deepEqual(placed.effects.map(({ effect, method }) => `${effect}/${method}`), [
+    "scene/sync-world-entities",
     "scene/sync-audio-sources",
     "audio/sync-world-sources",
     "storage/save-world-draft",
   ]);
-  assert.equal(placed.effects[2].args[1].format, "hodos-world-draft");
-  assert.equal(placed.effects[2].args[1].revision, 1);
+  assert.equal(placed.effects[3].args[1].format, "hodos-world-draft");
+  assert.equal(placed.effects[3].args[1].revision, 1);
+  assert.deepEqual(placed.effects[3].args[1].entities, []);
 
   const saved = dispatch("session/event", ["world-draft-session", {
     "event/type": "world/draft-saved", revision: 1,
@@ -147,6 +150,7 @@ test("Hara world draft owns placement, transforms, acoustics, persistence and un
     "export/world-draft",
   ]);
   assert.equal(exported.effects[0].args[1].audioSources[0].gainDb, -6);
+  assert.deepEqual(exported.effects[0].args[1].entities, []);
 });
 
 test("stored world drafts restore without creating an extra persistence write", async () => {
@@ -164,12 +168,14 @@ test("stored world drafts restore without creating an extra persistence write", 
         label: "Saved clip", position: [0, 1, 2], playing: false, loop: false,
         gainDb: -3, refDistance: 1, maxDistance: 12, rolloffFactor: 1,
       }],
+      entities: [],
     },
   }]);
   assert.equal(restored.state.world.draft.revision, 7);
   assert.equal(restored.state.world.draft.dirty, false);
   assert.equal(restored.state.world.audioSources[0].id, "saved-source");
   assert.deepEqual(restored.effects.map(({ effect, method }) => `${effect}/${method}`), [
+    "scene/sync-world-entities",
     "scene/sync-audio-sources",
     "audio/sync-world-sources",
   ]);
