@@ -44,6 +44,24 @@ function validateEntity(entity, index, ids) {
   }
 }
 
+function validateEntityHierarchy(entities, ids) {
+  const byId = new Map(entities.map((entity) => [entity.id, entity]));
+  for (const [index, entity] of entities.entries()) {
+    if (entity.parent && !ids.has(entity.parent)) {
+      throw new Error(`World draft entity ${index} references an unknown parent: ${entity.parent}`);
+    }
+    const visited = new Set([entity.id]);
+    let parent = entity.parent;
+    while (parent) {
+      if (visited.has(parent)) {
+        throw new Error(`World draft entity ${index} parent hierarchy contains a cycle`);
+      }
+      visited.add(parent);
+      parent = byId.get(parent)?.parent ?? null;
+    }
+  }
+}
+
 export function worldDraftKey(identity) {
   const repository = repositoryIdentity(identity?.repository);
   const commit = String(identity?.commit || "").trim();
@@ -62,10 +80,13 @@ export function validateWorldDraft(draft) {
     throw new Error("World draft revision must be a non-negative integer");
   }
   if (!Array.isArray(draft.audioSources)) throw new Error("World draft audioSources must be an array");
+  const sourceIds = new Set();
   for (const [index, source] of draft.audioSources.entries()) {
     if (!source?.id || !source?.kind || !Array.isArray(source.position) || source.position.length !== 3) {
       throw new Error(`World draft source ${index} is invalid`);
     }
+    if (sourceIds.has(source.id)) throw new Error(`World draft contains duplicate source id: ${source.id}`);
+    sourceIds.add(source.id);
     if (source.position.some((value) => !Number.isFinite(value))) {
       throw new Error(`World draft source ${index} position must be finite`);
     }
@@ -74,11 +95,7 @@ export function validateWorldDraft(draft) {
   if (!Array.isArray(entities)) throw new Error("World draft entities must be an array");
   const ids = new Set();
   entities.forEach((entity, index) => validateEntity(entity, index, ids));
-  for (const [index, entity] of entities.entries()) {
-    if (entity.parent && !ids.has(entity.parent)) {
-      throw new Error(`World draft entity ${index} references an unknown parent: ${entity.parent}`);
-    }
-  }
+  validateEntityHierarchy(entities, ids);
   return cloneData({ ...draft, entities });
 }
 
