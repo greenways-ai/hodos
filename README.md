@@ -17,11 +17,20 @@ add-on contract available to third parties:
   semantic editor session.
 - `packages/kernel` is the lazy Hara runtime adapter and compatibility kernel
   composition; it no longer owns the feature modules it loads.
-- `packages/viewer` is an embeddable browser projection with no featured-world or
-  landing-page policy. It renders Gaussian splats and editable PlayCanvas
-  entities, provides an Outliner, properties, multi-selection, transform
-  gizmos, assets, prefabs, collections, animation, scripting, review controls,
-  and mounts only trusted host-registered 2D application surfaces.
+- `packages/world-model` owns renderer-neutral entity, authoring, draft, and
+  drag models.
+- `packages/source-github` resolves immutable repository worlds.
+- `packages/renderer-playcanvas` renders splats, entities, touchpoints, audio,
+  and optional authoring overlays.
+- `packages/ui-world-authoring` supplies the optional Outliner, properties,
+  multi-selection, transforms, assets, prefabs, collections, animation, and
+  scripting UI.
+- `packages/ui-world-publication` supplies optional semantic review controls.
+- `packages/viewer` is a thin browser shell with no featured-world,
+  landing-page, source, renderer, or editor policy; it also mounts trusted
+  host-registered 2D application surfaces.
+- `packages/viewer-defaults` composes the GitHub source and PlayCanvas renderer
+  into the first-party Worlds preset.
 - `apps/demo` is the Hodos Worlds application using public repositories from
   [greenways-worlds](https://github.com/greenways-worlds). Its Splat Garden
   experience combines the editor, tour, live Hara inspector, command deck and

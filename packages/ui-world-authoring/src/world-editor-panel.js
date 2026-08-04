@@ -9,7 +9,7 @@ import {
   patchWorldEntity,
   WORLD_EDITOR_TOOLS,
   WORLD_ENTITY_KINDS,
-} from "./world-editor-model.js";
+} from "@greenways/hodos-world-model/editor";
 
 const TOOL_LABELS = Object.freeze({
   select: "Select",

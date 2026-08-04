@@ -6,7 +6,7 @@
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "build": "npm run build -w @greenways/hodos-demo",
-    "test": "node --test packages/core/test/*.test.js packages/viewer/test/*.test.js apps/demo/test/*.test.js",
+    "test": "node --test packages/core/test/*.test.js packages/world-model/test/*.test.js packages/source-github/test/*.test.js packages/viewer/test/*.test.js apps/demo/test/*.test.js",
     "audit:hal": "node scripts/audit-hal.js",
     "check:packages": "node scripts/check-packages.js",
     "pack:check": "node scripts/pack-packages.js"

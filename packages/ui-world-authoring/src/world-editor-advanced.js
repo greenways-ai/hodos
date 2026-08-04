@@ -12,7 +12,7 @@ import {
   normalizeAsset,
   normalizeAuthoringDocument,
   setAnimationKeyframe,
-} from "./world-authoring-model.js";
+} from "@greenways/hodos-world-model/authoring";
 import {
   activeWorldItem,
   createWorldEntity,
@@ -20,7 +20,7 @@ import {
   normalizeWorldEntity,
   selectedWorldItems,
   structuredCloneSafe,
-} from "./world-editor-model.js";
+} from "@greenways/hodos-world-model/editor";
 
 function element(document, tag, className = "", text = "") {
   const node = document.createElement(tag);

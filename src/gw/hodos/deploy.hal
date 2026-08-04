@@ -20,16 +20,51 @@
 
    'greenways/hodos-runtime-hara
    {:path "packages/kernel"
-    :depends ['greenways/hodos-addon-authoring]}
+    :depends ['greenways/hodos-addon-authoring
+              'greenways/hodos-addon-drafts
+              'greenways/hodos-addon-publication
+              'greenways/hodos-core]}
+
+   'greenways/hodos-world-model
+   {:path "packages/world-model"
+    :depends ['greenways/hodos-core]}
+
+   'greenways/hodos-source-github
+   {:path "packages/source-github"
+    :depends ['greenways/hodos-core]}
+
+   'greenways/hodos-renderer-playcanvas
+   {:path "packages/renderer-playcanvas"
+    :depends ['greenways/hodos-core
+              'greenways/hodos-world-model]}
+
+   'greenways/hodos-ui-world-authoring
+   {:path "packages/ui-world-authoring"
+    :depends ['greenways/hodos-renderer-playcanvas
+              'greenways/hodos-world-model]}
+
+   'greenways/hodos-ui-world-publication
+   {:path "packages/ui-world-publication"
+    :depends ['greenways/hodos-core]}
 
    'greenways/hodos-viewer
    {:path "packages/viewer"
     :depends ['greenways/hodos-core]}
 
+   'greenways/hodos-viewer-defaults
+   {:path "packages/viewer-defaults"
+    :depends ['greenways/hodos-core
+              'greenways/hodos-renderer-playcanvas
+              'greenways/hodos-source-github
+              'greenways/hodos-viewer
+              'greenways/hodos-world-model]}
+
    'greenways/hodos
    {:path "."
     :depends ['greenways/hodos-runtime-hara
-              'greenways/hodos-viewer]}})
+              'greenways/hodos-ui-world-authoring
+              'greenways/hodos-ui-world-publication
+              'greenways/hodos-viewer-defaults]}})
 
 (defn check
   ([] (check :all))

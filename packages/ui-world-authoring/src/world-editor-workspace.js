@@ -1,10 +1,7 @@
 import "./world-editor-workspace.css";
 import { WorldEditorPanel } from "./world-editor-panel.js";
 import { WorldEditorAdvanced } from "./world-editor-advanced.js";
-import { installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
-import { editorState } from "./world-editor-model.js";
-
-installAdvancedWorldRendererPrototype();
+import { editorState } from "@greenways/hodos-world-model/editor";
 
 class MultiSelectionEditorPanel extends WorldEditorPanel {
   constructor(root, options) {

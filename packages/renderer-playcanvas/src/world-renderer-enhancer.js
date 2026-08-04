@@ -1,6 +1,6 @@
 import { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
 import { WorldRenderer } from "./world-renderer.js";
-import { normalizeAdvancedEditor, normalizeAuthoringDocument } from "./world-authoring-model.js";
+import { normalizeAdvancedEditor, normalizeAuthoringDocument } from "@greenways/hodos-world-model/authoring";
 
 let installed = false;
 

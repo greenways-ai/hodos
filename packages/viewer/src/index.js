@@ -1,11 +1,6 @@
 import "./viewer.css";
-import "./world-placement.css";
 import { defineAddon, HODOS_CORE_ADDON_ID } from "@greenways/hodos-core";
-import { GITHUB_ORIGINS, PublicGitHubClient, requestGitHubAccess, resolveWorldGraph, searchWorldRepositories } from "./github-worlds.js";
 import { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
-import { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
-import { WorldEditorWorkspace } from "./world-editor-workspace.js";
-import { WorldRenderer } from "./world-renderer.js";
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -56,9 +51,15 @@ export function createHodosViewer({
   onEffect,
   onCameraChange,
   onDraftImport,
+  source,
+  Renderer,
+  EditorWorkspace,
+  ReviewPanel,
 } = {}) {
   if (!root) throw new Error("Hodos viewer requires a root element");
   if (!invoke) throw new Error("Hodos viewer requires a kernel dispatcher");
+  if (!source?.Client || typeof source.resolve !== "function") throw new Error("Hodos viewer requires a world source adapter");
+  if (typeof Renderer !== "function") throw new Error("Hodos viewer requires a world renderer adapter");
   const registry = surfaces instanceof SurfaceRegistry ? surfaces : new SurfaceRegistry(surfaces);
   let renderer;
   let state;
@@ -94,14 +95,18 @@ export function createHodosViewer({
     root.querySelector('[data-action="mode"]').addEventListener("click", () => navigate({ ...next, mode: next.mode === "strict" ? "dev" : "strict" }));
     root.querySelector('[data-action="reset"]').addEventListener("click", () => renderer?.resetCamera());
     surfaceHost = new SurfaceHost(root.querySelector(".hodos-surface-layer"), { registry });
-    worldEditor = new WorldEditorWorkspace(root.querySelector(".world-editor-root"), {
-      dispatch,
-      getRenderer: () => renderer,
-    });
-    draftReviewPanel = new WorldDraftReviewPanel(root.querySelector(".world-draft-review-root"), {
-      dispatch,
-      importDraft: onDraftImport,
-    });
+    if (EditorWorkspace) {
+      worldEditor = new EditorWorkspace(root.querySelector(".world-editor-root"), {
+        dispatch,
+        getRenderer: () => renderer,
+      });
+    }
+    if (ReviewPanel) {
+      draftReviewPanel = new ReviewPanel(root.querySelector(".world-draft-review-root"), {
+        dispatch,
+        importDraft: onDraftImport,
+      });
+    }
     return {
       canvas: root.querySelector("canvas"),
       title: root.querySelector(".world-status strong"),
@@ -183,11 +188,12 @@ export function createHodosViewer({
     let stage = "HAL world/open";
     try {
       const opening = invoke("world/open", [state.repository, state.ref, state.mode]);
-      const effect = opening.effects.find((entry) => entry.effect === "github" && entry.method === "resolve-world");
-      if (!effect) throw new Error("HAL world/open did not request a repository graph");
-      stage = "GitHub world graph resolution";
-      const client = new PublicGitHubClient({ request, activatePackages });
-      const graph = await resolveWorldGraph({ repository: effect.args[0], ref: effect.args[1], mode: effect.args[2], client });
+      const sourceEffect = source.effect ?? { effect: "github", method: "resolve-world" };
+      const effect = opening.effects.find((entry) => entry.effect === sourceEffect.effect && entry.method === sourceEffect.method);
+      if (!effect) throw new Error(`HAL world/open did not request ${source.id || "the configured world source"}`);
+      stage = `${source.label || source.id || "World source"} graph resolution`;
+      const client = new source.Client({ request, activatePackages });
+      const graph = await source.resolve({ repository: effect.args[0], ref: effect.args[1], mode: effect.args[2], client });
       const touchpoints = [
         ...(graph.touchpoints ?? []),
         ...(next.touchpoints ?? []).map(normalizeHostTouchpoint),
@@ -218,7 +224,7 @@ export function createHodosViewer({
       if (!rendering.effects.some((entry) => entry.effect === "scene" && entry.method === "render-world")) throw new Error("HAL world/render did not produce a scene command");
       const issues = [...graph.diagnostics];
       let loaded = 0;
-      renderer = new WorldRenderer(view.canvas, {
+      renderer = new Renderer(view.canvas, {
         background: graph.project.background,
         camera: graph.project.camera,
         touchpointRoot: view.touchpoints,
@@ -318,64 +324,41 @@ export function createHodosViewer({
     resetCamera: () => renderer?.resetCamera(),
     focusSelection: () => renderer?.focusEditorSelection(),
     destroy,
-    requestGitHubAccess: () => requestGitHubAccess(),
-    origins: GITHUB_ORIGINS,
+    requestSourceAccess: () => source.requestAccess?.(),
+    origins: source.origins,
   };
 }
 
 export { SurfaceHost, SurfaceRegistry } from "./surface-host.js";
-export { WorldDraftReviewPanel } from "./world-draft-review-panel.js";
-export { WorldEditorWorkspace } from "./world-editor-workspace.js";
-export {
-  activeWorldItem,
-  createWorldEntity,
-  duplicateWorldEntity,
-  editorState,
-  flattenWorldHierarchy,
-  normalizeWorldEntity,
-  normalizeWorldTransform,
-  patchWorldEntity,
-  selectedWorldItems,
-  WORLD_EDITOR_MODES,
-  WORLD_EDITOR_TOOLS,
-  WORLD_ENTITY_KINDS,
-} from "./world-editor-model.js";
-export {
-  applySelectionMode,
-  attachScript,
-  capturePrefab,
-  createCollection,
-  evaluateAnimation,
-  instantiatePrefab,
-  normalizeAdvancedEditor,
-  normalizeAuthoringDocument,
-  projectedTargetsInRect,
-  selectionPivot,
-  setAnimationKeyframe,
-  transformSelectionItems,
-} from "./world-authoring-model.js";
-export {
-  HODOS_WORLD_DRAG_TYPE,
-  hasHodosWorldDrag,
-  installHodosWorldDrag,
-  readHodosWorldDrag,
-  setWorldDragPresentation,
-  writeHodosWorldDrag,
-} from "./world-drag.js";
 
 export const HODOS_VIEWER_ADDON_ID = "@greenways/hodos-viewer";
+
+function onlyContribution(context, kind) {
+  const entries = context.listContributions(kind);
+  if (entries.length === 1) return entries[0].value;
+  if (!entries.length) throw new Error(`Hodos viewer requires one ${kind} contribution`);
+  throw new Error(`Hodos viewer found multiple ${kind} contributions; activate only the selected adapter`);
+}
 
 export const hodosViewerAddon = defineAddon({
   manifest: {
     id: HODOS_VIEWER_ADDON_ID,
     version: "0.1.0",
     requires: { [HODOS_CORE_ADDON_ID]: "^0.1.0" },
-    capabilities: ["world.render"],
+    capabilities: [],
   },
   activate(context) {
+    const source = onlyContribution(context, "world.source");
+    const renderer = onlyContribution(context, "world.renderer");
     context.contribute("viewer", "worlds", Object.freeze({
-      create: createHodosViewer,
-      searchRepositories: searchWorldRepositories,
+      create: (options = {}) => createHodosViewer({
+        ...options,
+        source,
+        Renderer: renderer.Renderer,
+        EditorWorkspace: context.getContribution("world.ui", "authoring")?.Workspace,
+        ReviewPanel: context.getContribution("world.ui", "publication")?.ReviewPanel,
+      }),
+      searchRepositories: source.searchRepositories,
     }));
   },
 });

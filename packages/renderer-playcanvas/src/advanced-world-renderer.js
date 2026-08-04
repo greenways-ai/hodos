@@ -13,12 +13,12 @@ import {
   normalizeAuthoringDocument,
   projectedTargetsInRect,
   selectionPivot,
-} from "./world-authoring-model.js";
+} from "@greenways/hodos-world-model/authoring";
 import {
   normalizeWorldEntity,
   normalizeWorldTransform,
   worldEntityRadius,
-} from "./world-editor-model.js";
+} from "@greenways/hodos-world-model/editor";
 
 const AXIS_COLORS = Object.freeze(["#e86c6c", "#76cb83", "#6f9fe8"]);
 const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
