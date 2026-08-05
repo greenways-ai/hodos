@@ -1,0 +1,17 @@
+.header {
+  min-height: 3.5rem;
+  background: color-mix(in srgb, var(--sl-color-bg-nav) 94%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.sidebar-pane {
+  background: color-mix(in srgb, var(--sl-color-bg-sidebar) 96%, transparent);
+}
+
+.content-panel {
+  background: transparent;
+}
+
+.sl-container {
+  max-width: 92rem;
+}

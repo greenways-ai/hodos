@@ -1,0 +1,16 @@
+---
+import DocumentationHeader from "@greenways-ai/visual-language/DocumentationHeader.astro";
+
+const base = `${import.meta.env.BASE_URL.replace(/\/+$/, "")}/`;
+const searchBase = base.replace(/\/$/, "");
+---
+
+<DocumentationHeader
+  project="hodos"
+  title="Hodos"
+  homeHref={base}
+  docsHref={`${base}architecture/`}
+  docsLabel="Spec"
+  searchBase={searchBase}
+  searchLabel="Search Hodos documentation"
+/>

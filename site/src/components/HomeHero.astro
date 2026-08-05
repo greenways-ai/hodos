@@ -1,0 +1,58 @@
+---
+const base = `${import.meta.env.BASE_URL.replace(/\/+$/, "")}/`;
+---
+
+<section class="hodos-hero">
+  <div class="hodos-hero__copy">
+    <p class="technical-kicker"><i></i> Open world ABI · browser + Hara</p>
+    <h1>One world format.<br />Many engines.</h1>
+    <p>
+      Hodos defines how a world is packaged, loaded into Hara, connected to
+      browser capabilities, and engaged by people and agents. Rendering,
+      physics, editors, storage, and wallets remain replaceable.
+    </p>
+    <div class="hero-links">
+      <a class="action action--primary" href={`${base}demo/`}>
+        Open the reference world <span>→</span>
+      </a>
+      <a class="action" href={`${base}architecture/`}>See the boundary</a>
+      <a class="action" href={`${base}spec/`}>Read the drafts</a>
+      <a class="action" href="https://github.com/greenways-ai/hodos">Source ↗</a>
+    </div>
+    <dl class="hero-facts">
+      <div><dt>Semantic kernel</dt><dd>Hara</dd></div>
+      <div><dt>Host</dt><dd>Standards-based web</dd></div>
+      <div><dt>Projection</dt><dd>Replaceable adapters</dd></div>
+    </dl>
+  </div>
+
+  <aside class="boundary-stack" aria-label="Hodos layer stack">
+    <div class="boundary-stack__label">WORLD STACK / 0.1 DRAFT</div>
+    <div class="boundary-stack__layer boundary-stack__layer--upper">
+      <small>Applications</small>
+      <strong>Worlds · games · simulations</strong>
+      <span>Editors · launchers · collaboration</span>
+    </div>
+    <div class="boundary-stack__layer boundary-stack__layer--upper">
+      <small>Adapters</small>
+      <strong>Render · physics · media · XR</strong>
+      <span>Storage · network · wallet</span>
+    </div>
+    <div class="boundary-stack__core">
+      <small>Hodos</small>
+      <strong>World ABI</strong>
+      <span>format · capabilities · lifecycle · engagement</span>
+    </div>
+    <div class="boundary-stack__base">
+      <div>
+        <small>Semantic</small>
+        <strong>Hara kernel</strong>
+      </div>
+      <div>
+        <small>Host</small>
+        <strong>Browser standards</strong>
+      </div>
+    </div>
+    <div class="boundary-stack__foot">WASM · OS · devices · networks</div>
+  </aside>
+</section>

@@ -19,4 +19,6 @@ jobs:
       - run: npm run check:packages
       - run: npm run pack:check
       - run: npm test
-      - run: npm run build
+      - run: npm run build:demo
+      - run: npm run site:install
+      - run: npm run site:build

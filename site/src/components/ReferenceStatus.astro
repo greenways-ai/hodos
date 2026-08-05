@@ -1,0 +1,18 @@
+---
+const base = `${import.meta.env.BASE_URL.replace(/\/+$/, "")}/`;
+---
+
+<section class="reference-status">
+  <p class="panel-label">03 / Reference implementation</p>
+  <h2>The existing world still runs.</h2>
+  <p>
+    This first reorganisation adds the specification and site boundaries
+    without relocating the working runtime. The current PlayCanvas, GitHub,
+    Hara, OPFS, Web Audio, authoring, publication, and Studio stack remains the
+    reference implementation while adapters are extracted incrementally.
+  </p>
+  <div class="hero-links">
+    <a class="action action--primary" href={`${base}demo/`}>Open demo <span>→</span></a>
+    <a class="action" href={`${base}implementation/directory-map/`}>Directory map</a>
+  </div>
+</section>
