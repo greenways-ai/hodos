@@ -1,0 +1,238 @@
+/*
+ * Actual reference-demo captures are the primary imagery on the demo index.
+ * Hodos visual-language artwork remains a low-opacity framing layer only.
+ */
+:root {
+  --hodos-demo-editor: url("./demo-world-editor.png");
+  --hodos-demo-studio: url("./demo-studio.png");
+  --hodos-demo-playbot: url("./demo-playbot-world.png");
+  --hodos-demo-apartment: url("./demo-apartment-world.png");
+  --hodos-demo-guide: url("./demo-guided-showcase.png");
+}
+
+/* The entrance shows the product in use, not a standalone illustration. */
+.welcome-hero-art {
+  background-image:
+    linear-gradient(180deg, rgba(13, 14, 16, 0.04), rgba(13, 14, 16, 0.2)),
+    var(--hodos-demo-editor) !important;
+  background-position: center top !important;
+  background-size: cover !important;
+  filter: saturate(0.72) contrast(1.03) brightness(0.72) !important;
+  transform: none !important;
+}
+
+:root[data-theme="light"] .welcome-hero-art {
+  filter: saturate(0.66) contrast(0.98) brightness(0.9) !important;
+}
+
+.welcome-hero-art::after {
+  content: "LIVE CAPTURE · HODOS WORLD EDITOR";
+}
+
+.welcome-hero-veil {
+  isolation: isolate;
+}
+
+.welcome-hero-veil::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background-image: var(--hodos-art-impossible);
+  background-position: right center;
+  background-size: cover;
+  opacity: 0.055;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .welcome-hero-veil::after {
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+}
+
+/* Each launch card carries a capture of the thing it opens. */
+.featured-world {
+  --demo-shot: var(--hodos-demo-editor);
+}
+
+.featured-world:nth-child(1) {
+  --demo-shot: var(--hodos-demo-editor);
+}
+
+.featured-world:nth-child(2) {
+  --demo-shot: var(--hodos-demo-studio);
+}
+
+.featured-world:nth-child(3) {
+  --demo-shot: var(--hodos-demo-playbot);
+}
+
+.featured-world:nth-child(4) {
+  --demo-shot: var(--hodos-demo-apartment);
+}
+
+.featured-world::before {
+  position: relative;
+  z-index: 1;
+  background-image:
+    linear-gradient(180deg, transparent 58%, color-mix(in srgb, var(--hodos-surface) 78%, transparent) 100%),
+    var(--demo-shot) !important;
+  background-position: center top !important;
+  background-size: cover !important;
+  filter: saturate(0.7) contrast(1.02) brightness(0.78) !important;
+  opacity: 1 !important;
+}
+
+.featured-world:hover::before {
+  filter: saturate(0.82) contrast(1.04) brightness(0.86) !important;
+}
+
+:root[data-theme="light"] .featured-world::before {
+  filter: saturate(0.62) contrast(0.98) brightness(0.92) !important;
+  opacity: 1 !important;
+}
+
+.featured-world::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: -7%;
+  bottom: -5%;
+  width: 58%;
+  height: 52%;
+  background-image: var(--featured-art);
+  background-position: center;
+  background-size: cover;
+  opacity: 0.045;
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(135deg, transparent 0%, #000 46%, #000 100%);
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .featured-world::after {
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+}
+
+.featured-world > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* The platform journey is previewed with the running guide surface. */
+.showcase-landing > header::before {
+  background-image:
+    linear-gradient(180deg, rgba(13, 14, 16, 0.01), rgba(13, 14, 16, 0.64)),
+    var(--hodos-demo-guide) !important;
+  background-position: center top !important;
+  background-size: cover !important;
+  filter: saturate(0.68) contrast(1.02) brightness(0.76) !important;
+}
+
+:root[data-theme="light"] .showcase-landing > header::before {
+  background-image:
+    linear-gradient(180deg, rgba(236, 236, 234, 0.01), rgba(236, 236, 234, 0.46)),
+    var(--hodos-demo-guide) !important;
+  filter: saturate(0.6) contrast(0.98) brightness(0.92) !important;
+}
+
+.showcase-landing::after {
+  content: "";
+  position: absolute;
+  right: -8%;
+  bottom: -16%;
+  width: min(520px, 44%);
+  aspect-ratio: 1;
+  background-image: var(--hodos-art-optical);
+  background-position: center;
+  background-size: cover;
+  opacity: 0.04;
+  mix-blend-mode: screen;
+  mask-image: radial-gradient(circle, #000 0%, transparent 68%);
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .showcase-landing::after {
+  opacity: 0.03;
+  mix-blend-mode: multiply;
+}
+
+.showcase-landing > *,
+.showcase-landing-grid {
+  position: relative;
+  z-index: 1;
+}
+
+/* Once inside an area, the working interface is the picture. Artwork recedes. */
+.showcase-guide-hero::before {
+  left: auto !important;
+  width: min(620px, 46%) !important;
+  opacity: 0.075 !important;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+}
+
+:root[data-theme="light"] .showcase-guide-hero::before {
+  opacity: 0.05 !important;
+  mix-blend-mode: multiply;
+}
+
+.world-fatal {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--hodos-canvas) !important;
+}
+
+.world-fatal::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(760px, 52vw);
+  background-image: var(--hodos-art-veiled);
+  background-position: center;
+  background-size: cover;
+  opacity: 0.075;
+  mix-blend-mode: screen;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 78%);
+}
+
+:root[data-theme="light"] .world-fatal::before {
+  opacity: 0.055;
+  mix-blend-mode: multiply;
+}
+
+.world-fatal .world-card {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 820px) {
+  .welcome-hero-art {
+    background-position: 58% top !important;
+  }
+
+  .featured-world::after,
+  .showcase-landing::after {
+    opacity: 0.025;
+  }
+
+  .showcase-guide-hero::before {
+    width: 58% !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .featured-world::before,
+  .featured-world--primary::before {
+    background-position: center top !important;
+  }
+
+  .world-fatal::before {
+    width: 76vw;
+    opacity: 0.045;
+  }
+}

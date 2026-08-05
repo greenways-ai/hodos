@@ -7,16 +7,17 @@
   <meta name="description" content="Reference implementation of the Hodos open world ABI, connecting repository worlds, the Hara kernel and browser capabilities.">
   <meta property="og:title" content="Hodos Reference Demo">
   <meta property="og:description" content="Reference implementation of the Hodos open world ABI, connecting repository worlds, the Hara kernel and browser capabilities.">
-  <meta property="og:image" content="https://oss.greenways.ai/visual-language/assets/og-hodos.png">
-  <meta property="og:image:alt" content="Hodos visual-language artwork showing a world of passages, thresholds and impossible geometry">
+  <meta property="og:image" content="https://oss.greenways.ai/hodos/demo/demo-world-editor.png">
+  <meta property="og:image:alt" content="Live Hodos World Editor rendering a repository-defined world with authoring panels">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://oss.greenways.ai/visual-language/assets/og-hodos.png">
-  <meta name="twitter:image:alt" content="Hodos visual-language artwork showing a world of passages, thresholds and impossible geometry">
+  <meta name="twitter:image" content="https://oss.greenways.ai/hodos/demo/demo-world-editor.png">
+  <meta name="twitter:image:alt" content="Live Hodos World Editor rendering a repository-defined world with authoring panels">
   <title>Hodos Reference Demo</title>
   <link rel="icon" href="./sigil.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./hodos.css">
   <link rel="stylesheet" href="./oss-header.css">
   <link rel="stylesheet" href="./hodos-visual-language.css">
+  <link rel="stylesheet" href="./hodos-demo-media.css">
 </head>
 <body>
   <header class="gw-doc-header" data-gw-doc-header>
@@ -93,18 +94,18 @@
       });
 
       const app = document.querySelector("#hodos-app");
-      const labelVisualLanguageHero = () => {
+      const labelDemoHero = () => {
         const hero = app?.querySelector(".welcome-hero-art");
         if (!hero) return false;
         hero.setAttribute(
           "aria-label",
-          "An impossible mosaic staircase and mirrored passage from the Hodos visual language",
+          "A live capture of the Hodos World Editor rendering a repository-defined world with scene and authoring controls",
         );
         return true;
       };
-      if (!labelVisualLanguageHero() && app) {
+      if (!labelDemoHero() && app) {
         const observer = new MutationObserver(() => {
-          if (labelVisualLanguageHero()) observer.disconnect();
+          if (labelDemoHero()) observer.disconnect();
         });
         observer.observe(app, { childList: true, subtree: true });
       }
