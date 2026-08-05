@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-theme-preference="auto">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,11 +11,50 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://oss.greenways.ai/visual-language/assets/og-hodos.png">
   <title>Hodos Worlds</title>
-  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="./sigil.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./hodos.css">
 </head>
 <body>
+  <header class="gw-doc-header" data-gw-doc-header>
+    <details class="gw-project-switcher">
+      <summary aria-label="Switch Greenways project"><img src="./sigil.svg" alt=""></summary>
+      <nav aria-label="Greenways projects">
+        <a href="https://oss.greenways.ai/">Open Source</a>
+        <a href="https://oss.greenways.ai/hestia/">Hestia</a>
+        <a href="https://oss.greenways.ai/hoplite/">Hoplite</a>
+        <a href="https://oss.greenways.ai/historia/">Historia</a>
+        <a href="https://oss.greenways.ai/hodos/" aria-current="page">Hodos</a>
+        <a href="https://oss.greenways.ai/visual-language/">Visual Language</a>
+      </nav>
+    </details>
+    <a class="gw-doc-header__title" href="./">Hodos</a>
+    <span class="gw-doc-header__space"></span>
+    <a class="gw-doc-header__link" href="https://github.com/greenways-ai/hodos">Docs</a>
+    <button class="gw-doc-header__control" type="button" data-gw-theme-toggle aria-label="Toggle colour theme">◐</button>
+  </header>
   <main id="hodos-app"></main>
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const apply = (preference) => {
+        const theme = preference === "auto"
+          ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+          : preference;
+        root.dataset.themePreference = preference;
+        root.dataset.theme = theme;
+        try { localStorage.setItem("hodos-theme", preference); } catch {}
+      };
+      let preference = "auto";
+      try { preference = localStorage.getItem("hodos-theme") || "auto"; } catch {}
+      apply(preference);
+      document.querySelector("[data-gw-theme-toggle]")?.addEventListener("click", () => {
+        apply(root.dataset.theme === "dark" ? "light" : "dark");
+      });
+      document.querySelectorAll("[data-gw-doc-header] details a").forEach((link) => {
+        link.addEventListener("click", () => link.closest("details")?.removeAttribute("open"));
+      });
+    })();
+  </script>
   <script type="module" src="./hodos.js"></script>
 </body>
 </html>
