@@ -1,0 +1,1103 @@
+:root {
+  color-scheme: dark;
+  --hodos-header-height: 72px;
+  --hodos-canvas: #0d0e10;
+  --hodos-surface: #16181a;
+  --hodos-surface-raised: #1c1f20;
+  --hodos-panel: rgba(22, 24, 26, 0.88);
+  --hodos-panel-strong: rgba(17, 19, 21, 0.96);
+  --hodos-text: #e4e5e2;
+  --hodos-text-high: #f0f1ee;
+  --hodos-muted: #929795;
+  --hodos-faint: #707573;
+  --hodos-accent: #a8b0ad;
+  --hodos-accent-high: #d4d8d5;
+  --hodos-line: rgba(210, 214, 211, 0.14);
+  --hodos-line-strong: rgba(210, 214, 211, 0.28);
+  --hodos-shadow: 0 28px 88px rgba(0, 0, 0, 0.34);
+
+  /* Compatibility tokens consumed by the existing demo packages. */
+  --canvas: var(--hodos-canvas);
+  --surface: var(--hodos-surface);
+  --text: var(--hodos-text);
+  --muted: var(--hodos-muted);
+  --gold: var(--hodos-accent);
+  --line: var(--hodos-line);
+  --display: "Marcellus", "Iowan Old Style", Georgia, serif;
+  --body: Manrope, Inter, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+
+  --hodos-art-impossible: url("https://oss.greenways.ai/visual-language/artwork/hodos/impossible-staircase-night.webp");
+  --hodos-art-lantern: url("https://oss.greenways.ai/visual-language/artwork/hodos/lantern-chamber-night.webp");
+  --hodos-art-mirrored: url("https://oss.greenways.ai/visual-language/artwork/hodos/mirrored-passage-night.webp");
+  --hodos-art-moth: url("https://oss.greenways.ai/visual-language/artwork/hodos/moth-theatre-night.webp");
+  --hodos-art-optical: url("https://oss.greenways.ai/visual-language/artwork/hodos/optical-garden-night.webp");
+  --hodos-art-reflecting: url("https://oss.greenways.ai/visual-language/artwork/hodos/reflecting-pool-night.webp");
+  --hodos-art-shadow: url("https://oss.greenways.ai/visual-language/artwork/hodos/shadow-gallery-night.webp");
+  --hodos-art-veiled: url("https://oss.greenways.ai/visual-language/artwork/hodos/veiled-stage-night.webp");
+  --hero: var(--hodos-art-impossible);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --hodos-canvas: #ececea;
+  --hodos-surface: #f5f5f2;
+  --hodos-surface-raised: #fafaf7;
+  --hodos-panel: rgba(245, 245, 242, 0.88);
+  --hodos-panel-strong: rgba(250, 250, 247, 0.96);
+  --hodos-text: #262a29;
+  --hodos-text-high: #171b1a;
+  --hodos-muted: #666d6a;
+  --hodos-faint: #818784;
+  --hodos-accent: #596360;
+  --hodos-accent-high: #353b39;
+  --hodos-line: rgba(38, 42, 41, 0.14);
+  --hodos-line-strong: rgba(38, 42, 41, 0.28);
+  --hodos-shadow: 0 28px 80px rgba(36, 40, 38, 0.13);
+
+  --hodos-art-impossible: url("https://oss.greenways.ai/visual-language/artwork/hodos/impossible-staircase-day.webp");
+  --hodos-art-lantern: url("https://oss.greenways.ai/visual-language/artwork/hodos/lantern-chamber-day.webp");
+  --hodos-art-mirrored: url("https://oss.greenways.ai/visual-language/artwork/hodos/mirrored-passage-day.webp");
+  --hodos-art-moth: url("https://oss.greenways.ai/visual-language/artwork/hodos/moth-theatre-day.webp");
+  --hodos-art-optical: url("https://oss.greenways.ai/visual-language/artwork/hodos/optical-garden-day.webp");
+  --hodos-art-reflecting: url("https://oss.greenways.ai/visual-language/artwork/hodos/reflecting-pool-day.webp");
+  --hodos-art-shadow: url("https://oss.greenways.ai/visual-language/artwork/hodos/shadow-gallery-day.webp");
+  --hodos-art-veiled: url("https://oss.greenways.ai/visual-language/artwork/hodos/veiled-stage-day.webp");
+  --hero: var(--hodos-art-impossible);
+}
+
+html,
+body,
+#hodos-app {
+  background: var(--hodos-canvas);
+  color: var(--hodos-text);
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 16% 8%, rgba(181, 188, 184, 0.055), transparent 30rem),
+    radial-gradient(circle at 82% 26%, rgba(126, 133, 130, 0.04), transparent 34rem),
+    linear-gradient(rgba(214, 218, 215, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(214, 218, 215, 0.014) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+:root[data-theme="light"] body {
+  background-image:
+    radial-gradient(circle at 16% 8%, rgba(78, 87, 83, 0.055), transparent 30rem),
+    radial-gradient(circle at 82% 26%, rgba(78, 87, 83, 0.035), transparent 34rem),
+    linear-gradient(rgba(38, 42, 41, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(38, 42, 41, 0.018) 1px, transparent 1px);
+}
+
+::selection {
+  color: var(--hodos-canvas);
+  background: var(--hodos-accent-high);
+}
+
+/* Shared OSS header, brought into the same square, muted shell as the Astro site. */
+.gw-doc-header {
+  height: var(--hodos-header-height);
+  gap: 10px;
+  color: var(--hodos-text);
+  background: color-mix(in srgb, var(--hodos-canvas) 91%, transparent);
+  border-bottom-color: var(--hodos-line);
+  box-shadow: none;
+}
+
+.gw-project-switcher summary,
+.gw-doc-header__control {
+  width: 44px;
+  height: 44px;
+  color: var(--hodos-text);
+  background: color-mix(in srgb, var(--hodos-surface) 88%, transparent);
+  border-color: var(--hodos-line);
+  border-radius: 0;
+}
+
+.gw-project-switcher summary:hover,
+.gw-doc-header__control:hover,
+.gw-doc-header__control:focus-visible {
+  color: var(--hodos-accent-high);
+  background: var(--hodos-surface-raised);
+  border-color: var(--hodos-line-strong);
+  outline: none;
+}
+
+.gw-project-switcher nav,
+.gw-search-dialog {
+  color: var(--hodos-text);
+  background: var(--hodos-panel-strong);
+  border-color: var(--hodos-line);
+  border-radius: 0;
+  box-shadow: var(--hodos-shadow);
+}
+
+.gw-project-switcher nav a:hover,
+.gw-project-switcher nav a[aria-current="page"],
+.gw-search-dialog__results a:hover {
+  color: var(--hodos-accent-high);
+  background: color-mix(in srgb, var(--hodos-accent) 10%, transparent);
+}
+
+.gw-doc-header__title {
+  color: var(--hodos-text-high);
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.12em;
+}
+
+.gw-doc-header__link {
+  color: var(--hodos-muted);
+}
+
+.gw-doc-header__link:hover {
+  color: var(--hodos-accent-high);
+}
+
+.gw-search-dialog__bar,
+.gw-search-dialog__results a {
+  border-color: var(--hodos-line);
+}
+
+.gw-search-dialog__bar input {
+  color: var(--hodos-text);
+  background: var(--hodos-canvas);
+  border-color: var(--hodos-line);
+  border-radius: 0;
+}
+
+/* Landing surface. */
+.welcome-frame {
+  border-color: var(--hodos-line);
+  background: var(--hodos-canvas);
+}
+
+.world-card {
+  background: var(--hodos-canvas);
+}
+
+.welcome-hero {
+  min-height: min(780px, calc(100svh - var(--hodos-header-height)));
+  border-bottom-color: var(--hodos-line);
+  background: var(--hodos-canvas);
+}
+
+.welcome-hero-art {
+  background-image: var(--hodos-art-impossible) !important;
+  background-position: center 48% !important;
+  filter: saturate(0.48) contrast(1.02) brightness(0.74);
+  transform: scale(1.015);
+}
+
+.welcome-hero-art::after {
+  content: "HODOS VISUAL LANGUAGE · IMPOSSIBLE STAIRCASE";
+  position: absolute;
+  right: clamp(18px, 3vw, 42px);
+  bottom: 20px;
+  padding: 7px 9px;
+  color: rgba(240, 241, 238, 0.72);
+  background: rgba(13, 14, 16, 0.48);
+  border: 1px solid rgba(228, 229, 226, 0.18);
+  font: 600 8px var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+}
+
+:root[data-theme="light"] .welcome-hero-art {
+  filter: saturate(0.52) contrast(0.94) brightness(1.02);
+}
+
+:root[data-theme="light"] .welcome-hero-art::after {
+  color: rgba(38, 42, 41, 0.72);
+  background: rgba(245, 245, 242, 0.6);
+  border-color: rgba(38, 42, 41, 0.16);
+}
+
+.welcome-hero-veil {
+  background:
+    linear-gradient(90deg, rgba(13, 14, 16, 0.96) 0%, rgba(13, 14, 16, 0.77) 40%, rgba(13, 14, 16, 0.18) 77%, rgba(13, 14, 16, 0.04) 100%),
+    linear-gradient(0deg, rgba(13, 14, 16, 0.8), transparent 58%),
+    linear-gradient(rgba(228, 229, 226, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(228, 229, 226, 0.025) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+:root[data-theme="light"] .welcome-hero-veil {
+  background:
+    linear-gradient(90deg, rgba(236, 236, 234, 0.97) 0%, rgba(236, 236, 234, 0.76) 40%, rgba(236, 236, 234, 0.12) 78%, transparent 100%),
+    linear-gradient(0deg, rgba(236, 236, 234, 0.62), transparent 58%),
+    linear-gradient(rgba(38, 42, 41, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(38, 42, 41, 0.025) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+.welcome-hero-copy {
+  width: min(780px, 94%);
+  padding: clamp(42px, 7vw, 104px);
+}
+
+.eyebrow,
+.featured-world > span,
+.showcase-landing > header p,
+.showcase-guide-hero > div > p,
+.showcase-actions > p,
+.showcase-stats > p,
+.showcase-overview-heading p,
+.showcase-command-group {
+  color: var(--hodos-accent) !important;
+}
+
+.welcome-hero h1,
+.section-intro h2,
+.showcase-landing h3,
+.showcase-guide h1,
+.showcase-overview-heading h2,
+.showcase-command-body h2,
+.world-fatal h1 {
+  color: var(--hodos-text-high);
+  font-family: var(--display);
+  font-weight: 400;
+}
+
+.welcome-hero h1 i {
+  color: var(--hodos-accent-high);
+  font-style: normal;
+}
+
+.welcome-hero-copy > p:not(.eyebrow) {
+  color: color-mix(in srgb, var(--hodos-text) 76%, transparent);
+}
+
+.hero-action {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  color: var(--hodos-text-high);
+  background: color-mix(in srgb, var(--hodos-surface) 80%, transparent);
+  border: 1px solid var(--hodos-line-strong);
+  font-family: var(--mono);
+  text-decoration: none;
+}
+
+.hero-action:hover {
+  color: var(--hodos-canvas);
+  background: var(--hodos-accent-high);
+  border-color: var(--hodos-accent-high);
+}
+
+.world-browser {
+  position: relative;
+  background:
+    radial-gradient(circle at 82% 16%, color-mix(in srgb, var(--hodos-accent) 5%, transparent), transparent 26rem),
+    var(--hodos-canvas);
+}
+
+.section-intro {
+  border-bottom: 1px solid var(--hodos-line);
+  margin-bottom: 0;
+  padding-bottom: 54px;
+}
+
+.section-intro h2 {
+  color: var(--hodos-text-high);
+}
+
+.featured-worlds {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  border-color: var(--hodos-line);
+}
+
+.featured-world {
+  --featured-art: var(--hodos-art-reflecting);
+  min-height: 500px;
+  position: relative;
+  overflow: hidden;
+  border-color: var(--hodos-line);
+  background: var(--hodos-panel);
+}
+
+.featured-world::before {
+  content: "";
+  height: clamp(180px, 23vw, 310px);
+  flex: none;
+  display: block;
+  margin: -28px -28px 26px;
+  background-image:
+    linear-gradient(180deg, transparent 50%, color-mix(in srgb, var(--hodos-surface) 84%, transparent) 100%),
+    var(--featured-art);
+  background-position: center;
+  background-size: cover;
+  border-bottom: 1px solid var(--hodos-line);
+  filter: saturate(0.48) contrast(0.98) brightness(0.8);
+  opacity: 0.9;
+  transition: filter 0.24s ease, transform 0.24s ease;
+}
+
+.featured-world:hover::before {
+  filter: saturate(0.6) contrast(1.01) brightness(0.9);
+  transform: scale(1.012);
+}
+
+:root[data-theme="light"] .featured-world::before {
+  filter: saturate(0.5) contrast(0.92) brightness(1.02);
+  opacity: 0.82;
+}
+
+.featured-world:nth-child(1) {
+  --featured-art: var(--hodos-art-reflecting);
+}
+
+.featured-world:nth-child(2) {
+  --featured-art: var(--hodos-art-lantern);
+}
+
+.featured-world:nth-child(3) {
+  --featured-art: var(--hodos-art-moth);
+}
+
+.featured-world:nth-child(4) {
+  --featured-art: var(--hodos-art-mirrored);
+}
+
+.featured-world--primary {
+  grid-column: 1 / -1 !important;
+  min-height: 590px;
+  background: var(--hodos-panel-strong);
+}
+
+.featured-world--primary::before {
+  height: clamp(250px, 34vw, 430px);
+  background-position: center 55%;
+}
+
+.featured-world h2,
+.featured-world strong {
+  color: var(--hodos-text-high);
+}
+
+.featured-world p {
+  color: var(--hodos-muted);
+}
+
+.featured-world-features li,
+.showcase-capabilities code {
+  color: var(--hodos-accent-high);
+  border-color: var(--hodos-line-strong);
+  background: color-mix(in srgb, var(--hodos-accent) 5%, transparent);
+}
+
+.featured-world button,
+.world-form button,
+.catalog-form button,
+.catalog-results button,
+.showcase-journey button,
+.showcase-actions button,
+.showcase-touchpoint-list button {
+  color: var(--hodos-text);
+  background: transparent;
+  border-color: var(--hodos-line-strong);
+}
+
+.featured-world button:hover,
+.world-form button:hover,
+.catalog-form button:hover,
+.catalog-results button:hover,
+.showcase-journey button:hover,
+.showcase-actions button:hover,
+.showcase-touchpoint-list button:hover {
+  color: var(--hodos-canvas);
+  background: var(--hodos-accent-high);
+  border-color: var(--hodos-accent-high);
+}
+
+.featured-world a,
+.world-divider,
+.catalog-form label,
+.world-form label {
+  color: var(--hodos-muted);
+}
+
+.catalog-form input,
+.world-form input {
+  color: var(--hodos-text);
+  background: var(--hodos-surface);
+  border-color: var(--hodos-line);
+}
+
+.catalog-results article,
+.mode-control {
+  border-color: var(--hodos-line);
+  background: color-mix(in srgb, var(--hodos-surface) 76%, transparent);
+}
+
+.welcome-footer {
+  color: var(--hodos-muted);
+  background: var(--hodos-canvas);
+  border-color: var(--hodos-line);
+}
+
+/* The reference-stack callout uses a restrained Hodos artwork strip. */
+.showcase-landing {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--hodos-line);
+  background: var(--hodos-panel);
+  box-shadow: var(--hodos-shadow);
+}
+
+.showcase-landing > header {
+  position: relative;
+  padding-top: 210px;
+}
+
+.showcase-landing > header::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 178px;
+  background-image:
+    linear-gradient(180deg, rgba(13, 14, 16, 0.02), rgba(13, 14, 16, 0.72)),
+    var(--hodos-art-optical);
+  background-position: center 48%;
+  background-size: cover;
+  border: 1px solid var(--hodos-line);
+  filter: saturate(0.46) contrast(0.98) brightness(0.82);
+}
+
+:root[data-theme="light"] .showcase-landing > header::before {
+  background-image:
+    linear-gradient(180deg, rgba(236, 236, 234, 0.02), rgba(236, 236, 234, 0.62)),
+    var(--hodos-art-optical);
+  filter: saturate(0.48) contrast(0.92) brightness(1.02);
+}
+
+.showcase-landing-grid,
+.showcase-landing-grid article {
+  border-color: var(--hodos-line);
+}
+
+.showcase-landing-grid article {
+  background: color-mix(in srgb, var(--hodos-surface) 72%, transparent);
+}
+
+.showcase-landing-grid article span,
+.showcase-architecture span,
+.showcase-stats dd,
+.showcase-overview-cards strong,
+.showcase-command-deck > header span,
+.showcase-command-body > aside code {
+  color: var(--hodos-accent-high);
+}
+
+.showcase-landing-grid article p,
+.showcase-landing > header > span {
+  color: var(--hodos-muted);
+}
+
+/* Keep the shared OSS header visible without covering the world controls. */
+.world-shell,
+.world-canvas {
+  top: var(--hodos-header-height);
+}
+
+.world-touchpoints,
+.world-audio-sources,
+.world-entity-overlays,
+.hodos-world-editor,
+.hodos-surface-layer {
+  top: var(--hodos-header-height);
+}
+
+.world-overlay {
+  top: calc(var(--hodos-header-height) + 18px);
+}
+
+.world-status,
+.world-controls,
+.world-diagnostics {
+  color: var(--hodos-text);
+  background: color-mix(in srgb, var(--hodos-panel-strong) 91%, transparent);
+  border-color: var(--hodos-line-strong);
+  border-radius: 0;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.24);
+}
+
+.world-status strong {
+  color: var(--hodos-text-high);
+  font-family: var(--display);
+}
+
+.world-status span,
+.world-diagnostics ul {
+  color: var(--hodos-muted);
+}
+
+.world-controls button {
+  color: var(--hodos-text);
+  border-color: var(--hodos-line);
+}
+
+.world-controls button:hover,
+.world-controls button:focus-visible {
+  color: var(--hodos-canvas);
+  background: var(--hodos-accent-high);
+  outline: none;
+}
+
+.world-diagnostics summary {
+  color: var(--hodos-accent-high);
+}
+
+/* Spatial affordances and classical surfaces. */
+.hodos-touchpoint {
+  color: var(--hodos-text-high);
+  background: color-mix(in srgb, var(--hodos-panel-strong) 88%, transparent);
+  border-color: var(--hodos-line-strong);
+  border-radius: 4px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.3);
+}
+
+.hodos-touchpoint:hover,
+.hodos-touchpoint:focus-visible {
+  border-color: var(--hodos-accent-high);
+}
+
+.hodos-touchpoint::before {
+  border-color: var(--hodos-accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--hodos-accent) 14%, transparent);
+}
+
+.hodos-touchpoint small {
+  color: var(--hodos-muted);
+}
+
+.hodos-surface-layer {
+  background: color-mix(in srgb, var(--hodos-canvas) 74%, transparent);
+}
+
+.hodos-surface-frame {
+  color: var(--hodos-text);
+  background: var(--hodos-panel-strong);
+  border-color: var(--hodos-line-strong);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.46);
+}
+
+.hodos-surface-header {
+  background: color-mix(in srgb, var(--hodos-surface) 82%, transparent);
+  border-color: var(--hodos-line);
+}
+
+.hodos-surface-identity span {
+  color: var(--hodos-accent);
+}
+
+.hodos-surface-identity strong {
+  color: var(--hodos-text-high);
+}
+
+.hodos-surface-close {
+  color: var(--hodos-text);
+  border-color: var(--hodos-line-strong);
+}
+
+.hodos-surface-close:hover {
+  color: var(--hodos-canvas);
+  background: var(--hodos-accent-high);
+  border-color: var(--hodos-accent-high);
+}
+
+/* World authoring follows the same neutral interface tokens. */
+.hodos-world-editor {
+  color: var(--hodos-text);
+}
+
+.hodos-editor-toolbar,
+.hodos-editor-outliner,
+.hodos-editor-inspector,
+.hodos-editor-status,
+.hodos-editor-dock,
+.hodos-world-draft,
+.hodos-world-review {
+  color: var(--hodos-text) !important;
+  background: color-mix(in srgb, var(--hodos-panel-strong) 92%, transparent) !important;
+  border-color: var(--hodos-line-strong) !important;
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.3) !important;
+}
+
+.hodos-editor-toolbar button,
+.hodos-editor-toolbar select,
+.hodos-editor-options select,
+.hodos-editor-options input,
+.hodos-editor-outliner button,
+.hodos-editor-inspector button,
+.hodos-editor-dock button,
+.hodos-world-draft button,
+.hodos-world-review button {
+  color: var(--hodos-text) !important;
+  background: transparent !important;
+  border-color: var(--hodos-line) !important;
+}
+
+.hodos-editor-toolbar button:hover:not(:disabled),
+.hodos-editor-toolbar button:focus-visible,
+.hodos-editor-toolbar button[data-active="true"],
+.hodos-editor-outliner button:hover:not(:disabled),
+.hodos-editor-inspector button:hover:not(:disabled),
+.hodos-editor-dock button:hover:not(:disabled),
+.hodos-editor-dock button:focus-visible,
+.hodos-editor-dock button[data-active="true"],
+.hodos-world-draft button:hover:not(:disabled),
+.hodos-world-review button:hover:not(:disabled) {
+  color: var(--hodos-canvas) !important;
+  background: var(--hodos-accent-high) !important;
+  border-color: var(--hodos-accent-high) !important;
+  outline: none;
+}
+
+.hodos-editor-brand span,
+.hodos-editor-outliner > header span,
+.hodos-editor-inspector > header span,
+.hodos-editor-section h3,
+.hodos-world-draft > header span,
+.hodos-world-source-body legend,
+.hodos-world-review > header span,
+.hodos-world-review-proposal > p,
+.hodos-world-publications h3 {
+  color: var(--hodos-accent) !important;
+}
+
+.hodos-editor-brand strong,
+.hodos-editor-outliner > header strong,
+.hodos-editor-inspector > header strong,
+.hodos-world-draft > header strong,
+.hodos-world-review > header strong {
+  color: var(--hodos-text-high);
+}
+
+.hodos-editor-outliner > header,
+.hodos-editor-inspector > header,
+.hodos-editor-dock > header,
+.hodos-world-draft > header,
+.hodos-world-draft-toolbar,
+.hodos-world-review > header,
+.hodos-world-review-toolbar,
+.hodos-world-review-status {
+  border-color: var(--hodos-line) !important;
+}
+
+.hodos-editor-outliner input,
+.hodos-editor-section > input,
+.hodos-editor-section > select,
+.hodos-editor-property input,
+.hodos-editor-vector input,
+.hodos-editor-options select,
+.hodos-editor-options input,
+.hodos-asset-register input,
+.hodos-prefab-create input,
+.hodos-collection-create input,
+.hodos-animation-transport input,
+.hodos-script-form > input,
+.hodos-script-form textarea,
+.hodos-world-coordinates input,
+.hodos-world-review-toolbar input {
+  color: var(--hodos-text) !important;
+  background: var(--hodos-canvas) !important;
+  border-color: var(--hodos-line) !important;
+}
+
+.hodos-editor-section,
+.hodos-registered-assets article,
+.hodos-prefab-list article,
+.hodos-collection-list article,
+.hodos-script-traces article,
+.hodos-world-source-editor,
+.hodos-world-review-change,
+.hodos-world-publications li {
+  background: color-mix(in srgb, var(--hodos-surface) 74%, transparent) !important;
+  border-color: var(--hodos-line) !important;
+}
+
+.hodos-editor-tree-row[data-active="true"],
+.hodos-editor-tree-row[data-selected="true"]:not([data-active="true"]),
+.hodos-collection-list article[data-active="true"],
+.hodos-world-source-editor[open] {
+  background: color-mix(in srgb, var(--hodos-accent) 10%, transparent) !important;
+  border-color: var(--hodos-line-strong) !important;
+}
+
+.hodos-editor-kind,
+.hodos-asset-card > span,
+.hodos-keyframe,
+.hodos-world-source-primary,
+.hodos-world-source-body fieldset > label output,
+.hodos-world-review-primary {
+  color: var(--hodos-accent-high) !important;
+}
+
+.hodos-editor-checkbox input,
+.hodos-editor-snap input,
+.hodos-animation-editor input[type="range"],
+.hodos-editor-property input[type="range"],
+.hodos-world-source-body input[type="range"],
+.hodos-world-source-body .hodos-world-loop input {
+  accent-color: var(--hodos-accent);
+}
+
+.hodos-world-draft-empty {
+  color: var(--hodos-muted);
+  border-color: var(--hodos-line-strong);
+}
+
+/* Studio remains precise, but loses the previous gold/green cast. */
+.studio-app,
+.studio-toolbar,
+.studio-library,
+.studio-generation,
+.studio-arrangement,
+.studio-status {
+  color: var(--hodos-text) !important;
+  background-color: var(--hodos-canvas) !important;
+}
+
+.studio-toolbar,
+.studio-library,
+.studio-generation,
+.studio-status,
+.studio-ruler,
+.studio-track,
+.studio-track header {
+  border-color: var(--hodos-line) !important;
+}
+
+.studio-toolbar {
+  background: var(--hodos-surface) !important;
+}
+
+.studio-library,
+.studio-generation,
+.studio-track header {
+  background: color-mix(in srgb, var(--hodos-surface) 86%, transparent) !important;
+}
+
+.studio-arrangement {
+  background-image:
+    linear-gradient(var(--hodos-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--hodos-line) 1px, transparent 1px) !important;
+  background-size: 54px 54px !important;
+}
+
+.studio-ruler,
+.studio-status {
+  color: var(--hodos-muted) !important;
+  background: color-mix(in srgb, var(--hodos-canvas) 94%, transparent) !important;
+}
+
+.studio-toolbar button,
+.studio-generation button {
+  color: var(--hodos-text) !important;
+  background: transparent !important;
+  border-color: var(--hodos-line-strong) !important;
+}
+
+.studio-toolbar button:hover {
+  color: var(--hodos-accent-high) !important;
+  border-color: var(--hodos-accent-high) !important;
+}
+
+.studio-toolbar .studio-primary {
+  color: var(--hodos-canvas) !important;
+  background: var(--hodos-accent-high) !important;
+  border-color: var(--hodos-accent-high) !important;
+}
+
+.studio-project-title span,
+.studio-kicker,
+.studio-track header span {
+  color: var(--hodos-accent) !important;
+}
+
+.studio-project-title strong,
+.studio-library h2,
+.studio-generation h2,
+.studio-empty strong {
+  color: var(--hodos-text-high);
+}
+
+.studio-library > p:not(.studio-kicker),
+.studio-generation > p:not(.studio-kicker),
+.studio-assets span,
+.studio-track header small,
+.studio-empty span,
+.studio-generation-scope span {
+  color: var(--hodos-muted) !important;
+}
+
+.studio-import-label {
+  color: var(--hodos-accent-high) !important;
+  border-color: var(--hodos-line-strong) !important;
+  background: color-mix(in srgb, var(--hodos-accent) 5%, transparent);
+}
+
+.studio-assets article,
+.studio-generation textarea {
+  color: var(--hodos-text);
+  background: var(--hodos-surface) !important;
+  border-color: var(--hodos-line) !important;
+}
+
+.studio-clip {
+  background: color-mix(in srgb, var(--hodos-accent) 12%, transparent) !important;
+  border-color: var(--hodos-line-strong) !important;
+}
+
+.studio-clip span {
+  color: var(--hodos-text-high);
+  background: color-mix(in srgb, var(--hodos-canvas) 76%, transparent);
+}
+
+.studio-app[data-dragging="true"]::after {
+  color: var(--hodos-accent-high);
+  background: color-mix(in srgb, var(--hodos-canvas) 92%, transparent);
+  border-color: var(--hodos-accent-high);
+}
+
+/* Guided tour, Inspector and command deck. */
+.showcase-guide,
+.showcase-inspector,
+.showcase-command-deck {
+  color: var(--hodos-text);
+  background: var(--hodos-canvas) !important;
+}
+
+.showcase-guide-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-color: var(--hodos-line) !important;
+}
+
+.showcase-guide-hero::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  background-image: var(--hodos-art-shadow);
+  background-position: center;
+  background-size: cover;
+  filter: saturate(0.42) contrast(1.02) brightness(0.68);
+  opacity: 0.34;
+}
+
+.showcase-guide-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, var(--hodos-canvas) 0%, color-mix(in srgb, var(--hodos-canvas) 72%, transparent) 62%, color-mix(in srgb, var(--hodos-canvas) 34%, transparent));
+}
+
+:root[data-theme="light"] .showcase-guide-hero::before {
+  filter: saturate(0.44) contrast(0.92) brightness(1.02);
+  opacity: 0.26;
+}
+
+.showcase-guide-hero > p,
+.showcase-journey li p,
+.showcase-actions article p,
+.showcase-overview-heading code,
+.showcase-touchpoint-list code,
+.showcase-state-view > div p,
+.showcase-command-body > aside > p {
+  color: var(--hodos-muted) !important;
+}
+
+.showcase-guide-body,
+.showcase-journey,
+.showcase-actions,
+.showcase-stats,
+.showcase-architecture,
+.showcase-architecture article,
+.showcase-inspector > nav,
+.showcase-overview-heading,
+.showcase-overview-cards,
+.showcase-overview-cards article,
+.showcase-touchpoint-list article,
+.showcase-command-deck > header,
+.showcase-command-list,
+.showcase-command,
+.showcase-command-deck > footer {
+  border-color: var(--hodos-line) !important;
+}
+
+.showcase-guide-side,
+.showcase-overview-cards article,
+.showcase-touchpoint-list article,
+.showcase-command {
+  background: color-mix(in srgb, var(--hodos-surface) 70%, transparent);
+}
+
+.showcase-journey li[data-complete="true"] .showcase-step-marker {
+  color: var(--hodos-accent-high);
+  background: color-mix(in srgb, var(--hodos-accent) 12%, transparent);
+  border-color: var(--hodos-line-strong);
+}
+
+.showcase-step-marker,
+.showcase-command kbd,
+.showcase-state-view pre,
+.showcase-command-body > aside pre {
+  color: var(--hodos-muted);
+  background: var(--hodos-surface);
+  border-color: var(--hodos-line) !important;
+}
+
+.showcase-inspector > nav button,
+.showcase-command {
+  color: var(--hodos-muted);
+}
+
+.showcase-inspector > nav button[data-active="true"],
+.showcase-command[data-selected="true"] {
+  color: var(--hodos-text-high);
+  background: color-mix(in srgb, var(--hodos-accent) 10%, transparent);
+  box-shadow: inset 3px 0 var(--hodos-accent);
+}
+
+.showcase-command-deck > header input {
+  color: var(--hodos-text);
+  background: var(--hodos-surface);
+  border-color: var(--hodos-line);
+}
+
+/* Failure state uses the final, veiled scene rather than a generic error card. */
+.world-fatal {
+  min-height: calc(100svh - var(--hodos-header-height));
+  background-image:
+    linear-gradient(90deg, color-mix(in srgb, var(--hodos-canvas) 96%, transparent), color-mix(in srgb, var(--hodos-canvas) 58%, transparent)),
+    var(--hodos-art-veiled);
+  background-position: center;
+  background-size: cover;
+}
+
+.world-fatal .world-card {
+  color: var(--hodos-text);
+  background: color-mix(in srgb, var(--hodos-panel-strong) 92%, transparent);
+  border-color: var(--hodos-line-strong);
+  box-shadow: var(--hodos-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.world-fatal code {
+  color: var(--hodos-muted);
+}
+
+/* Functional axis colours remain distinct; selection and non-spatial accents stay neutral. */
+.hodos-selection-box {
+  background: color-mix(in srgb, var(--hodos-accent) 12%, transparent);
+  border-color: var(--hodos-accent-high);
+}
+
+.hodos-editor-pivot-marker {
+  border-color: var(--hodos-accent-high);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hodos-accent) 14%, transparent);
+}
+
+@keyframes hodos-muted-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--hodos-accent) 10%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+
+.hodos-touchpoint::before {
+  animation-name: hodos-muted-pulse;
+}
+
+@media (max-width: 820px) {
+  :root {
+    --hodos-header-height: 64px;
+    --hodos-art-impossible: url("https://oss.greenways.ai/visual-language/artwork/hodos/impossible-staircase-night-mobile.webp");
+    --hodos-art-lantern: url("https://oss.greenways.ai/visual-language/artwork/hodos/lantern-chamber-night-mobile.webp");
+    --hodos-art-mirrored: url("https://oss.greenways.ai/visual-language/artwork/hodos/mirrored-passage-night-mobile.webp");
+    --hodos-art-moth: url("https://oss.greenways.ai/visual-language/artwork/hodos/moth-theatre-night-mobile.webp");
+    --hodos-art-optical: url("https://oss.greenways.ai/visual-language/artwork/hodos/optical-garden-night-mobile.webp");
+    --hodos-art-reflecting: url("https://oss.greenways.ai/visual-language/artwork/hodos/reflecting-pool-night-mobile.webp");
+    --hodos-art-shadow: url("https://oss.greenways.ai/visual-language/artwork/hodos/shadow-gallery-night-mobile.webp");
+    --hodos-art-veiled: url("https://oss.greenways.ai/visual-language/artwork/hodos/veiled-stage-night-mobile.webp");
+  }
+
+  :root[data-theme="light"] {
+    --hodos-art-impossible: url("https://oss.greenways.ai/visual-language/artwork/hodos/impossible-staircase-day-mobile.webp");
+    --hodos-art-lantern: url("https://oss.greenways.ai/visual-language/artwork/hodos/lantern-chamber-day-mobile.webp");
+    --hodos-art-mirrored: url("https://oss.greenways.ai/visual-language/artwork/hodos/mirrored-passage-day-mobile.webp");
+    --hodos-art-moth: url("https://oss.greenways.ai/visual-language/artwork/hodos/moth-theatre-day-mobile.webp");
+    --hodos-art-optical: url("https://oss.greenways.ai/visual-language/artwork/hodos/optical-garden-day-mobile.webp");
+    --hodos-art-reflecting: url("https://oss.greenways.ai/visual-language/artwork/hodos/reflecting-pool-day-mobile.webp");
+    --hodos-art-shadow: url("https://oss.greenways.ai/visual-language/artwork/hodos/shadow-gallery-day-mobile.webp");
+    --hodos-art-veiled: url("https://oss.greenways.ai/visual-language/artwork/hodos/veiled-stage-day-mobile.webp");
+  }
+
+  .featured-worlds {
+    grid-template-columns: 1fr !important;
+  }
+
+  .featured-world--primary {
+    grid-column: auto !important;
+  }
+
+  .featured-world::before,
+  .featured-world--primary::before {
+    height: 210px;
+  }
+
+  .showcase-landing > header {
+    padding-top: 172px;
+  }
+
+  .showcase-landing > header::before {
+    height: 145px;
+  }
+}
+
+@media (max-width: 620px) {
+  .welcome-hero-art {
+    background-position: 58% center !important;
+  }
+
+  .welcome-hero-art::after {
+    display: none;
+  }
+
+  .welcome-hero-copy {
+    padding: 40px 22px;
+  }
+
+  .world-browser {
+    padding-inline: 18px;
+  }
+
+  .featured-world {
+    min-height: 440px;
+  }
+
+  .showcase-landing {
+    padding: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
