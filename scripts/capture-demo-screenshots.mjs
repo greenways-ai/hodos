@@ -81,6 +81,21 @@ await context.addInitScript(() => {
 
 const page = await context.newPage();
 page.setDefaultTimeout(120_000);
+
+const githubToken = process.env.GITHUB_TOKEN;
+if (githubToken) {
+  await page.route("https://api.github.com/**", async (route) => {
+    await route.continue({
+      headers: {
+        ...route.request().headers(),
+        accept: "application/vnd.github+json",
+        authorization: `Bearer ${githubToken}`,
+        "x-github-api-version": "2022-11-28",
+      },
+    });
+  });
+}
+
 page.on("console", (message) => {
   if (message.type() === "error") console.error(`[browser] ${message.text()}`);
 });
@@ -134,24 +149,25 @@ async function openWorld(repository, experience = "") {
   if (experience) query.set("experience", experience);
   await navigate(`?${query}`);
   await page.waitForSelector(".world-shell", { timeout: 120_000 });
-  await page.waitForFunction(
-    () => {
-      const title = document.querySelector(".world-status strong")?.textContent ?? "";
-      return /layers? loaded|incomplete/i.test(title);
-    },
-    null,
-    { timeout: 180_000 },
-  ).catch(() => {});
+
+  await Promise.race([
+    page.waitForFunction(
+      () => {
+        const title = document.querySelector(".world-status strong")?.textContent ?? "";
+        return /layers? loaded|incomplete/i.test(title);
+      },
+      null,
+      { timeout: 150_000 },
+    ),
+    page.waitForSelector(".world-fatal", { timeout: 150_000 }).then(async () => {
+      const message = await page.locator(".world-fatal code").textContent();
+      throw new Error(message || `Could not open ${repository}`);
+    }),
+  ]);
   await page.waitForTimeout(3_000);
 }
 
 try {
-  await navigate();
-  await page.addStyleTag({
-    content: ".showcase-landing>header::before{background-image:none!important}",
-  });
-  await captureArea("platform-journey", ".showcase-landing");
-
   await openWorld("https://github.com/greenways-worlds/splat-garden", "editor");
   await page.waitForSelector(".hodos-world-editor", { timeout: 90_000 });
   await writeScreenshot("world-editor");
@@ -174,11 +190,6 @@ try {
   await studioButton.click({ force: true });
   await page.waitForSelector(".studio-app", { timeout: 90_000 });
   await captureArea("studio", ".hodos-surface-frame");
-
-  await navigate(`?${new URLSearchParams({ repo: "https://github.com/greenways-worlds/not-a-world" })}`);
-  await page.waitForSelector(".world-fatal", { timeout: 120_000 });
-  await page.addStyleTag({ content: ".world-fatal{background-image:none!important}" });
-  await writeScreenshot("load-failure");
 
   console.log(`Captured ${screenshots.length} Hodos demo screenshots:`);
   screenshots.forEach((path) => console.log(`- ${path}`));
