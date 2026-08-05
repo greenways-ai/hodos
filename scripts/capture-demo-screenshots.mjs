@@ -80,22 +80,25 @@ await context.addInitScript(() => {
 });
 
 const page = await context.newPage();
+page.setDefaultTimeout(120_000);
 page.on("console", (message) => {
   if (message.type() === "error") console.error(`[browser] ${message.text()}`);
 });
 page.on("pageerror", (error) => console.error(`[page] ${error.message}`));
 
 const screenshots = [];
-const writeScreenshot = async (name, options = {}) => {
+async function writeScreenshot(name, clip) {
   const path = resolve(outputRoot, `demo-${name}.png`);
   await page.screenshot({
     path,
     type: "png",
     animations: "disabled",
-    ...options,
+    timeout: 120_000,
+    ...(clip ? { clip } : {}),
   });
   screenshots.push(path);
-};
+  console.log(`Captured ${name}`);
+}
 
 async function navigate(pathname = "") {
   await page.goto(`${baseUrl}${pathname}`, {
@@ -105,16 +108,25 @@ async function navigate(pathname = "") {
   await page.waitForSelector("#hodos-app > *", { timeout: 120_000 });
 }
 
-async function captureElement(name, selector) {
-  const element = page.locator(selector).first();
-  await element.waitFor({ state: "visible", timeout: 60_000 });
-  const path = resolve(outputRoot, `demo-${name}.png`);
-  await element.screenshot({
-    path,
-    type: "png",
-    animations: "disabled",
-  });
-  screenshots.push(path);
+async function captureArea(name, selector) {
+  await page.waitForSelector(selector, { state: "visible", timeout: 120_000 });
+  const clip = await page.evaluate((target) => {
+    const node = document.querySelector(target);
+    if (!node) return null;
+    node.scrollIntoView({ block: "center", inline: "center" });
+    const rect = node.getBoundingClientRect();
+    const x = Math.max(0, rect.left);
+    const y = Math.max(0, rect.top);
+    return {
+      x,
+      y,
+      width: Math.max(1, Math.min(rect.right, innerWidth) - x),
+      height: Math.max(1, Math.min(rect.bottom, innerHeight) - y),
+    };
+  }, selector);
+  await page.waitForTimeout(500);
+  if (!clip) throw new Error(`Could not calculate a capture rectangle for ${selector}`);
+  await writeScreenshot(name, clip);
 }
 
 async function openWorld(repository, experience = "") {
@@ -135,7 +147,10 @@ async function openWorld(repository, experience = "") {
 
 try {
   await navigate();
-  await captureElement("platform-journey", ".showcase-landing");
+  await page.addStyleTag({
+    content: ".showcase-landing>header::before{background-image:none!important}",
+  });
+  await captureArea("platform-journey", ".showcase-landing");
 
   await openWorld("https://github.com/greenways-worlds/splat-garden", "editor");
   await page.waitForSelector(".hodos-world-editor", { timeout: 90_000 });
@@ -151,20 +166,18 @@ try {
 
   await openWorld("https://github.com/greenways-worlds/splat-garden", "showcase");
   await page.waitForSelector(".showcase-guide", { timeout: 90_000 });
-  await captureElement("guided-showcase", ".hodos-surface-frame");
+  await page.addStyleTag({ content: ".showcase-guide-hero::before{opacity:.06!important}" });
+  await captureArea("guided-showcase", ".hodos-surface-frame");
 
-  const openedStudio = await page.evaluate(() => {
-    const buttons = [...document.querySelectorAll("button")];
-    const target = buttons.find((button) => /studio/i.test(button.textContent ?? ""));
-    target?.click();
-    return Boolean(target);
-  });
-  if (!openedStudio) throw new Error("Could not find the Studio action in the guided experience");
+  const studioButton = page.getByRole("button", { name: "Open Studio", exact: true });
+  await studioButton.waitFor({ state: "visible", timeout: 60_000 });
+  await studioButton.click({ force: true });
   await page.waitForSelector(".studio-app", { timeout: 90_000 });
-  await captureElement("studio", ".hodos-surface-frame");
+  await captureArea("studio", ".hodos-surface-frame");
 
   await navigate(`?${new URLSearchParams({ repo: "https://github.com/greenways-worlds/not-a-world" })}`);
   await page.waitForSelector(".world-fatal", { timeout: 120_000 });
+  await page.addStyleTag({ content: ".world-fatal{background-image:none!important}" });
   await writeScreenshot("load-failure");
 
   console.log(`Captured ${screenshots.length} Hodos demo screenshots:`);
