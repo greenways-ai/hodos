@@ -31,9 +31,21 @@
     <a class="gw-doc-header__title" href="./">Hodos</a>
     <span class="gw-doc-header__space"></span>
     <a class="gw-doc-header__link" href="https://github.com/greenways-ai/hodos">Docs</a>
+    <button class="gw-doc-header__control" type="button" data-gw-search-open aria-label="Search Hodos">⌕</button>
     <button class="gw-doc-header__control" type="button" data-gw-theme-toggle aria-label="Toggle colour theme">◐</button>
   </header>
   <main id="hodos-app"></main>
+  <dialog class="gw-search-dialog" data-gw-search-dialog aria-label="Search Hodos">
+    <form method="dialog" class="gw-search-dialog__bar">
+      <label><span>Search</span><input type="search" data-gw-search-input autocomplete="off" placeholder="Search Hodos"></label>
+      <button class="gw-doc-header__control" value="close" aria-label="Close search">×</button>
+    </form>
+    <nav class="gw-search-dialog__results" data-gw-search-results>
+      <a data-gw-search-item data-search-text="hodos worlds gaussian splat experience" href="./"><strong>Hodos Worlds</strong><span>Open the repository-defined world experience.</span></a>
+      <a data-gw-search-item data-search-text="documentation readme getting started" href="https://github.com/greenways-ai/hodos#readme"><strong>Documentation</strong><span>Read the Hodos concepts and getting-started guide.</span></a>
+      <a data-gw-search-item data-search-text="source github repository issues" href="https://github.com/greenways-ai/hodos"><strong>Source repository</strong><span>Inspect the code, releases, and open work.</span></a>
+    </nav>
+  </dialog>
   <script>
     (() => {
       const root = document.documentElement;
@@ -53,6 +65,27 @@
       });
       document.querySelectorAll("[data-gw-doc-header] details a").forEach((link) => {
         link.addEventListener("click", () => link.closest("details")?.removeAttribute("open"));
+      });
+
+      const dialog = document.querySelector("[data-gw-search-dialog]");
+      const input = document.querySelector("[data-gw-search-input]");
+      const items = [...document.querySelectorAll("[data-gw-search-item]")];
+      const openSearch = () => {
+        dialog?.showModal();
+        requestAnimationFrame(() => input?.focus());
+      };
+      document.querySelector("[data-gw-search-open]")?.addEventListener("click", openSearch);
+      window.addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+          event.preventDefault();
+          openSearch();
+        }
+      });
+      input?.addEventListener("input", () => {
+        const term = input.value.trim().toLowerCase();
+        items.forEach((item) => {
+          item.hidden = term.length > 0 && !item.dataset.searchText.includes(term);
+        });
       });
     })();
   </script>
