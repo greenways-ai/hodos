@@ -3,17 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#050a08">
-  <meta name="description" content="Open repository-defined Gaussian-splat worlds through the Hodos Hara kernel.">
-  <meta property="og:title" content="Hodos Worlds">
-  <meta property="og:description" content="Open repository-defined Gaussian-splat worlds through the Hodos Hara kernel.">
+  <meta name="theme-color" content="#0d0e10">
+  <meta name="description" content="Reference implementation of the Hodos open world ABI, connecting repository worlds, the Hara kernel and browser capabilities.">
+  <meta property="og:title" content="Hodos Reference Demo">
+  <meta property="og:description" content="Reference implementation of the Hodos open world ABI, connecting repository worlds, the Hara kernel and browser capabilities.">
   <meta property="og:image" content="https://oss.greenways.ai/visual-language/assets/og-hodos.png">
+  <meta property="og:image:alt" content="Hodos visual-language artwork showing a world of passages, thresholds and impossible geometry">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://oss.greenways.ai/visual-language/assets/og-hodos.png">
-  <title>Hodos Worlds</title>
+  <meta name="twitter:image:alt" content="Hodos visual-language artwork showing a world of passages, thresholds and impossible geometry">
+  <title>Hodos Reference Demo</title>
   <link rel="icon" href="./sigil.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./hodos.css">
   <link rel="stylesheet" href="./oss-header.css">
+  <link rel="stylesheet" href="./hodos-visual-language.css">
 </head>
 <body>
   <header class="gw-doc-header" data-gw-doc-header>
@@ -28,10 +31,10 @@
         <a href="https://oss.greenways.ai/visual-language/">Visual Language</a>
       </nav>
     </details>
-    <a class="gw-doc-header__title" href="./">Hodos</a>
+    <a class="gw-doc-header__title" href="../">Hodos</a>
     <span class="gw-doc-header__space"></span>
-    <a class="gw-doc-header__link" href="https://github.com/greenways-ai/hodos">Docs</a>
-    <button class="gw-doc-header__control" type="button" data-gw-search-open aria-label="Search Hodos">⌕</button>
+    <a class="gw-doc-header__link" href="../spec/">Specification</a>
+    <button class="gw-doc-header__control" type="button" data-gw-search-open aria-label="Search Hodos reference demo">⌕</button>
     <button class="gw-doc-header__control" type="button" data-gw-theme-toggle aria-label="Toggle colour theme">◐</button>
   </header>
   <main id="hodos-app"></main>
@@ -41,9 +44,9 @@
       <button class="gw-doc-header__control" value="close" aria-label="Close search">×</button>
     </form>
     <nav class="gw-search-dialog__results" data-gw-search-results>
-      <a data-gw-search-item data-search-text="hodos worlds gaussian splat experience" href="./"><strong>Hodos Worlds</strong><span>Open the repository-defined world experience.</span></a>
-      <a data-gw-search-item data-search-text="documentation readme getting started" href="https://github.com/greenways-ai/hodos#readme"><strong>Documentation</strong><span>Read the Hodos concepts and getting-started guide.</span></a>
-      <a data-gw-search-item data-search-text="source github repository issues" href="https://github.com/greenways-ai/hodos"><strong>Source repository</strong><span>Inspect the code, releases, and open work.</span></a>
+      <a data-gw-search-item data-search-text="hodos reference demo worlds gaussian splat editor studio" href="./"><strong>Reference demo</strong><span>Open worlds, the editor, Studio, and the Hara-backed interaction surfaces.</span></a>
+      <a data-gw-search-item data-search-text="hodos specification world host abi capabilities engagement conformance" href="../spec/"><strong>Hodos specification</strong><span>Read the open world format, host ABI, capability and engagement contracts.</span></a>
+      <a data-gw-search-item data-search-text="source github repository issues" href="https://github.com/greenways-ai/hodos"><strong>Source repository</strong><span>Inspect the implementation, packages, releases, and open work.</span></a>
     </nav>
   </dialog>
   <script>
@@ -55,6 +58,7 @@
           : preference;
         root.dataset.themePreference = preference;
         root.dataset.theme = theme;
+        root.dataset.project = "hodos";
         try { localStorage.setItem("hodos-theme", preference); } catch {}
       };
       let preference = "auto";
@@ -87,6 +91,23 @@
           item.hidden = term.length > 0 && !item.dataset.searchText.includes(term);
         });
       });
+
+      const app = document.querySelector("#hodos-app");
+      const labelVisualLanguageHero = () => {
+        const hero = app?.querySelector(".welcome-hero-art");
+        if (!hero) return false;
+        hero.setAttribute(
+          "aria-label",
+          "An impossible mosaic staircase and mirrored passage from the Hodos visual language",
+        );
+        return true;
+      };
+      if (!labelVisualLanguageHero() && app) {
+        const observer = new MutationObserver(() => {
+          if (labelVisualLanguageHero()) observer.disconnect();
+        });
+        observer.observe(app, { childList: true, subtree: true });
+      }
     })();
   </script>
   <script type="module" src="./hodos.js"></script>

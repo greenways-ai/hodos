@@ -61,3 +61,33 @@ test("demo installs the guided tour, inspector and command deck", () => {
   assert.match(surfaces, /studio\/history-undo/);
   assert.match(surfaces, /world\/publish-repository/);
 });
+
+test("demo adopts the muted Hodos visual language", () => {
+  const html = fs.readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const theme = fs.readFileSync(new URL("../public/hodos-visual-language.css", import.meta.url), "utf8");
+
+  assert.match(html, /hodos-visual-language\.css/);
+  assert.match(html, /Hodos Reference Demo/);
+  assert.match(html, /href="\.\.\/spec\/"/);
+  assert.match(theme, /--hodos-canvas:\s*#0d0e10/);
+  assert.match(theme, /--hodos-header-height/);
+
+  for (const scene of [
+    "impossible-staircase",
+    "lantern-chamber",
+    "mirrored-passage",
+    "moth-theatre",
+    "optical-garden",
+    "reflecting-pool",
+    "shadow-gallery",
+    "veiled-stage",
+  ]) {
+    assert.match(theme, new RegExp(`visual-language/artwork/hodos/${scene}`));
+  }
+
+  assert.match(theme, /\.hodos-world-editor/);
+  assert.match(theme, /\.hodos-world-draft/);
+  assert.match(theme, /\.hodos-world-review/);
+  assert.match(theme, /\.studio-app/);
+  assert.match(theme, /\.showcase-guide/);
+});
