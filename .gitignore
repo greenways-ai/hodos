@@ -3,3 +3,5 @@ dist/
 test-results/
 playwright-report/
 .DS_Store
+.astro/
+site/src/content/docs/spec/

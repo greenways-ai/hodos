@@ -1,4 +1,4 @@
-name: Deploy Hodos demo
+name: Deploy Hodos site
 on:
   push:
     branches: [main]
@@ -21,11 +21,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
+      - run: npm run build:demo
+      - run: npm run site:install
+      - run: npm run site:build
+      - name: Mount the existing demo under the Astro site
+        run: |
+          mkdir -p site/dist/demo
+          cp -R apps/demo/dist/. site/dist/demo/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/demo/dist
+          path: site/dist
   deploy:
     environment:
       name: github-pages
