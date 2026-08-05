@@ -87,11 +87,10 @@ page.on("pageerror", (error) => console.error(`[page] ${error.message}`));
 
 const screenshots = [];
 const writeScreenshot = async (name, options = {}) => {
-  const path = resolve(outputRoot, `demo-${name}.webp`);
+  const path = resolve(outputRoot, `demo-${name}.png`);
   await page.screenshot({
     path,
-    type: "webp",
-    quality: 84,
+    type: "png",
     animations: "disabled",
     ...options,
   });
@@ -109,11 +108,10 @@ async function navigate(pathname = "") {
 async function captureElement(name, selector) {
   const element = page.locator(selector).first();
   await element.waitFor({ state: "visible", timeout: 60_000 });
-  const path = resolve(outputRoot, `demo-${name}.webp`);
+  const path = resolve(outputRoot, `demo-${name}.png`);
   await element.screenshot({
     path,
-    type: "webp",
-    quality: 84,
+    type: "png",
     animations: "disabled",
   });
   screenshots.push(path);
