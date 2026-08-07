@@ -1,0 +1,11 @@
+(ns gw.hodos.two-d.ui)
+
+(def document-component-id "hodos.2d/document")
+(def graph-component-id "hodos.2d/graph")
+(def component-contract "workspace.component/1")
+
+(defn host-requirements [component-id]
+  {:component/id component-id
+   :component/contract component-contract
+   :host/functions #{"update"}
+   :host/lifecycle #{"dispose"}})
