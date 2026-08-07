@@ -50,7 +50,12 @@ const serializableValue = (value, label, ancestors = new Set()) => {
     }
     const output = {};
     for (const [key, entry] of Object.entries(value)) {
-      output[key] = serializableValue(entry, `${label}.${key}`, ancestors);
+      Object.defineProperty(output, key, {
+        value: serializableValue(entry, `${label}.${key}`, ancestors),
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      });
     }
     return Object.freeze(output);
   } finally {
@@ -61,6 +66,95 @@ const serializableValue = (value, label, ancestors = new Set()) => {
 const REPL_ENTRY_KINDS = new Set(["input", "result", "stdout", "error", "diagnostic"]);
 const REPL_STATUSES = new Set(["idle", "ready", "busy", "error", "closed"]);
 const VALUE_INSPECTOR_STATUSES = new Set(["idle", "loading", "ready", "error"]);
+
+
+const PROBLEM_SEVERITIES = new Set(["error", "warning", "info", "hint"]);
+const PROBLEM_STATUSES = new Set(["idle", "collecting", "ready", "error"]);
+
+const problemPositionValue = (value = {}, label = "Hodos Dev Problems position") => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const line = Number(value.line ?? 0);
+  const column = Number(value.column ?? 0);
+  const offset = value.offset == null ? null : Number(value.offset);
+  if (!Number.isSafeInteger(line) || line < 0 || !Number.isSafeInteger(column) || column < 0) {
+    throw new TypeError(`${label} line and column must be non-negative integers`);
+  }
+  if (offset != null && (!Number.isSafeInteger(offset) || offset < 0)) {
+    throw new TypeError(`${label} offset must be a non-negative integer`);
+  }
+  return Object.freeze({ line, column, offset });
+};
+
+const problemRangeValue = (value, label = "Hodos Dev Problems range") => {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const start = problemPositionValue(value.start ?? {}, `${label} start`);
+  const end = problemPositionValue(value.end ?? value.start ?? {}, `${label} end`);
+  const endBeforeStart = end.line < start.line
+    || (end.line === start.line && end.column < start.column)
+    || (start.offset != null && end.offset != null && end.offset < start.offset);
+  if (endBeforeStart) throw new TypeError(`${label} end must not precede start`);
+  return Object.freeze({ start, end });
+};
+
+const problemTagsValue = (value = [], label = "Hodos Dev Problems tags") => {
+  if (!Array.isArray(value)) throw new TypeError(`${label} must be an array`);
+  return Object.freeze([
+    ...new Set(value.map((entry, index) => nonEmptyString(entry, `${label} ${index}`))),
+  ]);
+};
+
+const problemEntryValue = (entry, index) => {
+  const label = `Hodos Dev Problems entry ${index}`;
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const severity = nonEmptyString(entry.severity ?? "error", `${label} severity`);
+  if (!PROBLEM_SEVERITIES.has(severity)) {
+    throw new Error(`${label} has unsupported severity: ${severity}`);
+  }
+  const metadata = entry.metadata ?? {};
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError(`${label} metadata must be an object`);
+  }
+  return Object.freeze({
+    id: nonEmptyString(entry.id, `${label} id`),
+    severity,
+    message: nonEmptyString(entry.message, `${label} message`),
+    code: optionalString(entry.code, `${label} code`),
+    source: optionalString(entry.source, `${label} source`),
+    path: optionalString(entry.path, `${label} path`),
+    namespace: optionalString(entry.namespace, `${label} namespace`),
+    requestId: optionalString(entry.requestId, `${label} request id`),
+    range: problemRangeValue(entry.range, `${label} range`),
+    tags: problemTagsValue(entry.tags, `${label} tags`),
+    metadata: serializableValue(metadata, `${label} metadata`),
+  });
+};
+
+const problemFilterValue = (value = {}) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Hodos Dev Problems filter must be an object");
+  }
+  const severity = nonEmptyString(value.severity ?? "all", "Hodos Dev Problems filter severity");
+  if (severity !== "all" && !PROBLEM_SEVERITIES.has(severity)) {
+    throw new Error(`Unsupported Hodos Dev Problems filter severity: ${severity}`);
+  }
+  if (typeof (value.query ?? "") !== "string") {
+    throw new TypeError("Hodos Dev Problems filter query must be a string");
+  }
+  return Object.freeze({ severity, query: value.query ?? "" });
+};
+
+const problemCountsValue = (problems) => {
+  const counts = { total: problems.length, error: 0, warning: 0, info: 0, hint: 0 };
+  for (const problem of problems) counts[problem.severity] += 1;
+  return Object.freeze(counts);
+};
 
 const replEntryValue = (entry, index) => {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
@@ -119,6 +213,18 @@ export const HODOS_DEV_VALUE_INSPECTOR_EVENTS = Object.freeze([
   "value/copy",
   "value/refresh",
   "value/close",
+]);
+
+
+export const HODOS_DEV_PROBLEMS_AREA_TYPE = "hodos.dev/problems";
+export const HODOS_DEV_PROBLEMS_COMPONENT_ID = "hodos.dev/problems";
+export const HODOS_DEV_PROBLEMS_EVENTS = Object.freeze([
+  "problems/select",
+  "problems/open-source",
+  "problems/filter",
+  "problems/clear",
+  "problems/copy",
+  "problems/close",
 ]);
 
 export function createPreviewArea({
@@ -317,3 +423,56 @@ export function createValueInspectorArea({
     }),
   });
 }
+
+export function createProblemsArea({
+  id = "problems/main",
+  title = "Problems",
+  status = "idle",
+  problems = [],
+  selectedId = null,
+  filter = {},
+  canClear = problems.length > 0,
+  metadata = {},
+  events = HODOS_DEV_PROBLEMS_EVENTS,
+} = {}) {
+  id = nonEmptyString(id, "Hodos Dev Problems area id");
+  title = nonEmptyString(title, "Hodos Dev Problems title");
+  status = nonEmptyString(status, "Hodos Dev Problems status");
+  if (!PROBLEM_STATUSES.has(status)) {
+    throw new Error(`Unsupported Hodos Dev Problems status: ${status}`);
+  }
+  if (!Array.isArray(problems)) throw new TypeError("Hodos Dev Problems problems must be an array");
+  if (typeof canClear !== "boolean") throw new TypeError("Hodos Dev Problems canClear must be boolean");
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError("Hodos Dev Problems metadata must be an object");
+  }
+
+  const projected = Object.freeze(problems.map(problemEntryValue));
+  const selected = optionalString(selectedId, "Hodos Dev Problems selected id");
+  if (selected && !projected.some((problem) => problem.id === selected)) {
+    throw new Error(`Hodos Dev Problems selected id is not present: ${selected}`);
+  }
+
+  const model = Object.freeze({
+    status,
+    problems: projected,
+    selection: Object.freeze({ id: selected }),
+    filter: problemFilterValue(filter),
+    counts: problemCountsValue(projected),
+    canClear,
+    metadata: serializableValue(metadata, "Hodos Dev Problems metadata"),
+  });
+
+  return Object.freeze({
+    "area/id": id,
+    "area/type": HODOS_DEV_PROBLEMS_AREA_TYPE,
+    "area/title": title,
+    "area/component": Object.freeze({
+      "component/id": HODOS_DEV_PROBLEMS_COMPONENT_ID,
+      "component/contract": WORKSPACE_COMPONENT_CONTRACT,
+      "component/model": model,
+      "component/events": Object.freeze([...events]),
+    }),
+  });
+}
+
