@@ -1,6 +1,7 @@
 import {
   HODOS_DEV_EDITOR_COMPONENT_ID,
   HODOS_DEV_PREVIEW_COMPONENT_ID,
+  HODOS_DEV_PROBLEMS_COMPONENT_ID,
   HODOS_DEV_REPL_COMPONENT_ID,
   HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID,
 } from "@greenways/hodos-dev";
@@ -92,6 +93,9 @@ export const createEditorComponentFactory = (options = {}) =>
 export const createReplComponentFactory = (options = {}) =>
   statefulComponentFactory("REPL", "createReplHost", "repl", options);
 
+export const createProblemsComponentFactory = (options = {}) =>
+  statefulComponentFactory("Problems", "createProblemsHost", "problems", options);
+
 export const createValueInspectorComponentFactory = (options = {}) =>
   statefulComponentFactory(
     "Value Inspector",
@@ -134,6 +138,15 @@ export function registerHodosReplUi(registry, options = {}) {
   );
 }
 
+export function registerHodosProblemsUi(registry, options = {}) {
+  return register(
+    registry,
+    HODOS_DEV_PROBLEMS_COMPONENT_ID,
+    createProblemsComponentFactory(options),
+    "registerHodosProblemsUi",
+  );
+}
+
 export function registerHodosValueInspectorUi(registry, options = {}) {
   return register(
     registry,
@@ -149,6 +162,7 @@ export function registerHodosDevUi(registry, options = {}) {
     disposers.push(registerHodosPreviewUi(registry, options));
     disposers.push(registerHodosEditorUi(registry, options));
     disposers.push(registerHodosReplUi(registry, options));
+    disposers.push(registerHodosProblemsUi(registry, options));
     disposers.push(registerHodosValueInspectorUi(registry, options));
   } catch (error) {
     for (const dispose of disposers.reverse()) dispose();

@@ -1,0 +1,36 @@
+(ns gw.hodos.dev.problems)
+
+(def component-id "hodos.dev/problems")
+(def component-contract "workspace.component/1")
+(def events
+  #{"problems/select"
+    "problems/open-source"
+    "problems/filter"
+    "problems/clear"
+    "problems/copy"
+    "problems/close"})
+
+(defn model
+  ([problems]
+   (model problems {}))
+  ([problems options]
+   {:status (get options :status "idle")
+    :problems problems
+    :selection {:id (get options :selectedId nil)}
+    :filter (get options :filter {:severity "all" :query ""})
+    :counts (get options :counts {})
+    :canClear (get options :canClear false)
+    :metadata (get options :metadata {})}))
+
+(defn area
+  ([id model]
+   (area id "Problems" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/problems
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))
