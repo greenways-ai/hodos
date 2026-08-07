@@ -24,12 +24,30 @@ jobs:
 
       - run: npm ci
 
-      - name: Validate the migration program
+      - name: Align documentation migration anchors
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          source = Path('.github/scripts/apply-dev-explorer.py').read_text(encoding='utf-8')
-          compile(source, '.github/scripts/apply-dev-explorer.py', 'exec')
+
+          path = Path('.github/scripts/apply-dev-explorer.py')
+          source = path.read_text(encoding='utf-8')
+          replacements = [
+              ('"      createEditorArea,\\n      createPreviewArea,"', '"  createEditorArea,\\n  createPreviewArea,"'),
+              ('"      createEditorArea,\\n      createExplorerArea,\\n      createPreviewArea,"', '"  createEditorArea,\\n  createExplorerArea,\\n  createPreviewArea,"'),
+              ('example_anchor = "    const preview = createPreviewArea({"', 'example_anchor = "const preview = createPreviewArea({"'),
+              ('"    HAL owns document, session, diagnostic and retained-value identity, source"', '"HAL owns document, session, diagnostic and retained-value identity, source"'),
+              ('"    HAL owns document, session, workspace-entry, diagnostic and retained-value identity, source"', '"HAL owns document, session, workspace-entry, diagnostic and retained-value identity, source"'),
+              ('"    - Editor adapts an injected trusted editor host;\\n    - REPL adapts"', '"- Editor adapts an injected trusted editor host;\\n- REPL adapts"'),
+              ('"    - Editor adapts an injected trusted editor host;\\n    - Explorer adapts an injected workspace-entry host;\\n    - REPL adapts"', '"- Editor adapts an injected trusted editor host;\\n- Explorer adapts an injected workspace-entry host;\\n- REPL adapts"'),
+              ('"      createEditorHost: ({ container, dispatch }) => createEditorHost(container, dispatch),\\n      createReplHost:"', '"  createEditorHost: ({ container, dispatch }) => createEditorHost(container, dispatch),\\n  createReplHost:"'),
+              ('"      createEditorHost: ({ container, dispatch }) => createEditorHost(container, dispatch),\\n      createExplorerHost: ({ container, dispatch }) => createExplorerHost(container, dispatch),\\n      createReplHost:"', '"  createEditorHost: ({ container, dispatch }) => createEditorHost(container, dispatch),\\n  createExplorerHost: ({ container, dispatch }) => createExplorerHost(container, dispatch),\\n  createReplHost:"'),
+          ]
+          for old, new in replacements:
+              if source.count(old) != 1:
+                  raise SystemExit(f'Explorer documentation anchor count for {old!r}: {source.count(old)}')
+              source = source.replace(old, new, 1)
+          path.write_text(source, encoding='utf-8')
+          compile(source, str(path), 'exec')
           PY
 
       - name: Apply the Explorer component boundary
