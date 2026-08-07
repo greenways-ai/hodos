@@ -1,4 +1,5 @@
 import {
+  HODOS_DEV_CATALOG_COMPONENT_ID,
   HODOS_DEV_EDITOR_COMPONENT_ID,
   HODOS_DEV_EXPLORER_COMPONENT_ID,
   HODOS_DEV_PREVIEW_COMPONENT_ID,
@@ -88,6 +89,9 @@ export function createPreviewComponentFactory(options = {}) {
   };
 }
 
+export const createCatalogComponentFactory = (options = {}) =>
+  statefulComponentFactory("Catalog", "createCatalogHost", "catalog", options);
+
 export const createEditorComponentFactory = (options = {}) =>
   statefulComponentFactory("Editor", "createEditorHost", "editor", options);
 
@@ -113,6 +117,15 @@ function register(registry, id, factory, label) {
     throw new TypeError(`${label} requires a Hodos component registry`);
   }
   return registry.register(id, factory);
+}
+
+export function registerHodosCatalogUi(registry, options = {}) {
+  return register(
+    registry,
+    HODOS_DEV_CATALOG_COMPONENT_ID,
+    createCatalogComponentFactory(options),
+    "registerHodosCatalogUi",
+  );
 }
 
 export function registerHodosPreviewUi(registry, options = {}) {
@@ -172,6 +185,7 @@ export function registerHodosValueInspectorUi(registry, options = {}) {
 export function registerHodosDevUi(registry, options = {}) {
   const disposers = [];
   try {
+    disposers.push(registerHodosCatalogUi(registry, options));
     disposers.push(registerHodosPreviewUi(registry, options));
     disposers.push(registerHodosEditorUi(registry, options));
     disposers.push(registerHodosExplorerUi(registry, options));

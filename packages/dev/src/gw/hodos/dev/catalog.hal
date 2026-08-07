@@ -1,0 +1,38 @@
+(ns gw.hodos.dev.catalog)
+
+(def component-id "hodos.dev/catalog")
+(def component-contract "workspace.component/1")
+(def events
+  #{"catalog/select-toolset"
+    "catalog/select-activity"
+    "catalog/insert-tool"
+    "catalog/open-activity"
+    "catalog/check-activity"
+    "catalog/reset-activity"})
+
+(defn model
+  ([catalog toolsets activities]
+   (model catalog toolsets activities {}))
+  ([catalog toolsets activities options]
+   {:catalog catalog
+    :surface (get options :surface "all")
+    :toolsets toolsets
+    :activities activities
+    :selection (get options :selection {})
+    :run (get options :run {:status "idle" :message "" :checks []})
+    :capabilities (get options :capabilities {})
+    :counts (get options :counts {})
+    :metadata (get options :metadata {})}))
+
+(defn area
+  ([id model]
+   (area id "Catalog" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/catalog
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))

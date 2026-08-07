@@ -2,11 +2,13 @@
 
 HAL-first developer Workspace models for Hodos.
 
-The package currently defines serializable Preview, Editor, Explorer, REPL,
-Problems and Value Inspector areas without introducing a second Workspace model:
+The package currently defines serializable Catalog, Editor, Explorer, Preview,
+Problems, REPL and Value Inspector areas without introducing a second
+Workspace model:
 
 ```js
 import {
+  createCatalogArea,
   createEditorArea,
   createExplorerArea,
   createPreviewArea,
@@ -15,6 +17,28 @@ import {
   createValueInspectorArea,
 } from "@greenways/hodos-dev";
 
+const catalog = createCatalogArea({
+  surface: "tools",
+  toolsets: [{
+    id: "values",
+    title: "Value tools",
+    description: "Build and inspect live values.",
+    tools: [{ id: "defn", label: "Function", description: "Insert a function template." }],
+  }],
+  selectedToolsetId: "values",
+});
+
+const explorer = createExplorerArea({
+  workspaceId: "workspace/project",
+  workspaceTitle: "Project",
+  entries: [
+    { path: "src", kind: "directory" },
+    { path: "src/main.hal", kind: "file", language: "hara" },
+  ],
+  selectedPath: "src/main.hal",
+  expandedPaths: ["src"],
+});
+
 const editor = createEditorArea({
   documentId: "document/main",
   path: "src/main.hal",
@@ -22,19 +46,7 @@ const editor = createEditorArea({
   namespace: "app.core",
 });
 
-
-    const explorer = createExplorerArea({
-      workspaceId: "workspace/project",
-      workspaceTitle: "Project",
-      entries: [
-        { path: "src", kind: "directory" },
-        { path: "src/main.hal", kind: "file", language: "hara" },
-      ],
-      selectedPath: "src/main.hal",
-      expandedPaths: ["src"],
-    });
-
-    const preview = createPreviewArea({
+const preview = createPreviewArea({
   output: { type: "render", tree: ["main", "Ready"] },
   theme: "dark",
 });
@@ -65,11 +77,15 @@ const value = createValueInspectorArea({
 });
 ```
 
-HAL owns document, session, workspace-entry, diagnostic and retained-value identity, source
-versions, selections, REPL history and entries, problem filters and counts,
-inspector paths, completion models, commands and semantic events. Visible
-developer mechanics are supplied by `@greenways/hodos-dev-ui` through
-injected, trusted hosts.
+HAL owns catalog, document, session, workspace-entry, diagnostic and
+retained-value identity, source versions, selections, REPL history and
+entries, problem filters and counts, inspector paths, completion models,
+commands and semantic events. Visible developer mechanics are supplied by
+`@greenways/hodos-dev-ui` through injected, trusted hosts.
+
+Catalog models carry descriptive toolset, tool, activity and check-result
+projections. Executable snippets, starter source and check expressions remain
+host policy and are not admitted into the Hodos model.
 
 Problems models accept text-only runtime diagnostics and optional source,
 path, namespace, request, code, range, tag and metadata projections. Runtime
