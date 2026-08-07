@@ -1,0 +1,126 @@
+.hodos-workspace-shell,
+.hodos-workspace-layout,
+.hodos-workspace-layout-node,
+.hodos-workspace-split,
+.hodos-workspace-pane,
+.hodos-workspace-compact-viewport {
+  min-width: 0;
+  min-height: 0;
+}
+
+.hodos-workspace-shell {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  overflow: hidden;
+}
+
+.hodos-workspace-shell--desktop {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.hodos-workspace-layout,
+.hodos-workspace-split,
+.hodos-workspace-pane,
+.hodos-workspace-compact-viewport {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.hodos-workspace-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.hodos-workspace-area {
+  min-width: 0;
+  min-height: 0;
+}
+
+.hodos-workspace-divider {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  touch-action: none;
+  user-select: none;
+}
+
+.hodos-workspace-divider::after {
+  width: 2px;
+  height: 42px;
+  content: "";
+  border-radius: 99px;
+  background: currentColor;
+  opacity: .32;
+  transition: width 120ms ease, height 120ms ease, opacity 120ms ease;
+}
+
+.hodos-workspace-divider--horizontal {
+  cursor: col-resize;
+}
+
+.hodos-workspace-divider--vertical {
+  cursor: row-resize;
+}
+
+.hodos-workspace-divider--vertical::after {
+  width: 42px;
+  height: 2px;
+}
+
+.hodos-workspace-divider:hover::after,
+.hodos-workspace-divider:focus-visible::after {
+  width: 3px;
+  height: 68px;
+  opacity: .78;
+}
+
+.hodos-workspace-divider--vertical:hover::after,
+.hodos-workspace-divider--vertical:focus-visible::after {
+  width: 68px;
+  height: 3px;
+}
+
+.hodos-workspace-empty {
+  width: 100%;
+  height: 100%;
+}
+
+.hodos-workspace-shell--compact {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.hodos-workspace-compact-viewport {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.hodos-workspace-dock {
+  min-width: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.hodos-workspace-dock-item {
+  min-width: 64px;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.hodos-workspace-dock-item.active,
+.hodos-workspace-dock-item[aria-pressed="true"] {
+  font-weight: 700;
+}

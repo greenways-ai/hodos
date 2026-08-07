@@ -99,3 +99,14 @@ export class WorkspaceAreaHost {
 }
 
 export const createWorkspaceAreaHost = (options) => new WorkspaceAreaHost(options);
+
+export {
+  HODOS_WORKSPACE_MODES,
+  HODOS_WORKSPACE_SHELL_CONTRACT,
+  WorkspaceShellHost,
+  createWorkspaceShellHost,
+  normalizeWorkspaceDescriptor,
+  normalizeWorkspaceLayout,
+  normalizeWorkspaceShellArea,
+  workspaceLayoutAreaIds,
+} from "./shell.js";
