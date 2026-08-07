@@ -14,7 +14,17 @@ const applyPreviewModel = (host, model = {}) => {
   const value = model && typeof model === "object" ? model : { output: model };
   if (value.theme != null) host.setTheme?.(value.theme);
   if (value.viewport != null) host.setViewport?.(value.viewport);
-  host.render?.(value.output ?? null);
+  if (value.document != null) {
+    if (typeof host.renderDocument !== "function") {
+      throw new Error("Hodos Dev Preview host cannot render a prepared document");
+    }
+    host.renderDocument(value.document);
+    return;
+  }
+  if (typeof host.render !== "function") {
+    throw new Error("Hodos Dev Preview host cannot render a projected output");
+  }
+  host.render(value.output ?? null);
 };
 
 export function createPreviewComponentFactory(options = {}) {
