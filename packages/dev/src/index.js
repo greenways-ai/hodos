@@ -19,6 +19,29 @@ const selectionValue = (value = {}) => {
   return Object.freeze({ start, end });
 };
 
+const REPL_ENTRY_KINDS = new Set(["input", "result", "stdout", "error", "diagnostic"]);
+const REPL_STATUSES = new Set(["idle", "ready", "busy", "error", "closed"]);
+
+const replEntryValue = (entry, index) => {
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new TypeError(`Hodos Dev REPL entry ${index} must be an object`);
+  }
+  const kind = nonEmptyString(entry.kind, `Hodos Dev REPL entry ${index} kind`);
+  if (!REPL_ENTRY_KINDS.has(kind)) {
+    throw new Error(`Hodos Dev REPL entry ${index} has unsupported kind: ${kind}`);
+  }
+  if (typeof entry.text !== "string") {
+    throw new TypeError(`Hodos Dev REPL entry ${index} text must be a string`);
+  }
+  return Object.freeze({
+    id: optionalString(entry.id, `Hodos Dev REPL entry ${index} id`),
+    kind,
+    text: entry.text,
+    namespace: optionalString(entry.namespace, `Hodos Dev REPL entry ${index} namespace`),
+    requestId: optionalString(entry.requestId, `Hodos Dev REPL entry ${index} request id`),
+  });
+};
+
 export const HODOS_DEV_PREVIEW_AREA_TYPE = "hodos.dev/preview";
 export const HODOS_DEV_PREVIEW_COMPONENT_ID = "hodos.dev/preview";
 export const HODOS_DEV_PREVIEW_EVENTS = Object.freeze([
@@ -34,6 +57,16 @@ export const HODOS_DEV_EDITOR_EVENTS = Object.freeze([
   "editor/eval",
   "editor/complete",
   "editor/command",
+]);
+
+export const HODOS_DEV_REPL_AREA_TYPE = "hodos.dev/repl";
+export const HODOS_DEV_REPL_COMPONENT_ID = "hodos.dev/repl";
+export const HODOS_DEV_REPL_EVENTS = Object.freeze([
+  "repl/input",
+  "repl/submit",
+  "repl/clear",
+  "repl/history",
+  "repl/cancel",
 ]);
 
 export function createPreviewArea({
@@ -108,6 +141,58 @@ export function createEditorArea({
     "area/title": title,
     "area/component": Object.freeze({
       "component/id": HODOS_DEV_EDITOR_COMPONENT_ID,
+      "component/contract": WORKSPACE_COMPONENT_CONTRACT,
+      "component/model": model,
+      "component/events": Object.freeze([...events]),
+    }),
+  });
+}
+
+export function createReplArea({
+  id = "repl/main",
+  title = "REPL",
+  sessionId = null,
+  namespace = "user",
+  status = "idle",
+  entries = [],
+  input = "",
+  history = [],
+  historyIndex = history.length,
+  canSubmit = status === "ready",
+  events = HODOS_DEV_REPL_EVENTS,
+} = {}) {
+  id = nonEmptyString(id, "Hodos Dev REPL area id");
+  title = nonEmptyString(title, "Hodos Dev REPL title");
+  namespace = nonEmptyString(namespace, "Hodos Dev REPL namespace");
+  status = nonEmptyString(status, "Hodos Dev REPL status");
+  if (!REPL_STATUSES.has(status)) throw new Error(`Unsupported Hodos Dev REPL status: ${status}`);
+  if (!Array.isArray(entries)) throw new TypeError("Hodos Dev REPL entries must be an array");
+  if (typeof input !== "string") throw new TypeError("Hodos Dev REPL input must be a string");
+  if (!Array.isArray(history) || history.some((value) => typeof value !== "string")) {
+    throw new TypeError("Hodos Dev REPL history must be an array of strings");
+  }
+  if (!Number.isSafeInteger(historyIndex) || historyIndex < 0 || historyIndex > history.length) {
+    throw new TypeError("Hodos Dev REPL historyIndex must address the history array");
+  }
+  if (typeof canSubmit !== "boolean") throw new TypeError("Hodos Dev REPL canSubmit must be boolean");
+  const model = Object.freeze({
+    session: Object.freeze({
+      id: optionalString(sessionId, "Hodos Dev REPL session id"),
+      status,
+    }),
+    namespace,
+    entries: Object.freeze(entries.map(replEntryValue)),
+    input,
+    history: Object.freeze([...history]),
+    historyIndex,
+    canSubmit,
+  });
+  return Object.freeze({
+    "area/id": id,
+    "area/type": HODOS_DEV_REPL_AREA_TYPE,
+    "area/title": title,
+    "area/component": Object.freeze({
+      "component/id": HODOS_DEV_REPL_COMPONENT_ID,
       "component/contract": WORKSPACE_COMPONENT_CONTRACT,
       "component/model": model,
       "component/events": Object.freeze([...events]),

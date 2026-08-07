@@ -2,27 +2,23 @@
 
 Visible Hodos developer components driven by HAL-shaped Workspace models.
 
-The package currently registers Preview and Editor components:
+The package currently registers Preview, Editor and REPL components:
 
 - Preview adapts an injected Hara sandbox/iframe service;
-- Editor adapts an injected trusted editor host and routes declared semantic
-  events such as change, selection, evaluation and completion back to HAL.
+- Editor adapts an injected trusted editor host;
+- REPL adapts an injected session-console host;
+- every component routes only declared semantic events back to HAL.
 
 ```js
 import { registerHodosDevUi } from "@greenways/hodos-dev-ui";
 
 const unregister = registerHodosDevUi(registry, {
   createPreviewHost: (options) => haraPreviewService.create(options),
-  createEditorHost: ({ container, dispatch }) => {
-    const editor = createTrustedEditor(container, { onEvent: dispatch });
-    return {
-      update(model) { editor.setModel(model); },
-      dispose() { editor.destroy(); },
-    };
-  },
+  createEditorHost: ({ container, dispatch }) => createEditorHost(container, dispatch),
+  createReplHost: ({ container, dispatch }) => createReplHost(container, dispatch),
 });
 ```
 
-Hodos owns the visible Workspace component and semantic-event boundary. Hara
+Hodos owns visible Workspace components and semantic-event boundaries. Hara
 browser services continue to own runtime transport, low-level editor transforms,
 preview isolation, storage and privileged resource policy.
