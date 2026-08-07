@@ -34,4 +34,12 @@ The Preview vertical slice uses an injected preview host. Sandbox and iframe
 policy remain supplied by the Hara browser service layer; Hodos owns only the
 visible Workspace component and its lifecycle.
 
-Related tracking: #17 and #18.
+## Tracking
+
+- Hodos reorganization epic: #17
+- package foundation and Preview contract: #18
+- Hara Workspace semantics: hara-lang/hara#382
+- Hara web-service boundary: hara-lang/hara-ui#8
+- Playground Preview adoption: hara-lang/hara-playground#28
+- Greenways release-train boundary: greenways-ai/workspace#5
+- Greenways OS connector authority: greenways-ai/greenways-os#24
