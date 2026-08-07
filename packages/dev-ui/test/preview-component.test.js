@@ -15,6 +15,7 @@ test("Hodos Dev Preview adapts an injected Hara preview host", () => {
         setTheme(value) { calls.push(["theme", value]); },
         setViewport(value) { calls.push(["viewport", value]); },
         render(value) { calls.push(["render", value]); },
+        renderDocument(value) { calls.push(["document", value]); },
         dispose() { calls.push(["dispose"]); },
       };
     },
@@ -22,14 +23,28 @@ test("Hodos Dev Preview adapts an injected Hara preview host", () => {
   const root = { dataset: {} };
   const host = createWorkspaceAreaHost({ root, registry });
   host.open(createPreviewArea({ output: { type: "html", html: "<main>One</main>" }, theme: "dark" }));
-  host.update(createPreviewArea({ output: { type: "html", html: "<main>Two</main>" }, theme: "light" }));
+  host.update(createPreviewArea({ document: "<!doctype html><main>Two</main>", theme: "light" }));
   host.destroy();
   assert.deepEqual(calls, [
     ["create", root],
     ["theme", "dark"],
     ["render", { type: "html", html: "<main>One</main>" }],
     ["theme", "light"],
-    ["render", { type: "html", html: "<main>Two</main>" }],
+    ["document", "<!doctype html><main>Two</main>"],
     ["dispose"],
   ]);
+});
+
+test("Hodos Dev Preview rejects prepared documents when the injected host cannot render them", () => {
+  const registry = createHodosComponentRegistry();
+  registerHodosDevUi(registry, {
+    createPreviewHost() {
+      return { render() {}, dispose() {} };
+    },
+  });
+  const host = createWorkspaceAreaHost({ root: { dataset: {} }, registry });
+  assert.throws(
+    () => host.open(createPreviewArea({ document: "<!doctype html><main>Ready</main>" })),
+    /cannot render a prepared document/,
+  );
 });
