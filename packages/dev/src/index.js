@@ -1,4 +1,4 @@
-import { HODOS_COMPONENT_CONTRACT } from "@greenways/hodos-web";
+import { WORKSPACE_COMPONENT_CONTRACT } from "@greenways/hodos-web";
 
 const nonEmptyString = (value, label) => {
   if (typeof value !== "string" || !value.trim()) throw new TypeError(`${label} must be a non-empty string`);
@@ -16,6 +16,7 @@ export function createPreviewArea({
   id = "preview/main",
   title = "Preview",
   output = null,
+  document = null,
   theme = "system",
   viewport = null,
   events = HODOS_DEV_PREVIEW_EVENTS,
@@ -28,8 +29,8 @@ export function createPreviewArea({
     "area/title": title,
     "area/component": Object.freeze({
       "component/id": HODOS_DEV_PREVIEW_COMPONENT_ID,
-      "component/contract": HODOS_COMPONENT_CONTRACT,
-      "component/model": Object.freeze({ output, theme, viewport }),
+      "component/contract": WORKSPACE_COMPONENT_CONTRACT,
+      "component/model": Object.freeze({ output, document, theme, viewport }),
       "component/events": Object.freeze([...events]),
     }),
   });
