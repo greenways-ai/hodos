@@ -1,0 +1,35 @@
+(ns gw.hodos.dev.editor)
+
+(def component-id "hodos.dev/editor")
+(def component-contract "workspace.component/1")
+(def events
+  #{"editor/change"
+    "editor/selection"
+    "editor/eval"
+    "editor/complete"
+    "editor/command"})
+
+(defn model
+  ([document source]
+   (model document source {:start 0 :end 0} {}))
+  ([document source selection options]
+   {:document document
+    :source source
+    :readOnly (get options :readOnly false)
+    :selection selection
+    :diagnostics (get options :diagnostics [])
+    :completion (get options :completion nil)
+    :settings (get options :settings {})}))
+
+(defn area
+  ([id model]
+   (area id "Editor" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/editor
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))
