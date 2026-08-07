@@ -1,0 +1,10 @@
+## npm ci
+
+added 24 packages, and audited 42 packages in 5s
+
+found 0 vulnerabilities
+exit=0
+
+## migration
+python3: can't open file '/home/runner/work/hodos/hodos/.github/scripts/apply-dev-catalog.py': [Errno 2] No such file or directory
+exit=2
