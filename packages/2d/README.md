@@ -45,6 +45,22 @@ const graphArea = createGraphArea({
 });
 ```
 
+## Hara UI compatibility
+
+The original Hara UI document model used the profile `greenways.rich-text/2` with the same stable document, block, text and artefact identity. Existing values can cross the explicit compatibility boundary without bringing an editor instance or Hestia transport into Hodos:
+
+```js
+import {
+  projectLegacyHaraDocument,
+  createLegacyHaraDocumentArea,
+} from "@greenways/hodos-2d/compat/hara-document";
+
+const projected = projectLegacyHaraDocument(haraUiDocument);
+const area = createLegacyHaraDocumentArea({ document: haraUiDocument });
+```
+
+The projector validates and freezes the ordinary Hodos rich-document model. It does not mutate the source document and does not project callbacks, runtime sessions, credentials or collaboration policy.
+
 ## Authority boundary
 
 Hodos owns visible 2D component models, serializable projection, topology validation, selection shape and semantic event boundaries.
