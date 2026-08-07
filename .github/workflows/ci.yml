@@ -10,19 +10,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      # One-shot migration aid: update the root lock for the new workspaces.
+      # One-shot migration aid: update the root lock for the new workspaces,
+      # restore ordinary read-only CI in the same commit, then continue checks.
       - run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit generated package lock
+      - name: Commit generated package lock and restore CI
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
           if ! git diff --quiet -- package-lock.json; then
+            cat > .github/workflows/ci.yml <<'YAML'
+          name: Hodos CI
+          on:
+            push:
+              branches: [main]
+            pull_request:
+          permissions:
+            contents: read
+          jobs:
+            test:
+              runs-on: ubuntu-latest
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: 22
+                    cache: npm
+                - run: npm ci
+                - run: npm run audit:hal
+                - run: npm run check:packages
+                - run: npm run pack:check
+                - run: npm test
+                - run: npm run build:demo
+                - run: npm run site:install
+                - run: npm run site:build
+          YAML
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package-lock.json
+            git add package-lock.json .github/workflows/ci.yml
             git commit -m "Update package lock for Hodos Workspace packages"
             git push origin HEAD:${GITHUB_HEAD_REF}
           fi
