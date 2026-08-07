@@ -2,6 +2,7 @@ import {
   HODOS_DEV_EDITOR_COMPONENT_ID,
   HODOS_DEV_PREVIEW_COMPONENT_ID,
   HODOS_DEV_REPL_COMPONENT_ID,
+  HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID,
 } from "@greenways/hodos-dev";
 
 const hostFactory = (name, options, services, optionKey, serviceKey) => {
@@ -91,6 +92,14 @@ export const createEditorComponentFactory = (options = {}) =>
 export const createReplComponentFactory = (options = {}) =>
   statefulComponentFactory("REPL", "createReplHost", "repl", options);
 
+export const createValueInspectorComponentFactory = (options = {}) =>
+  statefulComponentFactory(
+    "Value Inspector",
+    "createValueInspectorHost",
+    "valueInspector",
+    options,
+  );
+
 function register(registry, id, factory, label) {
   if (!registry || typeof registry.register !== "function") {
     throw new TypeError(`${label} requires a Hodos component registry`);
@@ -125,12 +134,22 @@ export function registerHodosReplUi(registry, options = {}) {
   );
 }
 
+export function registerHodosValueInspectorUi(registry, options = {}) {
+  return register(
+    registry,
+    HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID,
+    createValueInspectorComponentFactory(options),
+    "registerHodosValueInspectorUi",
+  );
+}
+
 export function registerHodosDevUi(registry, options = {}) {
   const disposers = [];
   try {
     disposers.push(registerHodosPreviewUi(registry, options));
     disposers.push(registerHodosEditorUi(registry, options));
     disposers.push(registerHodosReplUi(registry, options));
+    disposers.push(registerHodosValueInspectorUi(registry, options));
   } catch (error) {
     for (const dispose of disposers.reverse()) dispose();
     throw error;
