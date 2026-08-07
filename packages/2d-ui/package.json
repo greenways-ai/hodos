@@ -1,0 +1,23 @@
+{
+  "name": "@greenways/hodos-2d-ui",
+  "version": "0.1.0",
+  "description": "Trusted UI adapters for Hodos 2D Workspace components",
+  "type": "module",
+  "license": "EPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/greenways-ai/hodos.git",
+    "directory": "packages/2d-ui"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./hara/*": "./src/gw/hodos/two_d/*.hal"
+  },
+  "files": ["src", "project.edn", "project.lock.edn", "hara.recipe.edn", "README.md"],
+  "sideEffects": false,
+  "dependencies": {
+    "@greenways/hodos-2d": "0.1.0"
+  },
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=20" }
+}
