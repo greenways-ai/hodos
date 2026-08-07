@@ -1,0 +1,54 @@
+name: Apply Hodos Dev Problems migration
+
+on:
+  push:
+    branches: [agent/dev-problems-boundary]
+    paths: [.github/workflows/apply-dev-problems.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/dev-problems-boundary
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply the Problems component boundary
+        run: python3 .github/scripts/apply-dev-problems.py
+
+      - name: Validate changed JavaScript
+        run: |
+          node --check packages/dev/src/index.js
+          node --check packages/dev-ui/src/index.js
+          node --check packages/dev/test/problems.test.js
+          node --check packages/dev-ui/test/problems-component.test.js
+
+      - name: Run the complete Hodos gates
+        run: |
+          npm run audit:hal
+          npm run check:packages
+          npm run pack:check
+          npm test
+          npm run build:demo
+          npm run site:install
+          npm run site:check
+          npm run site:build
+
+      - name: Commit the validated boundary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add Hodos Dev problems component boundary"
+          git push origin HEAD:agent/dev-problems-boundary
