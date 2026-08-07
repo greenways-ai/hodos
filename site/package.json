@@ -7,7 +7,8 @@
     "sync:spec": "node scripts/sync-spec.mjs",
     "dev": "npm run sync:spec && ASTRO_TELEMETRY_DISABLED=1 astro dev",
     "check": "npm run sync:spec && ASTRO_TELEMETRY_DISABLED=1 astro check",
-    "build": "npm run sync:spec && ASTRO_TELEMETRY_DISABLED=1 astro check && ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "build": "npm run sync:spec && ASTRO_TELEMETRY_DISABLED=1 astro check && ASTRO_TELEMETRY_DISABLED=1 astro build && npm run verify:og",
+    "verify:og": "node scripts/verify-social-preview.mjs",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview"
   },
   "dependencies": {
