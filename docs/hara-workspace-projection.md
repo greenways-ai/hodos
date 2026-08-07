@@ -34,12 +34,19 @@ The Preview vertical slice uses an injected preview host. Sandbox and iframe
 policy remain supplied by the Hara browser service layer; Hodos owns only the
 visible Workspace component and its lifecycle.
 
+The second Dev slice adds an Editor model and trusted editor-host adapter. The
+HAL-shaped model carries document identity, source version, namespace,
+selection, diagnostics, completion and settings. The UI emits only declared
+semantic events; it does not own canonical document state or Workspace command
+semantics.
+
 ## Tracking
 
 - Hodos reorganization epic: #17
 - package foundation and Preview contract: #18
+- Dev surfaces: #19
 - Hara Workspace semantics: hara-lang/hara#382
 - Hara web-service boundary: hara-lang/hara-ui#8
-- Playground Preview adoption: hara-lang/hara-playground#28
+- Playground adoption: hara-lang/hara-playground#28
 - Greenways release-train boundary: greenways-ai/workspace#5
 - Greenways OS connector authority: greenways-ai/greenways-os#24
