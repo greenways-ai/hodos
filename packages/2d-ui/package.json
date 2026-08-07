@@ -1,7 +1,7 @@
 {
   "name": "@greenways/hodos-2d-ui",
   "version": "0.1.0",
-  "description": "Trusted UI adapters for Hodos 2D Workspace components",
+  "description": "Trusted UI adapters and safe DOM hosts for Hodos 2D Workspace components",
   "type": "module",
   "license": "EPL-2.0",
   "repository": {
@@ -11,10 +11,12 @@
   },
   "exports": {
     ".": "./src/index.js",
+    "./document-dom": "./src/document-dom-host.js",
+    "./document.css": "./src/document.css",
     "./hara/*": "./src/gw/hodos/two_d/*.hal"
   },
   "files": ["src", "project.edn", "project.lock.edn", "hara.recipe.edn", "README.md"],
-  "sideEffects": false,
+  "sideEffects": ["./src/document.css"],
   "dependencies": {
     "@greenways/hodos-2d": "0.1.0"
   },

@@ -2,6 +2,15 @@ import {
   HODOS_2D_DOCUMENT_COMPONENT_ID,
   HODOS_2D_GRAPH_COMPONENT_ID,
 } from "@greenways/hodos-2d";
+import {
+  createDocumentDomHost,
+} from "./document-dom-host.js";
+
+export {
+  createDocumentDomHost,
+  createHodosDocumentDomHost,
+  projectDocumentDomView,
+} from "./document-dom-host.js";
 
 const hostFactory = (name, options, services, optionKey, serviceKey) => {
   const candidate = options[optionKey]
@@ -19,6 +28,7 @@ const statefulComponentFactory = (name, optionKey, serviceKey, options = {}) =>
     const host = createHost({
       container: root,
       model,
+      services,
       dispatch,
       context,
     });
@@ -60,6 +70,21 @@ export function registerHodosDocumentUi(registry, options = {}) {
     createDocumentComponentFactory(options),
     "registerHodosDocumentUi",
   );
+}
+
+/**
+ * Registers the product-neutral safe DOM implementation. Runtime evaluation,
+ * artefact rendering and mutation policy remain injected through services and
+ * semantic events.
+ */
+export function registerHodosDocumentDomUi(registry, options = {}) {
+  const documentDom = options.documentDom ?? {};
+  const createDocumentHost = options.createDocumentHost
+    ?? ((hostOptions) => createDocumentDomHost({ ...documentDom, ...hostOptions }));
+  return registerHodosDocumentUi(registry, {
+    ...options,
+    createDocumentHost,
+  });
 }
 
 export function registerHodosGraphUi(registry, options = {}) {
