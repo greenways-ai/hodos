@@ -156,6 +156,90 @@ const problemCountsValue = (problems) => {
   return Object.freeze(counts);
 };
 
+
+const EXPLORER_ENTRY_KINDS = new Set(["file", "directory"]);
+const EXPLORER_ENTRY_STATUSES = new Set([
+  "clean",
+  "modified",
+  "added",
+  "deleted",
+  "conflict",
+  "unknown",
+]);
+
+const workspacePathValue = (value, label, { allowEmpty = false } = {}) => {
+  if (allowEmpty && value === "") return "";
+  const path = nonEmptyString(value, label);
+  if (path.startsWith("/") || path.includes("\\") || path.includes("\0")) {
+    throw new TypeError(`${label} must be a canonical relative workspace path`);
+  }
+  const segments = path.split("/");
+  if (segments.some((segment) => !segment || segment === "." || segment === "..")) {
+    throw new TypeError(`${label} must not contain empty, current or parent segments`);
+  }
+  return segments.join("/");
+};
+
+const explorerEntryValue = (entry, index) => {
+  const label = `Hodos Dev Explorer entry ${index}`;
+  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const path = workspacePathValue(entry.path, `${label} path`);
+  const kind = nonEmptyString(entry.kind ?? "file", `${label} kind`);
+  if (!EXPLORER_ENTRY_KINDS.has(kind)) {
+    throw new Error(`${label} has unsupported kind: ${kind}`);
+  }
+  const status = nonEmptyString(entry.status ?? "clean", `${label} status`);
+  if (!EXPLORER_ENTRY_STATUSES.has(status)) {
+    throw new Error(`${label} has unsupported status: ${status}`);
+  }
+  if (typeof (entry.readOnly ?? false) !== "boolean") {
+    throw new TypeError(`${label} readOnly must be boolean`);
+  }
+  const size = entry.size == null ? null : Number(entry.size);
+  if (size != null && (!Number.isSafeInteger(size) || size < 0)) {
+    throw new TypeError(`${label} size must be a non-negative integer`);
+  }
+  const metadata = entry.metadata ?? {};
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError(`${label} metadata must be an object`);
+  }
+  return Object.freeze({
+    id: optionalString(entry.id, `${label} id`) ?? `${kind}:${path}`,
+    path,
+    name: optionalString(entry.name, `${label} name`) ?? path.split("/").at(-1),
+    kind,
+    language: optionalString(entry.language, `${label} language`),
+    status,
+    readOnly: entry.readOnly ?? false,
+    size,
+    metadata: serializableValue(metadata, `${label} metadata`),
+  });
+};
+
+const explorerCapabilitiesValue = (value = {}) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Hodos Dev Explorer capabilities must be an object");
+  }
+  const result = {};
+  for (const key of ["createFile", "createDirectory", "rename", "delete", "refresh"]) {
+    const enabled = value[key] ?? false;
+    if (typeof enabled !== "boolean") {
+      throw new TypeError(`Hodos Dev Explorer capability ${key} must be boolean`);
+    }
+    result[key] = enabled;
+  }
+  return Object.freeze(result);
+};
+
+const explorerCountsValue = (entries) => Object.freeze({
+  total: entries.length,
+  files: entries.filter((entry) => entry.kind === "file").length,
+  directories: entries.filter((entry) => entry.kind === "directory").length,
+  changed: entries.filter((entry) => entry.status !== "clean").length,
+});
+
 const replEntryValue = (entry, index) => {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
     throw new TypeError(`Hodos Dev REPL entry ${index} must be an object`);
@@ -182,6 +266,19 @@ export const HODOS_DEV_PREVIEW_COMPONENT_ID = "hodos.dev/preview";
 export const HODOS_DEV_PREVIEW_EVENTS = Object.freeze([
   "preview/open-source",
   "preview/retry",
+]);
+
+
+export const HODOS_DEV_EXPLORER_AREA_TYPE = "hodos.dev/explorer";
+export const HODOS_DEV_EXPLORER_COMPONENT_ID = "hodos.dev/explorer";
+export const HODOS_DEV_EXPLORER_EVENTS = Object.freeze([
+  "explorer/select",
+  "explorer/toggle",
+  "explorer/create",
+  "explorer/rename",
+  "explorer/delete",
+  "explorer/refresh",
+  "explorer/filter",
 ]);
 
 export const HODOS_DEV_EDITOR_AREA_TYPE = "hodos.dev/editor";
@@ -469,6 +566,90 @@ export function createProblemsArea({
     "area/title": title,
     "area/component": Object.freeze({
       "component/id": HODOS_DEV_PROBLEMS_COMPONENT_ID,
+      "component/contract": WORKSPACE_COMPONENT_CONTRACT,
+      "component/model": model,
+      "component/events": Object.freeze([...events]),
+    }),
+  });
+}
+
+export function createExplorerArea({
+  id = "explorer/main",
+  title = "Files",
+  workspaceId = null,
+  workspaceTitle = "Workspace",
+  root = "",
+  source = null,
+  revision = null,
+  entries = [],
+  selectedPath = null,
+  expandedPaths = [],
+  query = "",
+  capabilities = {},
+  metadata = {},
+  events = HODOS_DEV_EXPLORER_EVENTS,
+} = {}) {
+  id = nonEmptyString(id, "Hodos Dev Explorer area id");
+  title = nonEmptyString(title, "Hodos Dev Explorer title");
+  workspaceTitle = nonEmptyString(workspaceTitle, "Hodos Dev Explorer workspace title");
+  root = workspacePathValue(root, "Hodos Dev Explorer root", { allowEmpty: true });
+  if (!Array.isArray(entries)) throw new TypeError("Hodos Dev Explorer entries must be an array");
+  if (!Array.isArray(expandedPaths)) {
+    throw new TypeError("Hodos Dev Explorer expandedPaths must be an array");
+  }
+  if (typeof query !== "string") throw new TypeError("Hodos Dev Explorer query must be a string");
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError("Hodos Dev Explorer metadata must be an object");
+  }
+
+  const projected = Object.freeze(entries.map(explorerEntryValue));
+  const byPath = new Map();
+  for (const entry of projected) {
+    if (byPath.has(entry.path)) throw new Error(`Duplicate Hodos Dev Explorer path: ${entry.path}`);
+    byPath.set(entry.path, entry);
+  }
+
+  const selected = selectedPath == null
+    ? null
+    : workspacePathValue(selectedPath, "Hodos Dev Explorer selected path");
+  if (selected && !byPath.has(selected)) {
+    throw new Error(`Hodos Dev Explorer selected path is not present: ${selected}`);
+  }
+
+  const expanded = Object.freeze([
+    ...new Set(expandedPaths.map((entry, index) =>
+      workspacePathValue(entry, `Hodos Dev Explorer expanded path ${index}`))),
+  ]);
+  for (const path of expanded) {
+    const entry = byPath.get(path);
+    if (!entry || entry.kind !== "directory") {
+      throw new Error(`Hodos Dev Explorer expanded path is not a directory: ${path}`);
+    }
+  }
+
+  const model = Object.freeze({
+    workspace: Object.freeze({
+      id: optionalString(workspaceId, "Hodos Dev Explorer workspace id"),
+      title: workspaceTitle,
+      root,
+      source: optionalString(source, "Hodos Dev Explorer workspace source"),
+      revision: optionalString(revision, "Hodos Dev Explorer workspace revision"),
+    }),
+    entries: projected,
+    selection: Object.freeze({ path: selected }),
+    expanded,
+    filter: Object.freeze({ query }),
+    capabilities: explorerCapabilitiesValue(capabilities),
+    counts: explorerCountsValue(projected),
+    metadata: serializableValue(metadata, "Hodos Dev Explorer metadata"),
+  });
+
+  return Object.freeze({
+    "area/id": id,
+    "area/type": HODOS_DEV_EXPLORER_AREA_TYPE,
+    "area/title": title,
+    "area/component": Object.freeze({
+      "component/id": HODOS_DEV_EXPLORER_COMPONENT_ID,
       "component/contract": WORKSPACE_COMPONENT_CONTRACT,
       "component/model": model,
       "component/events": Object.freeze([...events]),

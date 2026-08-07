@@ -1,0 +1,38 @@
+(ns gw.hodos.dev.explorer)
+
+(def component-id "hodos.dev/explorer")
+(def component-contract "workspace.component/1")
+(def events
+  #{"explorer/select"
+    "explorer/toggle"
+    "explorer/create"
+    "explorer/rename"
+    "explorer/delete"
+    "explorer/refresh"
+    "explorer/filter"})
+
+(defn model
+  ([workspace entries]
+   (model workspace entries {}))
+  ([workspace entries options]
+   {:workspace workspace
+    :entries entries
+    :selection {:path (get options :selectedPath nil)}
+    :expanded (get options :expandedPaths [])
+    :filter {:query (get options :query "")}
+    :capabilities (get options :capabilities {})
+    :counts (get options :counts {})
+    :metadata (get options :metadata {})}))
+
+(defn area
+  ([id model]
+   (area id "Files" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/explorer
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))

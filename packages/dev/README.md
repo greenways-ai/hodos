@@ -2,12 +2,13 @@
 
 HAL-first developer Workspace models for Hodos.
 
-The package currently defines serializable Preview, Editor, REPL, Problems
-and Value Inspector areas without introducing a second Workspace model:
+The package currently defines serializable Preview, Editor, Explorer, REPL,
+Problems and Value Inspector areas without introducing a second Workspace model:
 
 ```js
 import {
   createEditorArea,
+  createExplorerArea,
   createPreviewArea,
   createProblemsArea,
   createReplArea,
@@ -21,7 +22,19 @@ const editor = createEditorArea({
   namespace: "app.core",
 });
 
-const preview = createPreviewArea({
+
+    const explorer = createExplorerArea({
+      workspaceId: "workspace/project",
+      workspaceTitle: "Project",
+      entries: [
+        { path: "src", kind: "directory" },
+        { path: "src/main.hal", kind: "file", language: "hara" },
+      ],
+      selectedPath: "src/main.hal",
+      expandedPaths: ["src"],
+    });
+
+    const preview = createPreviewArea({
   output: { type: "render", tree: ["main", "Ready"] },
   theme: "dark",
 });
@@ -52,7 +65,7 @@ const value = createValueInspectorArea({
 });
 ```
 
-HAL owns document, session, diagnostic and retained-value identity, source
+HAL owns document, session, workspace-entry, diagnostic and retained-value identity, source
 versions, selections, REPL history and entries, problem filters and counts,
 inspector paths, completion models, commands and semantic events. Visible
 developer mechanics are supplied by `@greenways/hodos-dev-ui` through
