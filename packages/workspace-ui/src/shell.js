@@ -195,15 +195,21 @@ const responsiveSurfaceValue = (value, index, areaById) => {
 
 const derivedResponsiveSurfaces = (areas, layoutIds) => areas
   .filter((area) => area.presentation.compact)
-  .map((area, index) => Object.freeze({
-    id: area.presentation.surfaceId ?? area.id,
-    areaId: area.id,
-    label: area.presentation.label,
-    icon: area.presentation.icon,
-    mode: area.presentation.mode,
-    order: area.presentation.order || layoutIds.indexOf(area.id) || index,
-    autoFocus: area.presentation.autoFocus,
-  }))
+  .map((area, index) => {
+    const layoutIndex = layoutIds.indexOf(area.id);
+    const order = area.presentation.order !== 0
+      ? area.presentation.order
+      : layoutIndex >= 0 ? layoutIndex : index;
+    return Object.freeze({
+      id: area.presentation.surfaceId ?? area.id,
+      areaId: area.id,
+      label: area.presentation.label,
+      icon: area.presentation.icon,
+      mode: area.presentation.mode,
+      order,
+      autoFocus: area.presentation.autoFocus,
+    });
+  })
   .sort((left, right) => left.order - right.order || left.label.localeCompare(right.label));
 
 const normalizeResponsive = (customizations, areas, layoutIds) => {
@@ -212,7 +218,7 @@ const normalizeResponsive = (customizations, areas, layoutIds) => {
   if (raw != null && !Array.isArray(raw)) {
     throw new TypeError("Hodos Workspace responsive surfaces must be an array");
   }
-  const surfaces = raw?.length
+  const surfaces = raw != null
     ? raw.map((surface, index) => responsiveSurfaceValue(surface, index, areaById))
       .sort((left, right) => left.order - right.order || left.label.localeCompare(right.label))
     : derivedResponsiveSurfaces(areas, layoutIds);
@@ -284,7 +290,7 @@ export function normalizeWorkspaceDescriptor(value, label = "Hodos Workspace") {
     areaIds,
     surfaceIds,
     fallbackAreaId,
-    responsive.defaultSurfaceId,
+    null,
   );
   return Object.freeze({
     id,
@@ -497,24 +503,47 @@ export class WorkspaceShellHost {
   }
 
   #adoptSelection(next) {
-    if (next.selection.surfaceId) this.surfaceId = next.selection.surfaceId;
+    const workspaceChanged = this.workspace?.id !== next.id;
+    if (workspaceChanged) {
+      this.surfaceId = next.selection.surfaceId ?? null;
+      this.preferenceLoadedFor = null;
+      this.ratioOverrides.clear();
+      this.loadedRatioPreferences.clear();
+    } else if (next.selection.surfaceId) this.surfaceId = next.selection.surfaceId;
     else if (this.lastSelectionAreaId && this.lastSelectionAreaId !== next.selection.areaId) {
       this.surfaceId = next.responsive.surfaces.find((surface) =>
         surface.areaId === next.selection.areaId)?.id ?? next.responsive.defaultSurfaceId;
+    }
+    if (this.surfaceId && !next.responsive.surfaces.some((surface) => surface.id === this.surfaceId)) {
+      this.surfaceId = null;
     }
     this.lastSelectionAreaId = next.selection.areaId;
   }
 
   #loadSurfacePreference() {
     if (!this.workspace || this.preferenceLoadedFor === this.workspace.id || this.surfaceId) return;
-    this.preferenceLoadedFor = this.workspace.id;
-    const preferred = safeCall(this.#workspaceService().readSurface, {
-      workspaceId: this.workspace.id,
-      surfaces: this.workspace.responsive.surfaces,
-    });
-    if (typeof preferred === "string" && this.workspace.responsive.surfaces.some((entry) => entry.id === preferred)) {
-      this.surfaceId = preferred;
+    const workspaceId = this.workspace.id;
+    this.preferenceLoadedFor = workspaceId;
+    let preferred;
+    try {
+      preferred = this.#workspaceService().readSurface?.({
+        workspaceId,
+        surfaces: this.workspace.responsive.surfaces,
+      });
+    } catch (error) {
+      this.#reportError(error);
+      return;
     }
+    const apply = (surfaceId) => {
+      if (this.workspace?.id !== workspaceId) return;
+      if (typeof surfaceId === "string"
+        && this.workspace.responsive.surfaces.some((entry) => entry.id === surfaceId)) {
+        this.surfaceId = surfaceId;
+        this.#render();
+      }
+    };
+    if (preferred?.then) Promise.resolve(preferred).then(apply).catch((error) => this.#reportError(error));
+    else if (preferred != null) apply(preferred);
   }
 
   #persistSurface(surfaceId) {
@@ -538,12 +567,25 @@ export class WorkspaceShellHost {
     if (this.ratioOverrides.has(layout.id)) return this.ratioOverrides.get(layout.id);
     if (!this.loadedRatioPreferences.has(layout.id)) {
       this.loadedRatioPreferences.add(layout.id);
-      const preferred = safeCall(this.#workspaceService().readSplitRatio, {
-        workspaceId: this.workspace?.id,
-        layoutId: layout.id,
-        ratio: layout.ratio,
-      });
-      if (Number.isFinite(Number(preferred))) {
+      const workspaceId = this.workspace?.id;
+      let preferred;
+      try {
+        preferred = this.#workspaceService().readSplitRatio?.({
+          workspaceId,
+          layoutId: layout.id,
+          ratio: layout.ratio,
+        });
+      } catch (error) {
+        this.#reportError(error);
+        return layout.ratio;
+      }
+      const apply = (value) => {
+        if (this.workspace?.id !== workspaceId || !Number.isFinite(Number(value))) return;
+        this.ratioOverrides.set(layout.id, clampRatio(value));
+        this.#render();
+      };
+      if (preferred?.then) Promise.resolve(preferred).then(apply).catch((error) => this.#reportError(error));
+      else if (Number.isFinite(Number(preferred))) {
         const ratio = clampRatio(preferred);
         this.ratioOverrides.set(layout.id, ratio);
         return ratio;
@@ -606,10 +648,11 @@ export class WorkspaceShellHost {
             registry: this.registry,
             services: this.services,
             dispatch: (event, meta) => {
+              const currentArea = record.area;
               const payload = typeof event === "string" ? { "event/type": event } : { ...event };
-              if (!Object.hasOwn(payload, "area/id")) payload["area/id"] = area.id;
+              if (!Object.hasOwn(payload, "area/id")) payload["area/id"] = currentArea.id;
               if (!Object.hasOwn(payload, "workspace/id")) payload["workspace/id"] = this.workspace.id;
-              return this.dispatch(payload, { ...meta, workspace: this.workspace, area });
+              return this.dispatch(payload, { ...meta, workspace: this.workspace, area: currentArea });
             },
           });
           record.componentHost.mount(area.component, { ...this.context, workspace: this.workspace, area });
@@ -631,13 +674,15 @@ export class WorkspaceShellHost {
     this.#unbindMedia();
     this.mediaQuery = query;
     this.media = this.matchMedia(query);
-    this.media?.addEventListener?.("change", this.mediaListener);
-    this.media?.addListener?.(this.mediaListener);
+    if (typeof this.media?.addEventListener === "function") {
+      this.media.addEventListener("change", this.mediaListener);
+    } else this.media?.addListener?.(this.mediaListener);
   }
 
   #unbindMedia() {
-    this.media?.removeEventListener?.("change", this.mediaListener);
-    this.media?.removeListener?.(this.mediaListener);
+    if (typeof this.media?.removeEventListener === "function") {
+      this.media.removeEventListener("change", this.mediaListener);
+    } else this.media?.removeListener?.(this.mediaListener);
     this.media = null;
     this.mediaQuery = null;
   }
