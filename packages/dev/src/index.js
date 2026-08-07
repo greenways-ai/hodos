@@ -19,8 +19,48 @@ const selectionValue = (value = {}) => {
   return Object.freeze({ start, end });
 };
 
+const pathValue = (value = [], label = "Hodos Dev value path") => {
+  if (!Array.isArray(value)) throw new TypeError(`${label} must be an array`);
+  return Object.freeze(value.map((segment, index) => {
+    if (typeof segment === "string") return segment;
+    if (Number.isSafeInteger(segment) && segment >= 0) return segment;
+    throw new TypeError(`${label} segment ${index} must be a string or non-negative integer`);
+  }));
+};
+
+const serializableValue = (value, label, ancestors = new Set()) => {
+  if (value == null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new TypeError(`${label} numbers must be finite`);
+    return value;
+  }
+  if (typeof value !== "object") {
+    throw new TypeError(`${label} must contain only serializable values`);
+  }
+  if (ancestors.has(value)) throw new TypeError(`${label} must not contain cycles`);
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return Object.freeze(value.map((entry, index) =>
+        serializableValue(entry, `${label}[${index}]`, ancestors)));
+    }
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) {
+      throw new TypeError(`${label} objects must be plain`);
+    }
+    const output = {};
+    for (const [key, entry] of Object.entries(value)) {
+      output[key] = serializableValue(entry, `${label}.${key}`, ancestors);
+    }
+    return Object.freeze(output);
+  } finally {
+    ancestors.delete(value);
+  }
+};
+
 const REPL_ENTRY_KINDS = new Set(["input", "result", "stdout", "error", "diagnostic"]);
 const REPL_STATUSES = new Set(["idle", "ready", "busy", "error", "closed"]);
+const VALUE_INSPECTOR_STATUSES = new Set(["idle", "loading", "ready", "error"]);
 
 const replEntryValue = (entry, index) => {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
@@ -39,6 +79,7 @@ const replEntryValue = (entry, index) => {
     text: entry.text,
     namespace: optionalString(entry.namespace, `Hodos Dev REPL entry ${index} namespace`),
     requestId: optionalString(entry.requestId, `Hodos Dev REPL entry ${index} request id`),
+    valueId: optionalString(entry.valueId, `Hodos Dev REPL entry ${index} value id`),
   });
 };
 
@@ -67,6 +108,17 @@ export const HODOS_DEV_REPL_EVENTS = Object.freeze([
   "repl/clear",
   "repl/history",
   "repl/cancel",
+  "repl/inspect",
+]);
+
+export const HODOS_DEV_VALUE_INSPECTOR_AREA_TYPE = "hodos.dev/value-inspector";
+export const HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID = "hodos.dev/value-inspector";
+export const HODOS_DEV_VALUE_INSPECTOR_EVENTS = Object.freeze([
+  "value/select",
+  "value/toggle",
+  "value/copy",
+  "value/refresh",
+  "value/close",
 ]);
 
 export function createPreviewArea({
@@ -193,6 +245,72 @@ export function createReplArea({
     "area/title": title,
     "area/component": Object.freeze({
       "component/id": HODOS_DEV_REPL_COMPONENT_ID,
+      "component/contract": WORKSPACE_COMPONENT_CONTRACT,
+      "component/model": model,
+      "component/events": Object.freeze([...events]),
+    }),
+  });
+}
+
+export function createValueInspectorArea({
+  id = "value/main",
+  title = "Value Inspector",
+  valueId = null,
+  requestId = null,
+  status = valueId ? "ready" : "idle",
+  display = "",
+  value = null,
+  valueType = null,
+  namespace = null,
+  source = null,
+  path = [],
+  expanded = [],
+  metadata = {},
+  error = null,
+  events = HODOS_DEV_VALUE_INSPECTOR_EVENTS,
+} = {}) {
+  id = nonEmptyString(id, "Hodos Dev Value Inspector area id");
+  title = nonEmptyString(title, "Hodos Dev Value Inspector title");
+  status = nonEmptyString(status, "Hodos Dev Value Inspector status");
+  if (!VALUE_INSPECTOR_STATUSES.has(status)) {
+    throw new Error(`Unsupported Hodos Dev Value Inspector status: ${status}`);
+  }
+  if (typeof display !== "string") {
+    throw new TypeError("Hodos Dev Value Inspector display must be a string");
+  }
+  if (!Array.isArray(expanded)) {
+    throw new TypeError("Hodos Dev Value Inspector expanded paths must be an array");
+  }
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError("Hodos Dev Value Inspector metadata must be an object");
+  }
+
+  const model = Object.freeze({
+    value: Object.freeze({
+      id: optionalString(valueId, "Hodos Dev Value Inspector value id"),
+      requestId: optionalString(requestId, "Hodos Dev Value Inspector request id"),
+      type: optionalString(valueType, "Hodos Dev Value Inspector value type"),
+      display,
+      data: serializableValue(value, "Hodos Dev Value Inspector value"),
+    }),
+    context: Object.freeze({
+      namespace: optionalString(namespace, "Hodos Dev Value Inspector namespace"),
+      source: optionalString(source, "Hodos Dev Value Inspector source"),
+    }),
+    status,
+    path: pathValue(path),
+    expanded: Object.freeze(expanded.map((entry, index) =>
+      pathValue(entry, `Hodos Dev Value Inspector expanded path ${index}`))),
+    metadata: serializableValue(metadata, "Hodos Dev Value Inspector metadata"),
+    error: optionalString(error, "Hodos Dev Value Inspector error"),
+  });
+
+  return Object.freeze({
+    "area/id": id,
+    "area/type": HODOS_DEV_VALUE_INSPECTOR_AREA_TYPE,
+    "area/title": title,
+    "area/component": Object.freeze({
+      "component/id": HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID,
       "component/contract": WORKSPACE_COMPONENT_CONTRACT,
       "component/model": model,
       "component/events": Object.freeze([...events]),

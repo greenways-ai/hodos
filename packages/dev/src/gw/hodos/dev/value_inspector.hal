@@ -1,0 +1,35 @@
+(ns gw.hodos.dev.value-inspector)
+
+(def component-id "hodos.dev/value-inspector")
+(def component-contract "workspace.component/1")
+(def events
+  #{"value/select"
+    "value/toggle"
+    "value/copy"
+    "value/refresh"
+    "value/close"})
+
+(defn model
+  ([value]
+   (model value {}))
+  ([value options]
+   {:value value
+    :context (get options :context {})
+    :status (get options :status "idle")
+    :path (get options :path [])
+    :expanded (get options :expanded [])
+    :metadata (get options :metadata {})
+    :error (get options :error nil)}))
+
+(defn area
+  ([id model]
+   (area id "Value Inspector" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/value-inspector
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))

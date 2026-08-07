@@ -28,10 +28,11 @@ test("Hodos Dev REPL adapts an injected host and routes semantic events", async 
   });
   host.open(createReplArea({ namespace: "user", status: "ready", entries: [] }));
   await send({ "event/type": "repl/submit", source: "(+ 1 2)" });
+  await send({ "event/type": "repl/inspect", valueId: "value-1" });
   host.update(createReplArea({
     namespace: "user",
     status: "ready",
-    entries: [{ kind: "result", text: "3" }],
+    entries: [{ kind: "result", text: "3", valueId: "value-1" }],
   }));
   host.destroy();
   unregister();
@@ -41,12 +42,20 @@ test("Hodos Dev REPL adapts an injected host and routes semantic events", async 
     ["update", "user", 1, true],
     ["dispose"],
   ]);
-  assert.deepEqual(events, [{
-    "event/type": "repl/submit",
-    source: "(+ 1 2)",
-    "component/id": "hodos.dev/repl",
-    "area/id": "repl/main",
-  }]);
+  assert.deepEqual(events, [
+    {
+      "event/type": "repl/submit",
+      source: "(+ 1 2)",
+      "component/id": "hodos.dev/repl",
+      "area/id": "repl/main",
+    },
+    {
+      "event/type": "repl/inspect",
+      valueId: "value-1",
+      "component/id": "hodos.dev/repl",
+      "area/id": "repl/main",
+    },
+  ]);
   assert.equal(registry.has("hodos.dev/repl"), false);
 });
 
