@@ -240,6 +240,159 @@ const explorerCountsValue = (entries) => Object.freeze({
   changed: entries.filter((entry) => entry.status !== "clean").length,
 });
 
+
+const CATALOG_SURFACES = new Set(["all", "tools", "activity"]);
+const CATALOG_RUN_STATUSES = new Set(["idle", "opening", "running", "passed", "failed"]);
+const CATALOG_CHECK_STATUSES = new Set(["pending", "passed", "failed"]);
+
+const catalogToolValue = (tool, index, toolsetId) => {
+  const label = `Hodos Dev Catalog tool ${toolsetId}/${index}`;
+  if (!tool || typeof tool !== "object" || Array.isArray(tool)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const metadata = tool.metadata ?? {};
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError(`${label} metadata must be an object`);
+  }
+  return Object.freeze({
+    id: nonEmptyString(tool.id, `${label} id`),
+    label: nonEmptyString(tool.label, `${label} label`),
+    description: nonEmptyString(tool.description, `${label} description`),
+    detail: optionalString(tool.detail, `${label} detail`),
+    metadata: serializableValue(metadata, `${label} metadata`),
+  });
+};
+
+const catalogToolsetValue = (toolset, index) => {
+  const label = `Hodos Dev Catalog toolset ${index}`;
+  if (!toolset || typeof toolset !== "object" || Array.isArray(toolset)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  if (!Array.isArray(toolset.tools)) throw new TypeError(`${label} tools must be an array`);
+  const id = nonEmptyString(toolset.id, `${label} id`);
+  const tools = Object.freeze(toolset.tools.map((tool, toolIndex) =>
+    catalogToolValue(tool, toolIndex, id)));
+  const toolIds = new Set();
+  for (const tool of tools) {
+    if (toolIds.has(tool.id)) throw new Error(`Duplicate Hodos Dev Catalog tool id in ${id}: ${tool.id}`);
+    toolIds.add(tool.id);
+  }
+  const metadata = toolset.metadata ?? {};
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError(`${label} metadata must be an object`);
+  }
+  return Object.freeze({
+    id,
+    title: nonEmptyString(toolset.title, `${label} title`),
+    shortTitle: optionalString(toolset.shortTitle, `${label} short title`),
+    description: nonEmptyString(toolset.description, `${label} description`),
+    tools,
+    metadata: serializableValue(metadata, `${label} metadata`),
+  });
+};
+
+const catalogActivityValue = (activity, index) => {
+  const label = `Hodos Dev Catalog activity ${index}`;
+  if (!activity || typeof activity !== "object" || Array.isArray(activity)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  if (!Array.isArray(activity.instructions)) {
+    throw new TypeError(`${label} instructions must be an array`);
+  }
+  const instructions = Object.freeze(activity.instructions.map((entry, instructionIndex) =>
+    nonEmptyString(entry, `${label} instruction ${instructionIndex}`)));
+  const checkCount = Number(activity.checkCount ?? 0);
+  if (!Number.isSafeInteger(checkCount) || checkCount < 0) {
+    throw new TypeError(`${label} checkCount must be a non-negative integer`);
+  }
+  const metadata = activity.metadata ?? {};
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError(`${label} metadata must be an object`);
+  }
+  return Object.freeze({
+    id: nonEmptyString(activity.id, `${label} id`),
+    toolsetId: nonEmptyString(activity.toolsetId, `${label} toolset id`),
+    title: nonEmptyString(activity.title, `${label} title`),
+    level: nonEmptyString(activity.level, `${label} level`),
+    summary: nonEmptyString(activity.summary, `${label} summary`),
+    instructions,
+    path: activity.path == null
+      ? null
+      : workspacePathValue(activity.path, `${label} path`),
+    checkCount,
+    metadata: serializableValue(metadata, `${label} metadata`),
+  });
+};
+
+const catalogCheckValue = (check, index) => {
+  const label = `Hodos Dev Catalog run check ${index}`;
+  if (!check || typeof check !== "object" || Array.isArray(check)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const status = nonEmptyString(check.status ?? "pending", `${label} status`);
+  if (!CATALOG_CHECK_STATUSES.has(status)) {
+    throw new Error(`${label} has unsupported status: ${status}`);
+  }
+  return Object.freeze({
+    id: optionalString(check.id, `${label} id`) ?? `check/${index + 1}`,
+    label: nonEmptyString(check.label, `${label} label`),
+    status,
+    actual: serializableValue(check.actual ?? null, `${label} actual`),
+    expected: serializableValue(check.expected ?? null, `${label} expected`),
+    error: optionalString(check.error, `${label} error`),
+  });
+};
+
+const catalogRunValue = (value = {}) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Hodos Dev Catalog run must be an object");
+  }
+  const status = nonEmptyString(value.status ?? "idle", "Hodos Dev Catalog run status");
+  if (!CATALOG_RUN_STATUSES.has(status)) {
+    throw new Error(`Unsupported Hodos Dev Catalog run status: ${status}`);
+  }
+  if (!Array.isArray(value.checks ?? [])) {
+    throw new TypeError("Hodos Dev Catalog run checks must be an array");
+  }
+  const checks = Object.freeze((value.checks ?? []).map(catalogCheckValue));
+  const counts = { total: checks.length, pending: 0, passed: 0, failed: 0 };
+  for (const check of checks) counts[check.status] += 1;
+  return Object.freeze({
+    status,
+    message: typeof (value.message ?? "") === "string" ? value.message ?? "" : String(value.message),
+    checks,
+    counts: Object.freeze(counts),
+  });
+};
+
+const catalogCapabilitiesValue = (value = {}) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError("Hodos Dev Catalog capabilities must be an object");
+  }
+  const output = {};
+  for (const key of [
+    "selectToolset",
+    "selectActivity",
+    "insertTool",
+    "openActivity",
+    "checkActivity",
+    "resetActivity",
+  ]) {
+    const enabled = value[key] ?? false;
+    if (typeof enabled !== "boolean") {
+      throw new TypeError(`Hodos Dev Catalog capability ${key} must be boolean`);
+    }
+    output[key] = enabled;
+  }
+  return Object.freeze(output);
+};
+
+const catalogCountsValue = (toolsets, activities) => Object.freeze({
+  toolsets: toolsets.length,
+  tools: toolsets.reduce((total, toolset) => total + toolset.tools.length, 0),
+  activities: activities.length,
+});
+
 const replEntryValue = (entry, index) => {
   if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
     throw new TypeError(`Hodos Dev REPL entry ${index} must be an object`);
@@ -279,6 +432,18 @@ export const HODOS_DEV_EXPLORER_EVENTS = Object.freeze([
   "explorer/delete",
   "explorer/refresh",
   "explorer/filter",
+]);
+
+
+export const HODOS_DEV_CATALOG_AREA_TYPE = "hodos.dev/catalog";
+export const HODOS_DEV_CATALOG_COMPONENT_ID = "hodos.dev/catalog";
+export const HODOS_DEV_CATALOG_EVENTS = Object.freeze([
+  "catalog/select-toolset",
+  "catalog/select-activity",
+  "catalog/insert-tool",
+  "catalog/open-activity",
+  "catalog/check-activity",
+  "catalog/reset-activity",
 ]);
 
 export const HODOS_DEV_EDITOR_AREA_TYPE = "hodos.dev/editor";
@@ -650,6 +815,101 @@ export function createExplorerArea({
     "area/title": title,
     "area/component": Object.freeze({
       "component/id": HODOS_DEV_EXPLORER_COMPONENT_ID,
+      "component/contract": WORKSPACE_COMPONENT_CONTRACT,
+      "component/model": model,
+      "component/events": Object.freeze([...events]),
+    }),
+  });
+}
+
+export function createCatalogArea({
+  id = "catalog/main",
+  title = "Catalog",
+  catalogId = null,
+  catalogTitle = "Developer Catalog",
+  version = null,
+  source = null,
+  surface = "all",
+  toolsets = [],
+  activities = [],
+  selectedToolsetId = null,
+  selectedActivityId = null,
+  selectedToolId = null,
+  run = {},
+  capabilities = {},
+  metadata = {},
+  events = HODOS_DEV_CATALOG_EVENTS,
+} = {}) {
+  id = nonEmptyString(id, "Hodos Dev Catalog area id");
+  title = nonEmptyString(title, "Hodos Dev Catalog title");
+  catalogTitle = nonEmptyString(catalogTitle, "Hodos Dev Catalog catalog title");
+  surface = nonEmptyString(surface, "Hodos Dev Catalog surface");
+  if (!CATALOG_SURFACES.has(surface)) throw new Error(`Unsupported Hodos Dev Catalog surface: ${surface}`);
+  if (!Array.isArray(toolsets)) throw new TypeError("Hodos Dev Catalog toolsets must be an array");
+  if (!Array.isArray(activities)) throw new TypeError("Hodos Dev Catalog activities must be an array");
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    throw new TypeError("Hodos Dev Catalog metadata must be an object");
+  }
+
+  const projectedToolsets = Object.freeze(toolsets.map(catalogToolsetValue));
+  const toolsetsById = new Map();
+  for (const toolset of projectedToolsets) {
+    if (toolsetsById.has(toolset.id)) throw new Error(`Duplicate Hodos Dev Catalog toolset id: ${toolset.id}`);
+    toolsetsById.set(toolset.id, toolset);
+  }
+
+  const projectedActivities = Object.freeze(activities.map(catalogActivityValue));
+  const activitiesById = new Map();
+  for (const activity of projectedActivities) {
+    if (activitiesById.has(activity.id)) throw new Error(`Duplicate Hodos Dev Catalog activity id: ${activity.id}`);
+    if (!toolsetsById.has(activity.toolsetId)) {
+      throw new Error(`Hodos Dev Catalog activity references missing toolset: ${activity.toolsetId}`);
+    }
+    activitiesById.set(activity.id, activity);
+  }
+
+  const toolsetId = optionalString(selectedToolsetId, "Hodos Dev Catalog selected toolset id");
+  if (toolsetId && !toolsetsById.has(toolsetId)) {
+    throw new Error(`Hodos Dev Catalog selected toolset is not present: ${toolsetId}`);
+  }
+  const activityId = optionalString(selectedActivityId, "Hodos Dev Catalog selected activity id");
+  if (activityId && !activitiesById.has(activityId)) {
+    throw new Error(`Hodos Dev Catalog selected activity is not present: ${activityId}`);
+  }
+  if (toolsetId && activityId && activitiesById.get(activityId).toolsetId !== toolsetId) {
+    throw new Error("Hodos Dev Catalog selected activity does not belong to selected toolset");
+  }
+  const toolId = optionalString(selectedToolId, "Hodos Dev Catalog selected tool id");
+  if (toolId) {
+    const toolset = toolsetsById.get(toolsetId);
+    if (!toolset || !toolset.tools.some((tool) => tool.id === toolId)) {
+      throw new Error(`Hodos Dev Catalog selected tool is not present in selected toolset: ${toolId}`);
+    }
+  }
+
+  const model = Object.freeze({
+    catalog: Object.freeze({
+      id: optionalString(catalogId, "Hodos Dev Catalog catalog id"),
+      title: catalogTitle,
+      version: optionalString(version, "Hodos Dev Catalog version"),
+      source: optionalString(source, "Hodos Dev Catalog source"),
+    }),
+    surface,
+    toolsets: projectedToolsets,
+    activities: projectedActivities,
+    selection: Object.freeze({ toolsetId, activityId, toolId }),
+    run: catalogRunValue(run),
+    capabilities: catalogCapabilitiesValue(capabilities),
+    counts: catalogCountsValue(projectedToolsets, projectedActivities),
+    metadata: serializableValue(metadata, "Hodos Dev Catalog metadata"),
+  });
+
+  return Object.freeze({
+    "area/id": id,
+    "area/type": HODOS_DEV_CATALOG_AREA_TYPE,
+    "area/title": title,
+    "area/component": Object.freeze({
+      "component/id": HODOS_DEV_CATALOG_COMPONENT_ID,
       "component/contract": WORKSPACE_COMPONENT_CONTRACT,
       "component/model": model,
       "component/events": Object.freeze([...events]),
