@@ -79,25 +79,30 @@ class Document {
   createElement() { return new Element(this); }
 }
 
-const descriptor = ({ surfaces, selection = { "area/id": "area/editor" } } = {}) => ({
-  "workspace/id": "workspace/preferences",
-  "workspace/layout": {
-    "layout/type": "split",
-    "layout/direction": "horizontal",
-    "layout/ratio": 0.5,
-    "layout/first": { "layout/type": "area", "layout/area": "area/files" },
-    "layout/second": { "layout/type": "area", "layout/area": "area/editor" },
-  },
-  "workspace/areas": [
-    { "area/id": "area/files", "area/type": "project", "area/title": "Files" },
-    { "area/id": "area/editor", "area/type": "editor", "area/title": "Code" },
-  ],
-  "workspace/selection": selection,
-  "workspace/customizations": {
-    "responsive/default-surface": surfaces?.[1]?.["surface/id"] ?? "code",
-    ...(surfaces === undefined ? {} : { "responsive/surfaces": surfaces }),
-  },
-});
+const descriptor = ({ surfaces, selection = { "area/id": "area/editor" } } = {}) => {
+  const customizations = {};
+  if (surfaces !== undefined) customizations["responsive/surfaces"] = surfaces;
+  if (surfaces?.length) {
+    customizations["responsive/default-surface"] = surfaces[1]?.["surface/id"]
+      ?? surfaces[0]["surface/id"];
+  }
+  return {
+    "workspace/id": "workspace/preferences",
+    "workspace/layout": {
+      "layout/type": "split",
+      "layout/direction": "horizontal",
+      "layout/ratio": 0.5,
+      "layout/first": { "layout/type": "area", "layout/area": "area/files" },
+      "layout/second": { "layout/type": "area", "layout/area": "area/editor" },
+    },
+    "workspace/areas": [
+      { "area/id": "area/files", "area/type": "project", "area/title": "Files" },
+      { "area/id": "area/editor", "area/type": "editor", "area/title": "Code" },
+    ],
+    "workspace/selection": selection,
+    "workspace/customizations": customizations,
+  };
+};
 
 const surfaces = [
   { "surface/id": "files", "surface/area": "area/files", "surface/label": "Files" },
