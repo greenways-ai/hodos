@@ -1,0 +1,35 @@
+(ns gw.hodos.dev.repl)
+
+(def component-id "hodos.dev/repl")
+(def component-contract "workspace.component/1")
+(def events
+  #{"repl/input"
+    "repl/submit"
+    "repl/clear"
+    "repl/history"
+    "repl/cancel"})
+
+(defn model
+  ([session namespace entries]
+   (model session namespace entries {}))
+  ([session namespace entries options]
+   {:session session
+    :namespace namespace
+    :entries entries
+    :input (get options :input "")
+    :history (get options :history [])
+    :historyIndex (get options :historyIndex (count (get options :history [])))
+    :canSubmit (get options :canSubmit false)}))
+
+(defn area
+  ([id model]
+   (area id "REPL" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/repl
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))
