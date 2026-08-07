@@ -25,17 +25,19 @@ const eventType = (event) => {
   return event["event/type"] ?? event.type ?? null;
 };
 
-export const HODOS_COMPONENT_CONTRACT = "hodos.component/1";
+export const WORKSPACE_COMPONENT_CONTRACT = "workspace.component/1";
+// Bounded source compatibility for the initial Hodos foundation branch.
+export const HODOS_COMPONENT_CONTRACT = WORKSPACE_COMPONENT_CONTRACT;
 
 export function normalizeComponentDescriptor(value, label = "Hodos component descriptor") {
   const input = plainObject(value, label);
   const id = nonEmptyString(field(input, ["component/id", "id"]), `${label} id`);
   const contract = nonEmptyString(
-    field(input, ["component/contract", "contract"]) ?? HODOS_COMPONENT_CONTRACT,
+    field(input, ["component/contract", "contract"]) ?? WORKSPACE_COMPONENT_CONTRACT,
     `${label} contract`,
   );
-  if (contract !== HODOS_COMPONENT_CONTRACT) {
-    throw new Error(`${label} contract must be ${HODOS_COMPONENT_CONTRACT}`);
+  if (contract !== WORKSPACE_COMPONENT_CONTRACT) {
+    throw new Error(`${label} contract must be ${WORKSPACE_COMPONENT_CONTRACT}`);
   }
   const rawEvents = field(input, ["component/events", "events"]) ?? [];
   if (!(Array.isArray(rawEvents) || rawEvents instanceof Set)) {
