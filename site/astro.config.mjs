@@ -77,7 +77,43 @@ export default defineConfig({
           attrs: {
             property: "og:image",
             content:
-              "https://oss.greenways.ai/visual-language/assets/og-hodos.png",
+              "https://oss.greenways.ai/visual-language/assets/og-hodos.jpg",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:secure_url",
+            content:
+              "https://oss.greenways.ai/visual-language/assets/og-hodos.jpg",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:type",
+            content: "image/jpeg",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:width",
+            content: "1200",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:height",
+            content: "630",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:alt",
+            content: "The Hodos moth sigil over its mosaic theatre",
           },
         },
         {
@@ -92,7 +128,14 @@ export default defineConfig({
           attrs: {
             name: "twitter:image",
             content:
-              "https://oss.greenways.ai/visual-language/assets/og-hodos.png",
+              "https://oss.greenways.ai/visual-language/assets/og-hodos.jpg",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image:alt",
+            content: "The Hodos moth sigil over its mosaic theatre",
           },
         },
       ],
