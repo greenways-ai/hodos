@@ -2,11 +2,12 @@
 
 Visible Hodos developer components driven by HAL-shaped Workspace models.
 
-The package currently registers Preview, Editor, REPL, Problems and Value
+The package currently registers Preview, Editor, Explorer, REPL, Problems and Value
 Inspector components:
 
 - Preview adapts an injected Hara sandbox/iframe service;
 - Editor adapts an injected trusted editor host;
+- Explorer adapts an injected workspace-entry host;
 - REPL adapts an injected session-console host;
 - Problems adapts an injected diagnostic-list host;
 - Value Inspector adapts an injected structured-value host;
@@ -18,6 +19,7 @@ import { registerHodosDevUi } from "@greenways/hodos-dev-ui";
 const unregister = registerHodosDevUi(registry, {
   createPreviewHost: (options) => haraPreviewService.create(options),
   createEditorHost: ({ container, dispatch }) => createEditorHost(container, dispatch),
+  createExplorerHost: ({ container, dispatch }) => createExplorerHost(container, dispatch),
   createReplHost: ({ container, dispatch }) => createReplHost(container, dispatch),
   createProblemsHost: ({ container, dispatch }) => createProblemsHost(container, dispatch),
   createValueInspectorHost: ({ container, dispatch }) =>
