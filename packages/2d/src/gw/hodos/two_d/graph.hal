@@ -1,0 +1,30 @@
+(ns gw.hodos.two-d.graph)
+
+(def component-id "hodos.2d/graph")
+(def component-contract "workspace.component/1")
+(def events
+  #{"graph/select"
+    "graph/move-node"
+    "graph/connect"
+    "graph/create-node"
+    "graph/delete"
+    "graph/command"})
+
+(defn model [graph options]
+  {:graph graph
+   :selection (get options :selection {})
+   :viewport (get options :viewport {:x 0 :y 0 :zoom 1})
+   :status (get options :status "ready")
+   :read-only (get options :read-only false)
+   :capabilities (get options :capabilities {})
+   :error (get options :error nil)})
+
+(defn area [id title model]
+  {:area/id id
+   :area/type :hodos.2d/graph
+   :area/title title
+   :area/component
+   {:component/id component-id
+    :component/contract component-contract
+    :component/model model
+    :component/events events}})

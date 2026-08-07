@@ -1,0 +1,11 @@
+{:hara/type :project
+ :hara/version "1.0.0"
+ :project/id greenways/hodos-2d
+ :project/version "0.1.0"
+ :project/source-paths ["src"]
+ :project/test-paths ["test"]
+ :project/extension-paths []
+ :project/capabilities #{}
+ :project/dependencies
+ {"hara:greenways/hodos-web" {:version "^0.1.0"}}
+ :project/recipe "hara.recipe.edn"}

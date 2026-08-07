@@ -1,0 +1,31 @@
+(ns gw.hodos.two-d.document)
+
+(def component-id "hodos.2d/document")
+(def component-contract "workspace.component/1")
+(def profile "hodos.rich-text/2")
+(def events
+  #{"document/select"
+    "document/edit-text"
+    "document/insert-block"
+    "document/delete-block"
+    "document/activate-artefact"
+    "document/commit-artefact"
+    "document/command"})
+
+(defn model [document options]
+  {:document document
+   :selection (get options :selection {})
+   :status (get options :status "ready")
+   :read-only (get options :read-only false)
+   :capabilities (get options :capabilities {})
+   :error (get options :error nil)})
+
+(defn area [id title model]
+  {:area/id id
+   :area/type :hodos.2d/document
+   :area/title title
+   :area/component
+   {:component/id component-id
+    :component/contract component-contract
+    :component/model model
+    :component/events events}})
