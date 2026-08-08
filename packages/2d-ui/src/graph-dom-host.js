@@ -398,43 +398,43 @@ export function createGraphDomHost({
       ));
       element.append(header, body);
 
-const selectNode = (event) => {
-if (!view.capabilities.select) return false;
-const nodeIds = toggled(view.selection.nodeIds, node.id, Boolean(event?.shiftKey));
-const connectionIds = event?.shiftKey ? view.selection.connectionIds : [];
-const unchanged = nodeIds.length === view.selection.nodeIds.length
-  && nodeIds.every((id, index) => id === view.selection.nodeIds[index])
-  && connectionIds.length === view.selection.connectionIds.length
-  && connectionIds.every((id, index) => id === view.selection.connectionIds[index]);
-if (unchanged) return false;
-send("graph/select", {
-  graphId: view.id,
-  nodeIds,
-  connectionIds,
-});
-return true;
-    };
+      const selectNode = (event) => {
+        if (!view.capabilities.select) return false;
+        const nodeIds = toggled(view.selection.nodeIds, node.id, Boolean(event?.shiftKey));
+        const connectionIds = event?.shiftKey ? view.selection.connectionIds : [];
+        const unchanged = nodeIds.length === view.selection.nodeIds.length
+          && nodeIds.every((id, index) => id === view.selection.nodeIds[index])
+          && connectionIds.length === view.selection.connectionIds.length
+          && connectionIds.every((id, index) => id === view.selection.connectionIds[index]);
+        if (unchanged) return false;
+        send("graph/select", {
+          graphId: view.id,
+          nodeIds,
+          connectionIds,
+        });
+        return true;
+      };
 
-    let drag = null;
-    addListener(header, "pointerdown", (event) => {
-if (event.button != null && event.button !== 0) return;
-event.stopPropagation?.();
-// Selection may synchronously replace this DOM host. Complete that
-// semantic boundary before beginning a later stable drag gesture.
-if (selectNode(event)) return;
-if (view.readOnly || node.readOnly || !view.capabilities.moveNode) return;
-event.preventDefault?.();
-header.setPointerCapture?.(event.pointerId);
-header.classList?.add("dragging");
-drag = {
-  pointerId: event.pointerId,
-  clientX: finite(event.clientX),
-  clientY: finite(event.clientY),
-  x: nodeCoordinates.get(node.id).x,
-  y: nodeCoordinates.get(node.id).y,
-  moved: false,
-};
-    }, controller);
+      let drag = null;
+      addListener(header, "pointerdown", (event) => {
+        if (event.button != null && event.button !== 0) return;
+        event.stopPropagation?.();
+        // Selection may synchronously replace this DOM host. Complete that
+        // semantic boundary before beginning a later stable drag gesture.
+        if (selectNode(event)) return;
+        if (view.readOnly || node.readOnly || !view.capabilities.moveNode) return;
+        event.preventDefault?.();
+        header.setPointerCapture?.(event.pointerId);
+        header.classList?.add("dragging");
+        drag = {
+          pointerId: event.pointerId,
+          clientX: finite(event.clientX),
+          clientY: finite(event.clientY),
+          x: nodeCoordinates.get(node.id).x,
+          y: nodeCoordinates.get(node.id).y,
+          moved: false,
+        };
+      }, controller);
       addListener(header, "pointermove", (event) => {
         if (!drag || event.pointerId !== drag.pointerId) return;
         const x = drag.x + (finite(event.clientX) - drag.clientX) / view.viewport.zoom;

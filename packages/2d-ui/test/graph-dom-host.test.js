@@ -190,6 +190,7 @@ test("Graph DOM host separates selection from drag and emits connection semantic
   assert.equal(container.children.length, 0);
   assert.equal(container.dataset.hodosComponent, undefined);
 });
+
 test("Graph DOM source avoids HTML interpolation and executable evaluation", async () => {
   const source = await readFile(new URL("../src/graph-dom-host.js", import.meta.url), "utf8");
   assert.equal(source.includes("innerHTML"), false);
