@@ -1,0 +1,11 @@
+(ns showcase.hodos-dev.explorer)
+
+(def project-tree
+  {:workspace "Hodos Dev Showcase"
+   :selected "src/main.hal"
+   :entries ["README.md"
+             "project.edn"
+             "workspace.edn"
+             "src/main.hal"]})
+
+project-tree

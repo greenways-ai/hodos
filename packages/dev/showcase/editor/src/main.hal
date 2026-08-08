@@ -1,0 +1,8 @@
+(ns showcase.hodos-dev.editor)
+
+(def answer 42)
+
+(defn greeting [name]
+  [:p "Hello, " name ". The editor is projecting an ordinary Hara document."])
+
+(greeting "Hodos")

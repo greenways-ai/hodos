@@ -1,0 +1,58 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-dev-explorer
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id "layout/root"
+  :layout/direction :horizontal
+  :layout/ratio 0.22
+  :layout/first {:layout/type :area :layout/area "area/project"}
+  :layout/second
+  {:layout/type :split
+   :layout/id "layout/work"
+   :layout/direction :horizontal
+   :layout/ratio 0.62
+   :layout/first {:layout/type :area :layout/area "area/editor"}
+   :layout/second {:layout/type :area :layout/area "area/output"}}}
+ :workspace/documents
+ [{:document/id "document/main"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/project"
+   :area/type "hodos.dev/explorer"
+   :area/title "Project"
+   :area/presentation
+   {:presentation/role :project
+    :presentation/label "Files"}}
+  {:area/id "area/editor"
+   :area/type "hodos.dev/editor"
+   :area/title "main.hal"
+   :area/presentation
+   {:presentation/role :editor
+    :presentation/label "Code"}}
+  {:area/id "area/output"
+   :area/type "hodos.dev/preview"
+   :area/title "Preview"
+   :area/presentation
+   {:presentation/role :output
+    :presentation/label "Preview"}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/main"
+   :link/document "document/main"
+   :link/area "area/editor"}]
+ :workspace/selection
+ {:area/id "area/project"
+  :document/id "document/main"
+  :surface/id "files"}
+ :workspace/customizations
+ {:responsive/breakpoint 1000
+  :responsive/default-surface "files"}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

@@ -1,0 +1,12 @@
+{:component/id "hodos.dev/explorer"
+ :component/contract "workspace.component/1"
+ :host {:kind "trusted-explorer"
+        :containerOwned true
+        :updates "serializable-model"
+        :dispose ["listeners" "observers" "owned-dom"]}
+ :events ["explorer/select"
+          "explorer/toggle"
+          "explorer/filter"
+          "explorer/refresh"]
+ :authority {:entries "source-service"
+             :selection "application"}}

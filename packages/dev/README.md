@@ -1,10 +1,30 @@
 # @greenways/hodos-dev
 
-HAL-first developer Workspace models for Hodos.
+Serializable developer Workspace areas for Hodos.
 
-The package currently defines serializable Catalog, Editor, Explorer, Preview,
-Problems, REPL and Value Inspector areas without introducing a second
-Workspace model:
+`@greenways/hodos-dev` defines the model and semantic-event boundary for the
+developer surfaces used by the Hara Playground and other Hodos hosts. It does
+not own a browser runtime, a source repository, an editor engine, persistence,
+or privileged tools.
+
+## Install
+
+Hara:
+
+```clojure
+:project/dependencies
+{"hara:greenways/hodos-dev" {:version "^0.1.0"}}
+```
+
+JavaScript:
+
+```sh
+npm install @greenways/hodos-dev
+```
+
+## Areas
+
+The package exports constructors for seven serializable Workspace areas:
 
 ```js
 import {
@@ -16,18 +36,31 @@ import {
   createReplArea,
   createValueInspectorArea,
 } from "@greenways/hodos-dev";
+```
 
-const catalog = createCatalogArea({
-  surface: "tools",
-  toolsets: [{
-    id: "values",
-    title: "Value tools",
-    description: "Build and inspect live values.",
-    tools: [{ id: "defn", label: "Function", description: "Insert a function template." }],
-  }],
-  selectedToolsetId: "values",
-});
+Each constructor returns the ordinary Hodos Workspace component contract:
 
+```js
+{
+  "area/id": "editor/main",
+  "area/type": "hodos.dev/editor",
+  "area/title": "main.hal",
+  "area/component": {
+    "component/id": "hodos.dev/editor",
+    "component/contract": "workspace.component/1",
+    "component/model": { /* serializable data */ },
+    "component/events": [ /* declared semantic events */ ]
+  }
+}
+```
+
+### Explorer
+
+Explorer models carry canonical relative paths, file or directory identity,
+language, source status, selection, expansion, filtering, counts and bounded
+file-operation capabilities.
+
+```js
 const explorer = createExplorerArea({
   workspaceId: "workspace/project",
   workspaceTitle: "Project",
@@ -37,61 +70,148 @@ const explorer = createExplorerArea({
   ],
   selectedPath: "src/main.hal",
   expandedPaths: ["src"],
+  capabilities: { refresh: true },
 });
+```
 
+The source service remains authoritative for file contents, writes, renames,
+deletes and refreshes.
+
+### Editor
+
+Editor models carry document identity, path, source text, namespace, language,
+selection offsets, completion state, Paredit/rainbow/instant-evaluation
+preferences and the commands exposed by the host.
+
+```js
 const editor = createEditorArea({
   documentId: "document/main",
   path: "src/main.hal",
-  source: "(ns app.core)",
+  source: "(ns app.core)\n\n(def answer 42)",
   namespace: "app.core",
+  language: "hara",
+  selection: { start: 31, end: 31 },
 });
+```
 
+The model describes editor state; a trusted editor host still owns DOM input,
+IME behavior, low-level cursor mechanics, syntax presentation and structural
+editing implementation.
+
+### Preview
+
+Preview models describe a renderable Hara value, presentation theme, status and
+metadata. They do not admit arbitrary script, iframe policy or capability
+grants.
+
+```js
 const preview = createPreviewArea({
-  output: { type: "render", tree: ["main", "Ready"] },
+  status: "ready",
   theme: "dark",
+  output: {
+    type: "render",
+    tree: ["main", { class: "preview-shell" }, ["h1", "Ready"]],
+  },
 });
+```
 
+Sandbox creation and executable rendering remain injected host services.
+
+### REPL
+
+REPL models carry session identity, namespace, status, bounded transcript
+entries, pending input and declared evaluation/history/value events.
+
+```js
 const repl = createReplArea({
   sessionId: "session/project",
   namespace: "app.core",
   status: "ready",
-  entries: [{ kind: "result", text: "3", valueId: "value-1" }],
-});
-
-const problems = createProblemsArea({
-  status: "ready",
-  problems: [{
-    id: "problem/runtime-1",
-    severity: "warning",
-    message: "Canonical runtime fallback active",
-    source: "runtime",
-  }],
-});
-
-const value = createValueInspectorArea({
-  valueId: "value-1",
-  status: "ready",
-  display: "{:answer 42}",
-  value: { answer: 42 },
-  namespace: "app.core",
+  entries: [
+    { kind: "input", text: "(+ 1 2)" },
+    { kind: "result", text: "3", valueId: "value/3" },
+  ],
 });
 ```
 
-HAL owns catalog, document, session, workspace-entry, diagnostic and
-retained-value identity, source versions, selections, REPL history and
-entries, problem filters and counts, inspector paths, completion models,
-commands and semantic events. Visible developer mechanics are supplied by
-`@greenways/hodos-dev-ui` through injected, trusted hosts.
+Evaluation, cancellation, history persistence and runtime transport remain Hara
+service responsibilities.
 
-Catalog models carry descriptive toolset, tool, activity and check-result
-projections. Executable snippets, starter source and check expressions remain
-host policy and are not admitted into the Hodos model.
+### Problems and Value Inspector
 
-Problems models accept text-only runtime diagnostics and optional source,
-path, namespace, request, code, range, tag and metadata projections. Runtime
-diagnostic production and source-opening policy remain injected Hara and host
-responsibilities.
+Problems models carry text-only diagnostics, severity, code, source location,
+tags, filters, selection and counts. Value Inspector models carry only
+serializable projected values, paths, expansion state and metadata.
 
-Value Inspector models carry only serializable projected data. Runtime value
-retention, evaluation and inspection requests remain injected Hara service
-responsibilities.
+Diagnostic production, source opening, runtime value retention and inspection
+requests are not performed by this package.
+
+### Catalog
+
+Catalog models describe toolsets, tools, activities, checks, selection and run
+status. Executable snippets, starter source and check expressions remain host
+policy and are deliberately excluded from the model.
+
+## Semantic events
+
+Every area declares a closed event vocabulary. Hosts dispatch only these
+semantic events back to Hara or the owning application. The model never embeds
+callbacks or executable commands.
+
+Examples include:
+
+```text
+explorer/select · explorer/toggle · explorer/refresh
+editor/input · editor/selection · editor/evaluate · editor/save
+preview/reload · preview/open
+repl/submit · repl/cancel · repl/history · repl/inspect-value
+problems/select · problems/filter · problems/open-source
+value-inspector/toggle · value-inspector/copy
+catalog/select-toolset · catalog/select-activity · catalog/run
+```
+
+## Package Showcases
+
+This package owns `showcase.edn`, named EDN state fixtures and four complete
+Playground projects:
+
+```text
+showcase/explorer   → files
+showcase/editor     → code
+showcase/preview    → preview
+showcase/repl       → repl
+```
+
+The Gallery State panel shows the corresponding canonical area model. The
+Canvas is the Hara Playground's live integration of the same Hodos Dev surface.
+
+Problems, Value Inspector and Catalog remain first-class package APIs, but they
+are not advertised as independent Canvas stories yet: the current Playground
+Showcase contract exposes them as output/project modes rather than separately
+addressable immutable surfaces.
+
+Run from the repository root:
+
+```sh
+npm run check:showcases
+npm run pack:check
+npm test
+```
+
+## Ownership boundary
+
+```text
+Hara/application
+  source, runtime sessions, diagnostics, retained values, tools and policy
+
+@greenways/hodos-dev
+  serializable developer-area models and semantic event contracts
+
+@greenways/hodos-dev-ui
+  visible component adapters around injected trusted hosts
+
+Playground or another product
+  orchestration, capabilities, persistence and privileged services
+```
+
+No Hestia integration or persistence contract is required by this package.

@@ -1,0 +1,9 @@
+{:component/id "hodos.dev/preview"
+ :component/contract "workspace.component/1"
+ :host {:kind "injected-preview-service"
+        :containerOwned true
+        :updates "serializable-model"
+        :dispose ["sandbox" "message-listeners" "resources"]}
+ :events ["preview/reload" "preview/open"]
+ :authority {:render-value "hara-runtime"
+             :sandbox-policy "product"}}

@@ -1,0 +1,8 @@
+(ns showcase.hodos-dev-ui.editor-host)
+
+(defn component-boundary [source]
+  {:component "hodos.dev/editor"
+   :source source
+   :events ["editor/input" "editor/selection" "editor/evaluate" "editor/save"]})
+
+(component-boundary "(def answer 42)")
