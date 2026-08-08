@@ -1,6 +1,7 @@
 import {
   HODOS_DEV_CATALOG_COMPONENT_ID,
   HODOS_DEV_EDITOR_COMPONENT_ID,
+  HODOS_DEV_EXECUTION_COMPONENT_ID,
   HODOS_DEV_EXPLORER_COMPONENT_ID,
   HODOS_DEV_PREVIEW_COMPONENT_ID,
   HODOS_DEV_PROBLEMS_COMPONENT_ID,
@@ -95,6 +96,9 @@ export const createCatalogComponentFactory = (options = {}) =>
 export const createEditorComponentFactory = (options = {}) =>
   statefulComponentFactory("Editor", "createEditorHost", "editor", options);
 
+export const createExecutionComponentFactory = (options = {}) =>
+  statefulComponentFactory("Execution", "createExecutionHost", "execution", options);
+
 export const createExplorerComponentFactory = (options = {}) =>
   statefulComponentFactory("Explorer", "createExplorerHost", "explorer", options);
 
@@ -146,6 +150,15 @@ export function registerHodosEditorUi(registry, options = {}) {
   );
 }
 
+export function registerHodosExecutionUi(registry, options = {}) {
+  return register(
+    registry,
+    HODOS_DEV_EXECUTION_COMPONENT_ID,
+    createExecutionComponentFactory(options),
+    "registerHodosExecutionUi",
+  );
+}
+
 export function registerHodosExplorerUi(registry, options = {}) {
   return register(
     registry,
@@ -188,6 +201,7 @@ export function registerHodosDevUi(registry, options = {}) {
     disposers.push(registerHodosCatalogUi(registry, options));
     disposers.push(registerHodosPreviewUi(registry, options));
     disposers.push(registerHodosEditorUi(registry, options));
+    disposers.push(registerHodosExecutionUi(registry, options));
     disposers.push(registerHodosExplorerUi(registry, options));
     disposers.push(registerHodosReplUi(registry, options));
     disposers.push(registerHodosProblemsUi(registry, options));
