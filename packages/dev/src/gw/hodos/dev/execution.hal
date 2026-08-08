@@ -1,0 +1,49 @@
+(ns gw.hodos.dev.execution)
+
+(def component-id "hodos.dev/execution")
+(def component-contract "workspace.component/1")
+(def metrics-schema "hal.bytecode-metrics/v1")
+(def events-schema "hal.bytecode-events/v1")
+(def trace-schema "hal.bytecode-trace/v1")
+
+(def events
+  #{"execution/connect"
+    "execution/ingest"
+    "execution/select"
+    "execution/pause"
+    "execution/resume"
+    "execution/reset"
+    "execution/request-trace"})
+
+(defn model
+  ([session evidence]
+   (model session evidence {}))
+  ([session evidence options]
+   {:session session
+    :evidence evidence
+    :retention (get options :retention
+                    {:limits {:events 512 :trace 128 :diagnostics 64}
+                     :eventsOmitted 0
+                     :traceOmitted 0
+                     :droppedEvents 0})
+    :availability (get options :availability
+                       {:metrics false :events false :trace false})
+    :capabilities (get options :capabilities
+                       {:pause false :resume false :reset true :requestTrace false})
+    :selection (get options :selection
+                    {:function nil :ip nil :source nil :eventIndex nil :traceIndex nil})
+    :diagnostics (get options :diagnostics [])
+    :metadata (get options :metadata {})}))
+
+(defn area
+  ([id model]
+   (area id "Execution" model))
+  ([id title model]
+   {:area/id id
+    :area/type :hodos.dev/execution
+    :area/title title
+    :area/component
+    {:component/id component-id
+     :component/contract component-contract
+     :component/model model
+     :component/events events}}))
