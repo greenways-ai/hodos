@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
 
       - name: Add Start, Step and Run contracts
         run: |
@@ -124,6 +125,7 @@ jobs:
 
       - name: Validate the Execution controls
         run: |
+          npm ci
           git diff --check
           node --test packages/dev/test/execution.test.js packages/dev-ui/test/execution-dom-host.test.js
           npm run audit:hal
