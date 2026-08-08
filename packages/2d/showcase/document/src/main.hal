@@ -1,0 +1,13 @@
+(ns showcase.hodos-two-d.document)
+
+(def answer
+  (* 6 7))
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS 2D"]
+    [:h1 "Inspectable document"]
+    [:p "Stable document identity carries the committed answer " answer "."]]])
+
+(view)

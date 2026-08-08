@@ -1,0 +1,15 @@
+(ns showcase.hodos-two-d-ui.graph-host)
+
+(def pointer-boundary
+  {:selection :canonical
+   :drag :transient
+   :move :semantic-on-release})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS 2D UI"]
+    [:h1 "Safe typed graph"]
+    [:p "Selection rerenders first; pointer capture begins on a stable node."]]])
+
+(view)

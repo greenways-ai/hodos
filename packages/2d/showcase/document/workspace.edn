@@ -1,0 +1,137 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-two-d-document
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id :layout/root
+  :layout/direction :horizontal
+  :layout/ratio 0.2
+  :layout/first {:layout/type :area :layout/area "area/project"}
+  :layout/second
+  {:layout/type :split
+   :layout/id :layout/work
+   :layout/direction :horizontal
+   :layout/ratio 0.44
+   :layout/first {:layout/type :area :layout/area "area/editor"}
+   :layout/second
+   {:layout/type :split
+    :layout/id :layout/document-output
+    :layout/direction :vertical
+    :layout/ratio 0.72
+    :layout/first {:layout/type :area :layout/area "area/document"}
+    :layout/second {:layout/type :area :layout/area "area/output"}}}}
+ :workspace/documents
+ [{:document/id "document/source"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}
+  {:document/id "document/review"
+   :document/profile "hodos.rich-text/2"}]
+ :workspace/areas
+ [{:area/id "area/project"
+   :area/type :project
+   :area/title "Project"
+   :area/presentation
+   {:presentation/role :project
+    :presentation/label "Files"}}
+  {:area/id "area/editor"
+   :area/type :code-editor
+   :area/title "main.hal"
+   :area/presentation
+   {:presentation/role :editor
+    :presentation/label "Code"}}
+  {:area/id "area/output"
+   :area/type :output
+   :area/title "Preview"
+   :area/presentation
+   {:presentation/role :output
+    :presentation/label "Canvas"}}
+  {:area/id "area/document"
+   :area/type "hodos.2d/document"
+   :area/title "Inspectable document"
+   :area/presentation
+   {:presentation/label "Document"
+    :presentation/icon :document
+    :presentation/surface :document
+    :presentation/mode :document
+    :presentation/order 2
+    :presentation/compact true
+    :presentation/auto-focus true}
+   :area/component
+   {:component/id "hodos.2d/document"
+    :component/contract "workspace.component/1"
+    :component/model
+    {:document
+     {:profile "hodos.rich-text/2"
+      :id "document/review"
+      :title "Inspectable document"
+      :revision 0
+      :metadata {:source "workspace.edn" :authority "package-showcase"}
+      :children
+      [{:id "block/title"
+        :type "heading"
+        :attrs {:level 1}
+        :children [{:id "text/title" :type "text" :text "Inspectable document"}]}
+       {:id "block/intro"
+        :type "paragraph"
+        :attrs {}
+        :children
+        [{:id "text/intro"
+          :type "text"
+          :text "Edit this sentence. Stable text identity survives each canonical update."}]}
+       {:id "block/artefact"
+        :type "hara-artefact"
+        :attrs
+        {:artefactId "artefact/answer"
+         :kind "value"
+         :title "Committed Hara value"
+         :mode "snapshot"
+         :entry "showcase.hodos-two-d.document/answer"
+         :capabilities []
+         :snapshotRoot "sha256:answer-42"
+         :snapshotDisplay "42"
+         :snapshotMediaType "application/edn"
+         :snapshotSourceRoot "sha256:source-answer"
+         :metadata {:committed true}}
+        :children [{:id "text/artefact-source" :type "text" :text "answer"}]}]}
+     :selection {:nodeId "block/intro" :anchor nil :focus nil}
+     :status "ready"
+     :readOnly false
+     :capabilities
+     {:select true
+      :editText true
+      :insertBlock false
+      :deleteBlock false
+      :activateArtefact false
+      :commitArtefact false
+      :command false}
+     :error nil}
+    :component/events
+    ["document/select"
+     "document/edit-text"
+     "document/insert-block"
+     "document/delete-block"
+     "document/activate-artefact"
+     "document/commit-artefact"
+     "document/command"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/source-editor"
+   :link/document "document/source"
+   :link/area "area/editor"}
+  {:link/id "link/review-document"
+   :link/document "document/review"
+   :link/area "area/document"}]
+ :workspace/selection
+ {:area/id "area/document"
+  :document/id "document/review"
+  :surface/id "document"}
+ :workspace/customizations
+ {:responsive/breakpoint 1000
+  :responsive/default-surface "document"}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

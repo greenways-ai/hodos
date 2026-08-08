@@ -1,0 +1,17 @@
+{:host/type :document-dom
+ :host/status :ready
+ :host/read-only false
+ :host/capabilities
+ {:select true
+  :edit-text true
+  :insert-block false
+  :delete-block false
+  :activate-artefact false}
+ :host/focus
+ {:document-id "document/ui-host"
+  :node-id "block/intro"
+  :text-id "text/intro"}
+ :host/lifecycle
+ {:safe-dom true
+  :restore-focus true
+  :dispose-listeners true}}

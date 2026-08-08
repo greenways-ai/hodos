@@ -1,0 +1,23 @@
+{:graph/id "graph/flow"
+ :graph/revision 0
+ :graph/status :ready
+ :graph/read-only false
+ :graph/selection {:node-ids ["node/source"] :connection-ids []}
+ :graph/viewport {:x 0 :y 0 :zoom 1}
+ :graph/capabilities
+ {:select true
+  :move-node true
+  :connect false
+  :create-node false
+  :delete false}
+ :graph/nodes
+ [{:id "node/source" :type :source :label "Source 21"}
+  {:id "node/transform" :type :transform :label "Double"}
+  {:id "node/result" :type :result :label "Result 42"}]
+ :graph/connections
+ [{:id "connection/source-transform"
+   :from ["node/source" "out/value"]
+   :to ["node/transform" "in/value"]}
+  {:id "connection/transform-result"
+   :from ["node/transform" "out/value"]
+   :to ["node/result" "in/value"]}]}

@@ -1,8 +1,40 @@
 # @greenways/hodos-2d-ui
 
-Trusted UI adapters and safe DOM hosts for Hodos 2D Workspace component models.
+Trusted DOM and SVG hosts for Hodos 2D Workspace component models.
 
-Applications can continue to inject complete document or graph implementations:
+`@greenways/hodos-2d-ui` turns the declarative models from
+`@greenways/hodos-2d` into visible document and graph mechanics. It owns safe
+node creation, event wiring, focus restoration, pointer gestures, and
+deterministic disposal. It does not become the authority for application state.
+
+## Install
+
+```sh
+hara package install greenways/hodos-2d-ui
+npm install @greenways/hodos-2d-ui
+```
+
+Package coordinates:
+
+```text
+greenways/hodos-2d-ui
+@greenways/hodos-2d-ui
+```
+
+Import the package styles explicitly:
+
+```js
+import {
+  registerHodosDocumentDomUi,
+  registerHodosGraphDomUi,
+} from "@greenways/hodos-2d-ui";
+import "@greenways/hodos-2d-ui/document.css";
+import "@greenways/hodos-2d-ui/graph.css";
+```
+
+## Injected hosts
+
+Applications can provide complete trusted hosts:
 
 ```js
 import { registerHodos2dUi } from "@greenways/hodos-2d-ui";
@@ -15,17 +47,13 @@ const unregister = registerHodos2dUi(registry, {
 });
 ```
 
-Injected hosts must implement `update(model)`. Optional `dispose()` or `destroy()` lifecycle methods are invoked when the Workspace area is replaced or closed.
+An injected host implements `update(model)`. Optional `dispose()` or `destroy()`
+methods are called whenever the Workspace area is replaced or closed.
 
-## Default document DOM host
-
-The package supplies a product-neutral document host for consumers migrating from the original Hara UI document surface:
+## Default Document host
 
 ```js
-import { registerHodosDocumentDomUi } from "@greenways/hodos-2d-ui";
-import "@greenways/hodos-2d-ui/document.css";
-
-const unregister = registerHodosDocumentDomUi(registry, {
+const unregisterDocument = registerHodosDocumentDomUi(registry, {
   documentDom: {
     renderArtefact: ({ container, block }) =>
       haraArtefactService.mount({ container, block }),
@@ -34,34 +62,70 @@ const unregister = registerHodosDocumentDomUi(registry, {
 });
 ```
 
-The Document host renders through safe DOM node creation, preserves stable document/block/text/artefact identity, emits declared `document/*` events, restores text focus across model updates and disposes listeners plus injected artefact renderers deterministically.
+The default Document host:
 
-## Default graph DOM/SVG host
+- creates ordinary DOM nodes rather than interpolated HTML;
+- preserves document, block, text, and artefact identity;
+- emits only declared `document/*` events;
+- restores text focus across canonical model updates;
+- disposes listeners and injected artefact renderers deterministically.
 
-The package also supplies a safe product-neutral node-graph host:
+## Default Graph host
 
 ```js
-import { registerHodosGraphDomUi } from "@greenways/hodos-2d-ui";
-import "@greenways/hodos-2d-ui/graph.css";
-
-const unregister = registerHodosGraphDomUi(registry, {
+const unregisterGraph = registerHodosGraphDomUi(registry, {
   graphDom: {
     reportError: console.error,
   },
 });
 ```
 
-The Graph host:
+The default Graph host:
 
-- draws typed connections with SVG paths and nodes/ports with ordinary DOM nodes;
-- preserves graph, node, port and connection identity in the DOM;
-- projects viewport translation and zoom without taking viewport authority;
-- emits `graph/select`, `graph/move-node`, `graph/connect`, `graph/create-node`, `graph/delete` and `graph/command` only when the matching capability is enabled;
-- uses pointer capture for transient drag feedback, then emits one final semantic move;
-- keeps connection creation as an ephemeral output-port → input-port gesture;
-- disposes all render listeners deterministically on update and close;
-- never executes node metadata or interpolates graph values into HTML.
+- draws typed connections with SVG paths;
+- preserves graph, node, port, and connection identity;
+- projects viewport translation and zoom without taking authority;
+- emits selection, movement, connection, creation, deletion, and command events
+  only when the corresponding capability is enabled;
+- keeps drag and connection gestures transient until one semantic event is
+  emitted;
+- never executes graph metadata or inserts graph values as HTML.
 
-Neither default host applies operations, evaluates Hara, persists state, resolves collaboration conflicts, signs receipts or grants capabilities. Those remain application and service policy.
+## Package Showcase
 
-Hodos 2D UI owns component adaptation, safe visible mechanics and lifecycle. Editing, evaluation, persistence, collaboration, artefact rendering, graph mutation and privileged capability policy remain injected host responsibilities.
+[`showcase.edn`](showcase.edn) publishes two host stories:
+
+```text
+showcase/document-host
+showcase/graph-host
+```
+
+Each story is a complete Hara project with a named data-only host state and a
+declared `document` or `graph` Workspace surface. The Canvas runs in the
+cross-origin Playground host; State, Source, and Docs remain inert Package
+Gallery panels.
+
+```sh
+npm run check:showcases
+```
+
+The local check proves package-relative paths and surfaces. Publication injects
+the exact Git commit and performs the registry's immutable preflight.
+
+## Authority boundary
+
+```text
+application / Hara
+  canonical model
+  event application
+  capability policy
+  persistence and collaboration
+
+@greenways/hodos-2d-ui
+  safe visible DOM/SVG mechanics
+  transient pointer and focus state
+  deterministic host lifecycle
+```
+
+The package does not evaluate Hara, persist state, resolve collaboration,
+produce receipts, or integrate with Hestia.

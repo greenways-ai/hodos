@@ -1,0 +1,17 @@
+{:workspace/id "workspace/package-showcase"
+ :workspace/mode :desktop
+ :workspace/breakpoint 1000
+ :workspace/layout
+ {:type :split
+  :direction :horizontal
+  :ratio 0.22
+  :first :files
+  :second
+  {:type :split
+   :direction :horizontal
+   :ratio 0.64
+   :first :code
+   :second :preview}}
+ :workspace/selected-surface :preview
+ :workspace/authority :hara
+ :presentation/authority :hodos}

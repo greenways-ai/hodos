@@ -1,0 +1,15 @@
+(ns showcase.hodos-two-d.graph)
+
+(def flow
+  {:source 21
+   :operation :double
+   :result 42})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS 2D"]
+    [:h1 "Typed flow graph"]
+    [:p "Source 21 flows through double to result 42."]]])
+
+(view)

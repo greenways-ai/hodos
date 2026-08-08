@@ -1,0 +1,91 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-two-d-ui-graph
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id :layout/root
+  :layout/direction :horizontal
+  :layout/ratio 0.34
+  :layout/first {:layout/type :area :layout/area "area/editor"}
+  :layout/second {:layout/type :area :layout/area "area/graph"}}
+ :workspace/documents
+ [{:document/id "document/source"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/editor"
+   :area/type :code-editor
+   :area/title "main.hal"
+   :area/presentation
+   {:presentation/role :editor
+    :presentation/label "Code"}}
+  {:area/id "area/graph"
+   :area/type "hodos.2d/graph"
+   :area/title "Safe typed graph"
+   :area/presentation
+   {:presentation/label "Graph"
+    :presentation/icon :graph
+    :presentation/surface :graph
+    :presentation/mode :graph
+    :presentation/compact true
+    :presentation/auto-focus true}
+   :area/component
+   {:component/id "hodos.2d/graph"
+    :component/contract "workspace.component/1"
+    :component/model
+    {:graph
+     {:id "graph/ui-host"
+      :revision 0
+      :metadata {:title "Stable pointer lifecycle" :adapter "graph-dom-host"}
+      :nodes
+      [{:id "node/stable"
+        :type "source"
+        :label "Stable selected node"
+        :x 80 :y 120 :width 210 :height 108
+        :ports [{:id "out/value" :direction "out" :dataType "number" :label "value"}]
+        :metadata {:description "Selection is canonical before capture."}}
+       {:id "node/result"
+        :type "result"
+        :label "Semantic result"
+        :x 520 :y 180 :width 200 :height 108
+        :ports [{:id "in/value" :direction "in" :dataType "number" :label "value"}]
+        :metadata {:description "One move is emitted on release."}}]
+      :connections
+      [{:id "connection/stable-result"
+        :from {:nodeId "node/stable" :portId "out/value"}
+        :to {:nodeId "node/result" :portId "in/value"}}]}
+     :selection {:nodeIds ["node/stable"] :connectionIds []}
+     :viewport {:x 0 :y 0 :zoom 1}
+     :status "ready"
+     :readOnly false
+     :capabilities
+     {:select true
+      :moveNode true
+      :connect false
+      :createNode false
+      :delete false
+      :command false}
+     :error nil}
+    :component/events
+    ["graph/select"
+     "graph/move-node"
+     "graph/connect"
+     "graph/create-node"
+     "graph/delete"
+     "graph/command"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/source-editor"
+   :link/document "document/source"
+   :link/area "area/editor"}]
+ :workspace/selection {:area/id "area/graph" :surface/id "graph"}
+ :workspace/customizations
+ {:responsive/breakpoint 900
+  :responsive/default-surface "graph"}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

@@ -1,0 +1,11 @@
+{:workspace/id "workspace/package-showcase"
+ :workspace/mode :compact
+ :workspace/breakpoint 1000
+ :workspace/surfaces
+ [{:id :files :label "Files" :area "area/project"}
+  {:id :code :label "Code" :area "area/editor"}
+  {:id :preview :label "Preview" :area "area/preview"}]
+ :workspace/selected-surface :preview
+ :workspace/focus-handoff true
+ :workspace/authority :hara
+ :presentation/authority :hodos}

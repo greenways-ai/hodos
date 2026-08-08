@@ -1,0 +1,14 @@
+(ns showcase.hodos-workspace-ui.desktop)
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:section {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / WORKSPACE UI"]
+    [:h1 "Desktop shell"]
+    [:p "One Hara Workspace value projects into files, code, and preview areas."]
+    [:div {:class "workspace-showcase-grid"}
+     [:article {:class "card"} [:strong "Files"] [:p "area/project"]]
+     [:article {:class "card"} [:strong "Code"] [:p "area/editor"]]
+     [:article {:class "card"} [:strong "Preview"] [:p "area/preview"]]]]])
+
+(view)
