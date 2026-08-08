@@ -36,45 +36,46 @@ jobs:
           end = source.find(end_marker, start)
           if start < 0 or end < 0:
               raise SystemExit(f'Unable to locate flattened Graph lifecycle block: start={start}, end={end}')
-          replacement = '''      const selectNode = (event) => {
-        if (!view.capabilities.select) return false;
-        const nodeIds = toggled(view.selection.nodeIds, node.id, Boolean(event?.shiftKey));
-        const connectionIds = event?.shiftKey ? view.selection.connectionIds : [];
-        const unchanged = nodeIds.length === view.selection.nodeIds.length
-          && nodeIds.every((id, index) => id === view.selection.nodeIds[index])
-          && connectionIds.length === view.selection.connectionIds.length
-          && connectionIds.every((id, index) => id === view.selection.connectionIds[index]);
-        if (unchanged) return false;
-        send("graph/select", {
-          graphId: view.id,
-          nodeIds,
-          connectionIds,
-        });
-        return true;
-      };
-
-      let drag = null;
-      addListener(header, "pointerdown", (event) => {
-        if (event.button != null && event.button !== 0) return;
-        event.stopPropagation?.();
-        // Selection may synchronously replace this DOM host. Complete that
-        // semantic boundary before beginning a later stable drag gesture.
-        if (selectNode(event)) return;
-        if (view.readOnly || node.readOnly || !view.capabilities.moveNode) return;
-        event.preventDefault?.();
-        header.setPointerCapture?.(event.pointerId);
-        header.classList?.add("dragging");
-        drag = {
-          pointerId: event.pointerId,
-          clientX: finite(event.clientX),
-          clientY: finite(event.clientY),
-          x: nodeCoordinates.get(node.id).x,
-          y: nodeCoordinates.get(node.id).y,
-          moved: false,
-        };
-      }, controller);
-
-'''
+          replacement = "\n".join([
+              '      const selectNode = (event) => {',
+              '        if (!view.capabilities.select) return false;',
+              '        const nodeIds = toggled(view.selection.nodeIds, node.id, Boolean(event?.shiftKey));',
+              '        const connectionIds = event?.shiftKey ? view.selection.connectionIds : [];',
+              '        const unchanged = nodeIds.length === view.selection.nodeIds.length',
+              '          && nodeIds.every((id, index) => id === view.selection.nodeIds[index])',
+              '          && connectionIds.length === view.selection.connectionIds.length',
+              '          && connectionIds.every((id, index) => id === view.selection.connectionIds[index]);',
+              '        if (unchanged) return false;',
+              '        send("graph/select", {',
+              '          graphId: view.id,',
+              '          nodeIds,',
+              '          connectionIds,',
+              '        });',
+              '        return true;',
+              '      };',
+              '',
+              '      let drag = null;',
+              '      addListener(header, "pointerdown", (event) => {',
+              '        if (event.button != null && event.button !== 0) return;',
+              '        event.stopPropagation?.();',
+              '        // Selection may synchronously replace this DOM host. Complete that',
+              '        // semantic boundary before beginning a later stable drag gesture.',
+              '        if (selectNode(event)) return;',
+              '        if (view.readOnly || node.readOnly || !view.capabilities.moveNode) return;',
+              '        event.preventDefault?.();',
+              '        header.setPointerCapture?.(event.pointerId);',
+              '        header.classList?.add("dragging");',
+              '        drag = {',
+              '          pointerId: event.pointerId,',
+              '          clientX: finite(event.clientX),',
+              '          clientY: finite(event.clientY),',
+              '          x: nodeCoordinates.get(node.id).x,',
+              '          y: nodeCoordinates.get(node.id).y,',
+              '          moved: false,',
+              '        };',
+              '      }, controller);',
+              '',
+          ])
           path.write_text(source[:start] + replacement + source[end:], encoding='utf-8')
 
           test_path = Path('packages/2d-ui/test/graph-dom-host.test.js')
