@@ -1,0 +1,217 @@
+.hodos-2d-graph-host,
+.hodos-2d-graph,
+.hodos-2d-graph-viewport {
+  min-width: 0;
+  min-height: 0;
+}
+
+.hodos-2d-graph-host {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  color: var(--hodos-2d-graph-text, inherit);
+  background: var(--hodos-2d-graph-background, transparent);
+}
+
+.hodos-2d-graph {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.hodos-2d-graph-toolbar,
+.hodos-2d-graph-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-color: var(--hodos-2d-graph-border, currentColor);
+  border-style: solid;
+  border-width: 0 0 1px;
+}
+
+.hodos-2d-graph-toolbar > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.hodos-2d-graph-toolbar span,
+.hodos-2d-graph-footer,
+.hodos-2d-graph-node small {
+  opacity: .65;
+  font-size: .74rem;
+}
+
+.hodos-2d-graph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hodos-2d-graph-button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--hodos-2d-graph-border, currentColor);
+  border-radius: 7px;
+  color: inherit;
+  background: var(--hodos-2d-graph-control, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.hodos-2d-graph-button:disabled {
+  cursor: not-allowed;
+  opacity: .42;
+}
+
+.hodos-2d-graph-button:not(:disabled):hover,
+.hodos-2d-graph-button:not(:disabled):focus-visible {
+  background: var(--hodos-2d-graph-control-hover, color-mix(in srgb, currentColor 9%, transparent));
+}
+
+.hodos-2d-graph-viewport {
+  position: relative;
+  overflow: auto;
+  background-color: var(--hodos-2d-graph-canvas, color-mix(in srgb, currentColor 2%, transparent));
+  background-image:
+    linear-gradient(to right, var(--hodos-2d-graph-grid, color-mix(in srgb, currentColor 8%, transparent)) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hodos-2d-graph-grid, color-mix(in srgb, currentColor 8%, transparent)) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.hodos-2d-graph-world {
+  position: relative;
+  transform-origin: 0 0;
+}
+
+.hodos-2d-graph-connections {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.hodos-2d-graph-connection {
+  fill: none;
+  stroke: var(--hodos-2d-graph-connection, color-mix(in srgb, currentColor 38%, transparent));
+  stroke-width: 2;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.hodos-2d-graph-connection.selected {
+  stroke: var(--hodos-2d-graph-selection, currentColor);
+  stroke-width: 3;
+}
+
+.hodos-2d-graph-node {
+  position: absolute;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  box-sizing: border-box;
+  border: 1px solid var(--hodos-2d-graph-border, currentColor);
+  border-radius: 10px;
+  background: var(--hodos-2d-graph-node-background, color-mix(in srgb, currentColor 3%, transparent));
+  box-shadow: 0 12px 30px color-mix(in srgb, black 12%, transparent);
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  user-select: none;
+}
+
+.hodos-2d-graph-node.selected {
+  outline-color: var(--hodos-2d-graph-selection, currentColor);
+}
+
+.hodos-2d-graph-node-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--hodos-2d-graph-border, currentColor);
+  cursor: grab;
+}
+
+.hodos-2d-graph-node-header.dragging {
+  cursor: grabbing;
+}
+
+.hodos-2d-graph-node-body {
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.hodos-2d-graph-node-body p {
+  margin: 0;
+  opacity: .72;
+  font-size: .78rem;
+  overflow-wrap: anywhere;
+}
+
+.hodos-2d-graph-port {
+  position: absolute;
+  z-index: 2;
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 2px solid var(--hodos-2d-graph-port-border, currentColor);
+  border-radius: 50%;
+  background: var(--hodos-2d-graph-port-background, Canvas);
+  transform: translateY(-50%);
+  cursor: crosshair;
+}
+
+.hodos-2d-graph-port.in {
+  left: -8px;
+}
+
+.hodos-2d-graph-port.out {
+  right: -8px;
+}
+
+.hodos-2d-graph-port.pending {
+  border-color: var(--hodos-2d-graph-selection, currentColor);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hodos-2d-graph-selection, currentColor) 18%, transparent);
+}
+
+.hodos-2d-graph-port-label {
+  position: absolute;
+  transform: translateY(-50%);
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .65rem;
+  opacity: .68;
+  pointer-events: none;
+}
+
+.hodos-2d-graph-port-label.in {
+  left: 10px;
+}
+
+.hodos-2d-graph-port-label.out {
+  right: 10px;
+  text-align: right;
+}
+
+.hodos-2d-graph-error {
+  margin: 10px 12px;
+  padding: 9px 11px;
+  border: 1px solid currentColor;
+  border-radius: 7px;
+}
+
+.hodos-2d-graph-footer {
+  border-width: 1px 0 0;
+}
+
+@media (max-width: 720px) {
+  .hodos-2d-graph-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

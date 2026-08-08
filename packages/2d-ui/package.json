@@ -13,10 +13,12 @@
     ".": "./src/index.js",
     "./document-dom": "./src/document-dom-host.js",
     "./document.css": "./src/document.css",
+    "./graph-dom": "./src/graph-dom-host.js",
+    "./graph.css": "./src/graph.css",
     "./hara/*": "./src/gw/hodos/two_d/*.hal"
   },
   "files": ["src", "project.edn", "project.lock.edn", "hara.recipe.edn", "README.md"],
-  "sideEffects": ["./src/document.css"],
+  "sideEffects": ["./src/document.css", "./src/graph.css"],
   "dependencies": {
     "@greenways/hodos-2d": "0.1.0"
   },

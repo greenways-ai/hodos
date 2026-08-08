@@ -5,12 +5,21 @@ import {
 import {
   createDocumentDomHost,
 } from "./document-dom-host.js";
+import {
+  createGraphDomHost,
+} from "./graph-dom-host.js";
 
 export {
   createDocumentDomHost,
   createHodosDocumentDomHost,
   projectDocumentDomView,
 } from "./document-dom-host.js";
+
+export {
+  createGraphDomHost,
+  createHodosGraphDomHost,
+  projectGraphDomView,
+} from "./graph-dom-host.js";
 
 const hostFactory = (name, options, services, optionKey, serviceKey) => {
   const candidate = options[optionKey]
@@ -94,6 +103,21 @@ export function registerHodosGraphUi(registry, options = {}) {
     createGraphComponentFactory(options),
     "registerHodosGraphUi",
   );
+}
+
+/**
+ * Registers the product-neutral safe DOM/SVG graph implementation. Graph
+ * mutation remains an application responsibility reached through graph/*
+ * semantic events.
+ */
+export function registerHodosGraphDomUi(registry, options = {}) {
+  const graphDom = options.graphDom ?? {};
+  const createGraphHost = options.createGraphHost
+    ?? ((hostOptions) => createGraphDomHost({ ...graphDom, ...hostOptions }));
+  return registerHodosGraphUi(registry, {
+    ...options,
+    createGraphHost,
+  });
 }
 
 export function registerHodos2dUi(registry, options = {}) {
