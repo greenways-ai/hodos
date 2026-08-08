@@ -219,6 +219,10 @@ const projectSnapshot = (snapshot) => {
 };
 
 const controlsValue = (capabilities, status) => Object.freeze({
+  start: Boolean(capabilities.start)
+    && new Set(["idle", "connected", "returned", "failed"]).has(status),
+  step: Boolean(capabilities.step) && new Set(["connected", "running"]).has(status),
+  run: Boolean(capabilities.run) && new Set(["connected", "running"]).has(status),
   pause: Boolean(capabilities.pause) && status === "running",
   resume: Boolean(capabilities.resume) && (status === "paused" || status === "suspended"),
   reset: Boolean(capabilities.reset) && status !== "idle",

@@ -110,13 +110,16 @@ The host presents:
 - a compact instruction, transition and terminal timeline;
 - selected before/after stack, locals, calls and handlers;
 - retained diagnostics and omitted-evidence counts;
-- pause, resume, reset and full-trace semantic controls;
+- start, step, bounded-run, pause, resume, reset and full-trace semantic controls;
 - source-selection payloads suitable for an Editor service.
 
 The host dispatches only execution requests through the component dispatcher:
 
 ```text
 execution/select
+execution/start
+execution/step
+execution/run
 execution/pause
 execution/resume
 execution/reset

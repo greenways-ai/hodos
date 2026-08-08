@@ -163,7 +163,15 @@ const executionModel = () => createExecutionArea({
       },
     ],
     selection: { eventIndex: 0 },
-    capabilities: { pause: true, resume: true, reset: true, requestTrace: true },
+    capabilities: {
+      start: true,
+      step: true,
+      run: true,
+      pause: true,
+      resume: true,
+      reset: true,
+      requestTrace: true,
+    },
     diagnostics: [{
       code: "execution/sample",
       severity: "warning",
@@ -183,8 +191,23 @@ test("Execution DOM projection remains inert and selects matching trace evidence
   assert.equal(view.selected.source.sourceId, "example/core.hal");
   assert.equal(view.selected.source.offset, 4);
   assert.deepEqual(view.selected.after.stack.values, ["1"]);
+  assert.equal(view.controls.start, false);
+  assert.equal(view.controls.step, true);
+  assert.equal(view.controls.run, true);
   assert.equal(view.controls.pause, true);
   assert.equal(view.controls.resume, false);
+
+  const ready = projectExecutionDomView(createExecutionArea({
+    state: createExecutionState({
+      sessionId: "execution/ready",
+      status: "connected",
+      capabilities: { start: true, step: true, run: true },
+    }),
+  })["area/component"]["component/model"]);
+  assert.equal(ready.controls.start, true);
+  assert.equal(ready.controls.step, true);
+  assert.equal(ready.controls.run, true);
+  assert.equal(ready.controls.pause, false);
   assert.equal(Object.isFrozen(view), true);
   assert.equal(Object.isFrozen(view.timeline), true);
 });
@@ -209,11 +232,15 @@ test("Execution DOM host renders evidence and emits semantic controls and source
 
   const boundary = nodes.find((node) => node.dataset?.timelineIndex === "1");
   boundary.emit("click");
+  nodes.find((node) => node.dataset?.action === "step").emit("click");
+  nodes.find((node) => node.dataset?.action === "run").emit("click");
   nodes.find((node) => node.dataset?.action === "pause").emit("click");
   nodes.find((node) => node.dataset?.action === "request-trace").emit("click");
 
   assert.deepEqual(events.map((event) => event["event/type"]), [
     "execution/select",
+    "execution/step",
+    "execution/run",
     "execution/pause",
     "execution/request-trace",
   ]);

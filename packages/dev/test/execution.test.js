@@ -71,7 +71,14 @@ const trace = {
 test("execution state ingests bounded metrics, compact events and full traces", () => {
   let state = createExecutionState({
     sessionId: "execution/lesson",
-    capabilities: { pause: true, resume: true, requestTrace: true },
+    capabilities: {
+      start: true,
+      step: true,
+      run: true,
+      pause: true,
+      resume: true,
+      requestTrace: true,
+    },
     limits: { events: 2, trace: 1, diagnostics: 2 },
   });
   state = ingestExecutionEvidence(state, metrics);
@@ -91,6 +98,9 @@ test("execution state ingests bounded metrics, compact events and full traces", 
   assert.equal(state.retention.traceOmitted, 1);
   assert.equal(state.session.status, "returned");
   assert.deepEqual(state.availability, { metrics: true, events: true, trace: true });
+  assert.equal(state.capabilities.start, true);
+  assert.equal(state.capabilities.step, true);
+  assert.equal(state.capabilities.run, true);
   assert.equal(state.capabilities.requestTrace, true);
 });
 
@@ -110,6 +120,9 @@ test("execution selection and area remain renderer-neutral serializable values",
   assert.equal(component["component/id"], HODOS_DEV_EXECUTION_COMPONENT_ID);
   assert.equal(component["component/contract"], "workspace.component/1");
   assert.equal(component["component/model"].selection.function, 1);
+  assert.equal(component["component/events"].includes("execution/start"), true);
+  assert.equal(component["component/events"].includes("execution/step"), true);
+  assert.equal(component["component/events"].includes("execution/run"), true);
   assert.equal(component["component/events"].includes("execution/request-trace"), true);
   assert.equal(JSON.parse(JSON.stringify(area))["area/id"], "execution/main");
 });

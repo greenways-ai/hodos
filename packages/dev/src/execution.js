@@ -10,6 +10,9 @@ export const HODOS_DEV_EXECUTION_EVENTS = Object.freeze([
   "execution/connect",
   "execution/ingest",
   "execution/select",
+  "execution/start",
+  "execution/step",
+  "execution/run",
   "execution/pause",
   "execution/resume",
   "execution/reset",
@@ -123,6 +126,9 @@ const selectionValue = (value = {}) => {
 const capabilitiesValue = (value = {}) => {
   const capabilities = objectValue(value, "Hodos Dev Execution capabilities");
   return Object.freeze({
+    start: booleanValue(capabilities.start, "Hodos Dev Execution start capability"),
+    step: booleanValue(capabilities.step, "Hodos Dev Execution step capability"),
+    run: booleanValue(capabilities.run, "Hodos Dev Execution run capability"),
     pause: booleanValue(capabilities.pause, "Hodos Dev Execution pause capability"),
     resume: booleanValue(capabilities.resume, "Hodos Dev Execution resume capability"),
     reset: booleanValue(capabilities.reset, "Hodos Dev Execution reset capability", true),
