@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: npm run audit:hal
       - run: npm run check:packages
+      - run: npm run check:showcases
       - run: npm run pack:check
       - run: npm test
       - run: npm run build:demo
