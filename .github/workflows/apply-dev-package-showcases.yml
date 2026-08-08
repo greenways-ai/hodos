@@ -57,3 +57,5 @@ jobs:
           git diff --cached --check
           git commit -m "Add Dev package READMEs and Showcases"
           git push origin HEAD:agent/dev-package-showcases
+
+# The archive chunks are checksum-verified before extraction.
