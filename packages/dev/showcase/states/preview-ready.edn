@@ -1,0 +1,12 @@
+{:area/id "preview/main"
+ :area/type "hodos.dev/preview"
+ :area/title "Canvas"
+ :status "ready"
+ :theme "dark"
+ :output {:type "render"
+          :tree ["main" {:class "preview-shell"}
+                 ["span" {:class "eyebrow"} "HODOS DEV"]
+                 ["h1" "Ready"]
+                 ["p" "The interface is an ordinary Hara value."]]}
+ :metadata {:sandbox "injected"
+            :story "preview/ready"}}

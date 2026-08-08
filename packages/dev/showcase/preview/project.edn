@@ -1,0 +1,9 @@
+{:hara/type :project
+ :hara/version "1.0.0"
+ :project/id showcase.hodos-dev.preview
+ :project/version "0.1.0"
+ :project/source-paths ["src"]
+ :project/test-paths []
+ :project/extension-paths []
+ :project/main showcase.hodos-dev.preview
+ :project/capabilities #{:studio/eval}}

@@ -1,0 +1,8 @@
+(ns showcase.hodos-dev-ui.explorer-host)
+
+(def host-boundary
+  {:model "hodos.dev/explorer"
+   :visible-host "trusted Playground Explorer"
+   :authority "source service"})
+
+host-boundary

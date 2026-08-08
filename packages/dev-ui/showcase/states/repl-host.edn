@@ -1,0 +1,14 @@
+{:component/id "hodos.dev/repl"
+ :component/contract "workspace.component/1"
+ :host {:kind "trusted-session-console"
+        :containerOwned true
+        :updates "serializable-model"
+        :dispose ["input-listeners" "history-ui" "owned-dom"]}
+ :events ["repl/submit"
+          "repl/cancel"
+          "repl/history"
+          "repl/clear"
+          "repl/inspect-value"]
+ :authority {:session "hara-runtime"
+             :transport "product"
+             :console-mechanics "host"}}

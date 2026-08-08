@@ -1,0 +1,13 @@
+(ns showcase.hodos-dev.preview)
+
+(defn metric [label value note]
+  [:article {:class "card"}
+   [:span {:class "eyebrow"} label]
+   [:h1 value]
+   [:p note]])
+
+(defn view []
+  [:main {:class "preview-shell"}
+   (metric "HODOS DEV" "Ready" "The interface is an ordinary Hara value.")])
+
+(view)

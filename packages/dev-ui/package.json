@@ -17,7 +17,9 @@
     "project.edn",
     "project.lock.edn",
     "hara.recipe.edn",
-    "README.md"
+    "README.md",
+    "showcase.edn",
+    "showcase"
   ],
   "sideEffects": false,
   "dependencies": {

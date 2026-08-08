@@ -1,0 +1,9 @@
+(ns showcase.hodos-dev-ui.repl-host)
+
+(defn triple [value]
+  (* 3 value))
+
+(def session-note
+  "The visible console emits semantic requests to the Hara runtime.")
+
+(triple 14)

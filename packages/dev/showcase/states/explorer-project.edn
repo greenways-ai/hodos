@@ -1,0 +1,39 @@
+{:area/id "explorer/main"
+ :area/type "hodos.dev/explorer"
+ :area/title "Project"
+ :workspace {:id "workspace/showcase"
+             :title "Hodos Dev Showcase"
+             :root ""
+             :source "git"
+             :revision "immutable"}
+ :entries [{:id "directory:src"
+            :path "src"
+            :name "src"
+            :kind "directory"
+            :status "clean"
+            :readOnly false}
+           {:id "file:src/main.hal"
+            :path "src/main.hal"
+            :name "main.hal"
+            :kind "file"
+            :language "hara"
+            :status "clean"
+            :readOnly false}
+           {:id "file:workspace.edn"
+            :path "workspace.edn"
+            :name "workspace.edn"
+            :kind "file"
+            :language "edn"
+            :status "clean"
+            :readOnly true}]
+ :selection {:path "src/main.hal"}
+ :expanded ["src"]
+ :filter {:query ""}
+ :capabilities {:createFile false
+                :createDirectory false
+                :rename false
+                :delete false
+                :refresh true}
+ :counts {:total 3 :files 2 :directories 1 :changed 0}
+ :metadata {:authority "source-service"
+            :story "explorer/project"}}

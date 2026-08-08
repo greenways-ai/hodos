@@ -1,0 +1,21 @@
+{:area/id "repl/main"
+ :area/type "hodos.dev/repl"
+ :area/title "REPL"
+ :session {:id "session/showcase"
+           :namespace "showcase.hodos-dev.repl"
+           :status "ready"}
+ :entries [{:kind "input"
+            :text "(square 7)"
+            :namespace "showcase.hodos-dev.repl"}
+           {:kind "result"
+            :text "49"
+            :namespace "showcase.hodos-dev.repl"
+            :valueId "value/49"}]
+ :input {:text "" :historyIndex nil}
+ :capabilities {:submit true
+                :cancel false
+                :clear true
+                :history true
+                :inspectValue true}
+ :metadata {:authority "hara-runtime"
+            :story "repl/ready"}}

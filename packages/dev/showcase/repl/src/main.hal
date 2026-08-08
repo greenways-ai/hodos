@@ -1,0 +1,8 @@
+(ns showcase.hodos-dev.repl)
+
+(defn square [value]
+  (* value value))
+
+(def values [2 3 5 7])
+
+(square 7)

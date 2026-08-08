@@ -1,0 +1,10 @@
+(ns showcase.hodos-dev-ui.preview-host)
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "HODOS DEV UI"]
+    [:h1 "Preview host"]
+    [:p "The renderer and sandbox are injected product services."]]])
+
+(view)

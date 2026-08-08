@@ -1,0 +1,17 @@
+{:area/id "editor/main"
+ :area/type "hodos.dev/editor"
+ :area/title "main.hal"
+ :document {:id "document/main"
+            :path "src/main.hal"
+            :language "hara"
+            :namespace "showcase.hodos-dev.editor"
+            :version "immutable"
+            :dirty false}
+ :source "(ns showcase.hodos-dev.editor)\n\n(def answer 42)"
+ :selection {:start 55 :end 55}
+ :completion {:open false :items [] :selected 0 :prefix ""}
+ :preferences {:paredit true :rainbow true :instantEvaluation true}
+ :status "ready"
+ :capabilities {:edit true :save true :evaluate true}
+ :metadata {:authority "application"
+            :story "editor/live"}}
