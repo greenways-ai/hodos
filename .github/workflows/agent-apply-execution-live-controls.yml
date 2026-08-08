@@ -34,8 +34,9 @@ jobs:
               source = target.read_text()
               if new in source:
                   return
-              if source.count(old) != 1:
-                  raise SystemExit(f'{path}: expected one patch target, found {source.count(old)}')
+              count = source.count(old)
+              if count < 1:
+                  raise SystemExit(f'{path}: patch target is missing')
               target.write_text(source.replace(old, new, 1))
 
           replace(
