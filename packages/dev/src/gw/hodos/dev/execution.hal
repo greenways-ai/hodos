@@ -10,6 +10,9 @@
   #{"execution/connect"
     "execution/ingest"
     "execution/select"
+    "execution/start"
+    "execution/step"
+    "execution/run"
     "execution/pause"
     "execution/resume"
     "execution/reset"
@@ -29,7 +32,8 @@
     :availability (get options :availability
                        {:metrics false :events false :trace false})
     :capabilities (get options :capabilities
-                       {:pause false :resume false :reset true :requestTrace false})
+                       {:start false :step false :run false
+                        :pause false :resume false :reset true :requestTrace false})
     :selection (get options :selection
                     {:function nil :ip nil :source nil :eventIndex nil :traceIndex nil})
     :diagnostics (get options :diagnostics [])

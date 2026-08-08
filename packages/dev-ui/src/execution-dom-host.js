@@ -105,6 +105,15 @@ export function createExecutionDomHost({
 
     const actions = className(document.createElement("div"), "hodos-dev-execution-actions");
     actions.append(
+      actionButton(document, "Start", () => send("execution/start", {
+        sessionId: view.sessionId,
+      }), controller, !view.controls.start, "start"),
+      actionButton(document, "Step", () => send("execution/step", {
+        sessionId: view.sessionId,
+      }), controller, !view.controls.step, "step"),
+      actionButton(document, "Run", () => send("execution/run", {
+        sessionId: view.sessionId,
+      }), controller, !view.controls.run, "run"),
       actionButton(document, "Pause", () => send("execution/pause", {
         sessionId: view.sessionId,
       }), controller, !view.controls.pause, "pause"),
