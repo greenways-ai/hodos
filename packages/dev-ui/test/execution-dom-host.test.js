@@ -259,7 +259,11 @@ test("Execution DOM registration supplies the concrete host without runtime owne
 });
 
 test("Execution DOM source avoids HTML interpolation and executable evaluation", async () => {
-  const source = await readFile(new URL("../src/execution-dom-host.js", import.meta.url), "utf8");
+  const [hostSource, elementSource] = await Promise.all([
+    readFile(new URL("../src/execution-dom-host.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/execution-dom-elements.js", import.meta.url), "utf8"),
+  ]);
+  const source = [hostSource, elementSource].join("\n");
   assert.equal(source.includes("innerHTML"), false);
   assert.equal(source.includes("insertAdjacentHTML"), false);
   assert.equal(source.includes("new Function"), false);
