@@ -1,0 +1,144 @@
+name: Apply Execution live controls
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'agent/execution-live-controls'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Add Start, Step and Run contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              target = Path(path)
+              source = target.read_text()
+              if new in source:
+                  return
+              if source.count(old) != 1:
+                  raise SystemExit(f'{path}: expected one patch target, found {source.count(old)}')
+              target.write_text(source.replace(old, new, 1))
+
+          replace(
+              'packages/dev/src/execution.js',
+              '''  "execution/select",\n  "execution/pause",''',
+              '''  "execution/select",\n  "execution/start",\n  "execution/step",\n  "execution/run",\n  "execution/pause",''',
+          )
+          replace(
+              'packages/dev/src/execution.js',
+              '''  return Object.freeze({\n    pause: booleanValue(capabilities.pause, "Hodos Dev Execution pause capability"),''',
+              '''  return Object.freeze({\n    start: booleanValue(capabilities.start, "Hodos Dev Execution start capability"),\n    step: booleanValue(capabilities.step, "Hodos Dev Execution step capability"),\n    run: booleanValue(capabilities.run, "Hodos Dev Execution run capability"),\n    pause: booleanValue(capabilities.pause, "Hodos Dev Execution pause capability"),''',
+          )
+
+          replace(
+              'packages/dev/src/gw/hodos/dev/execution.hal',
+              '''    "execution/select"\n    "execution/pause"''',
+              '''    "execution/select"\n    "execution/start"\n    "execution/step"\n    "execution/run"\n    "execution/pause"''',
+          )
+          replace(
+              'packages/dev/src/gw/hodos/dev/execution.hal',
+              '''                       {:pause false :resume false :reset true :requestTrace false})''',
+              '''                       {:start false :step false :run false\n                        :pause false :resume false :reset true :requestTrace false})''',
+          )
+
+          replace(
+              'packages/dev-ui/src/execution-dom-view.js',
+              '''const controlsValue = (capabilities, status) => Object.freeze({\n  pause: Boolean(capabilities.pause) && status === "running",\n  resume: Boolean(capabilities.resume) && (status === "paused" || status === "suspended"),\n  reset: Boolean(capabilities.reset) && status !== "idle",\n  requestTrace: Boolean(capabilities.requestTrace),\n});''',
+              '''const controlsValue = (capabilities, status) => Object.freeze({\n  start: Boolean(capabilities.start)\n    && new Set(["idle", "connected", "returned", "failed"]).has(status),\n  step: Boolean(capabilities.step) && new Set(["connected", "running"]).has(status),\n  run: Boolean(capabilities.run) && new Set(["connected", "running"]).has(status),\n  pause: Boolean(capabilities.pause) && status === "running",\n  resume: Boolean(capabilities.resume) && (status === "paused" || status === "suspended"),\n  reset: Boolean(capabilities.reset) && status !== "idle",\n  requestTrace: Boolean(capabilities.requestTrace),\n});''',
+          )
+
+          replace(
+              'packages/dev-ui/src/execution-dom-host.js',
+              '''    actions.append(\n      actionButton(document, "Pause",''',
+              '''    actions.append(\n      actionButton(document, "Start", () => send("execution/start", {\n        sessionId: view.sessionId,\n      }), controller, !view.controls.start, "start"),\n      actionButton(document, "Step", () => send("execution/step", {\n        sessionId: view.sessionId,\n      }), controller, !view.controls.step, "step"),\n      actionButton(document, "Run", () => send("execution/run", {\n        sessionId: view.sessionId,\n      }), controller, !view.controls.run, "run"),\n      actionButton(document, "Pause",''',
+          )
+
+          replace(
+              'packages/dev/test/execution.test.js',
+              '''    capabilities: { pause: true, resume: true, requestTrace: true },''',
+              '''    capabilities: {\n      start: true,\n      step: true,\n      run: true,\n      pause: true,\n      resume: true,\n      requestTrace: true,\n    },''',
+          )
+          replace(
+              'packages/dev/test/execution.test.js',
+              '''  assert.equal(state.capabilities.requestTrace, true);''',
+              '''  assert.equal(state.capabilities.start, true);\n  assert.equal(state.capabilities.step, true);\n  assert.equal(state.capabilities.run, true);\n  assert.equal(state.capabilities.requestTrace, true);''',
+          )
+          replace(
+              'packages/dev/test/execution.test.js',
+              '''  assert.equal(component["component/events"].includes("execution/request-trace"), true);''',
+              '''  assert.equal(component["component/events"].includes("execution/start"), true);\n  assert.equal(component["component/events"].includes("execution/step"), true);\n  assert.equal(component["component/events"].includes("execution/run"), true);\n  assert.equal(component["component/events"].includes("execution/request-trace"), true);''',
+          )
+
+          replace(
+              'packages/dev-ui/test/execution-dom-host.test.js',
+              '''    capabilities: { pause: true, resume: true, reset: true, requestTrace: true },''',
+              '''    capabilities: {\n      start: true,\n      step: true,\n      run: true,\n      pause: true,\n      resume: true,\n      reset: true,\n      requestTrace: true,\n    },''',
+          )
+          replace(
+              'packages/dev-ui/test/execution-dom-host.test.js',
+              '''  assert.equal(view.controls.pause, true);\n  assert.equal(view.controls.resume, false);''',
+              '''  assert.equal(view.controls.start, false);\n  assert.equal(view.controls.step, true);\n  assert.equal(view.controls.run, true);\n  assert.equal(view.controls.pause, true);\n  assert.equal(view.controls.resume, false);\n\n  const ready = projectExecutionDomView(createExecutionArea({\n    state: createExecutionState({\n      sessionId: "execution/ready",\n      status: "connected",\n      capabilities: { start: true, step: true, run: true },\n    }),\n  })["area/component"]["component/model"]);\n  assert.equal(ready.controls.start, true);\n  assert.equal(ready.controls.step, true);\n  assert.equal(ready.controls.run, true);\n  assert.equal(ready.controls.pause, false);''',
+          )
+          replace(
+              'packages/dev-ui/test/execution-dom-host.test.js',
+              '''  nodes.find((node) => node.dataset?.action === "pause").emit("click");''',
+              '''  nodes.find((node) => node.dataset?.action === "step").emit("click");\n  nodes.find((node) => node.dataset?.action === "run").emit("click");\n  nodes.find((node) => node.dataset?.action === "pause").emit("click");''',
+          )
+          replace(
+              'packages/dev-ui/test/execution-dom-host.test.js',
+              '''    "execution/select",\n    "execution/pause",''',
+              '''    "execution/select",\n    "execution/step",\n    "execution/run",\n    "execution/pause",''',
+          )
+
+          replace(
+              'packages/dev-ui/README.md',
+              '''- pause, resume, reset and full-trace semantic controls;''',
+              '''- start, step, bounded-run, pause, resume, reset and full-trace semantic controls;''',
+          )
+          replace(
+              'packages/dev-ui/README.md',
+              '''execution/select\nexecution/pause''',
+              '''execution/select\nexecution/start\nexecution/step\nexecution/run\nexecution/pause''',
+          )
+          PY
+
+      - name: Validate the Execution controls
+        run: |
+          git diff --check
+          node --test packages/dev/test/execution.test.js packages/dev-ui/test/execution-dom-host.test.js
+          npm run audit:hal
+          npm run check:packages
+          npm run pack:check
+
+      - name: Commit the validated controls
+        run: |
+          if git diff --quiet; then
+            echo 'Execution live controls are already applied.'
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages/dev packages/dev-ui
+          git commit -m 'Add live Execution start, step and run controls'
+          git fetch origin ${{ github.event.pull_request.head.ref }}
+          git rebase origin/${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
