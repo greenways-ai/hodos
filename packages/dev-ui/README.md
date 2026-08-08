@@ -37,6 +37,9 @@ const unregister = registerHodosDevUi(registry, {
   createEditorHost: ({ container, dispatch }) =>
     createEditorHost(container, dispatch),
 
+  createExecutionHost: ({ container, dispatch }) =>
+    createExecutionHost(container, dispatch),
+
   createExplorerHost: ({ container, dispatch }) =>
     createExplorerHost(container, dispatch),
 
@@ -59,6 +62,8 @@ Individual registrations are also exported:
 ```js
 registerHodosCatalogUi(registry, options);
 registerHodosEditorUi(registry, options);
+registerHodosExecutionUi(registry, options);
+registerHodosExecutionDomUi(registry, options);
 registerHodosExplorerUi(registry, options);
 registerHodosPreviewUi(registry, options);
 registerHodosProblemsUi(registry, options);
@@ -66,10 +71,67 @@ registerHodosReplUi(registry, options);
 registerHodosValueInspectorUi(registry, options);
 ```
 
+## Concrete Execution host
+
+The package includes a product-neutral DOM host for the Hodos Execution model.
+It renders the three existing Hara evidence contracts without compiling or
+controlling Hara itself:
+
+```text
+hal.bytecode-metrics/v1
+hal.bytecode-events/v1
+hal.bytecode-trace/v1
+```
+
+```js
+import {
+  registerHodosExecutionDomUi,
+} from "@greenways/hodos-dev-ui";
+import "@greenways/hodos-dev-ui/execution.css";
+
+const unregisterExecution = registerHodosExecutionDomUi(registry, {
+  executionDom: {
+    dispatchSourceSelection(event) {
+      // Forward the semantic editor/selection event through the application
+      // compositor. The host never reaches into an editor instance directly.
+      workspaceRuntime.dispatch(event);
+    },
+    reportError(error) {
+      problemsService.report(error);
+    },
+  },
+});
+```
+
+The host presents:
+
+- execution status, instruction count and maximum call depth;
+- metrics scorecards and opcode distribution;
+- a compact instruction, transition and terminal timeline;
+- selected before/after stack, locals, calls and handlers;
+- retained diagnostics and omitted-evidence counts;
+- pause, resume, reset and full-trace semantic controls;
+- source-selection payloads suitable for an Editor service.
+
+The host dispatches only execution requests through the component dispatcher:
+
+```text
+execution/select
+execution/pause
+execution/resume
+execution/reset
+execution/request-trace
+```
+
+A timeline selection carries the matched source position in
+`execution/select`. When `dispatchSourceSelection` is supplied, the same action
+also emits a serializable `editor/selection` event to the application
+compositor. Hodos does not manipulate the editor directly.
+
 ## Host contract
 
-Every injected host receives a container and semantic dispatcher and returns a
-small lifecycle object:
+Every injected host receives a container, services, semantic dispatcher and
+context, and returns a small lifecycle object:
 
 ```js
 {
@@ -107,6 +169,13 @@ whether and how they execute.
 Projects document source, selection, completion and editor preferences into a
 trusted editor implementation. The host owns DOM and input mechanics; Hara or
 the application owns source truth and command policy.
+
+### Execution host
+
+Projects bounded metrics, compact events and trace documents into a visible
+execution inspector. It emits semantic control and selection requests only.
+The application owns live Hara sessions, compilation, stepping, suspension,
+promise settlement, source routing and machine disposal.
 
 ### Preview host
 
@@ -150,9 +219,10 @@ the signed request supplies the exact repository, commit and package root. The
 registry injects that identity, checks every path and proves each selected
 Workspace surface before the story can appear in `packages.hara-lang.org`.
 
-Problems, Value Inspector and Catalog are documented and shipped, but their
-first independent Canvas stories wait for separately addressable Playground
-Showcase surfaces. They are not represented by misleading Preview substitutes.
+Execution, Problems, Value Inspector and Catalog are documented and shipped,
+but their first independent Canvas stories wait for separately addressable
+Playground Showcase surfaces. They are not represented by misleading Preview
+substitutes.
 
 Run from the repository root:
 
@@ -166,14 +236,14 @@ npm test
 
 ```text
 @greenways/hodos-dev
-  serializable models and closed semantic event vocabularies
+  serializable execution and developer models plus closed semantic events
 
 @greenways/hodos-dev-ui
-  component registration, host adaptation, update and disposal
+  component registration, safe DOM projection, interaction and disposal
 
 Hara browser services / product
-  runtime, editor engine, source provider, diagnostics, retained values,
-  preview sandbox, storage and privileged policy
+  live machine, compiler, promise settlement, source provider, diagnostics,
+  retained values, preview sandbox, storage and privileged policy
 ```
 
 The package has no Hestia or persistence dependency.

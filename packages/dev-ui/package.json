@@ -10,7 +10,8 @@
     "directory": "packages/dev-ui"
   },
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./execution.css": "./src/execution.css"
   },
   "files": [
     "src",
@@ -21,7 +22,9 @@
     "showcase.edn",
     "showcase"
   ],
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/execution.css"
+  ],
   "dependencies": {
     "@greenways/hodos-dev": "0.1.0"
   },
