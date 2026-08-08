@@ -8,6 +8,13 @@ import {
   HODOS_DEV_REPL_COMPONENT_ID,
   HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID,
 } from "@greenways/hodos-dev";
+import { createExecutionDomHost } from "./execution-dom-host.js";
+
+export {
+  createExecutionDomHost,
+  createExecutionDomHost as createHodosExecutionDomHost,
+  projectExecutionDomView,
+} from "./execution-dom-host.js";
 
 const hostFactory = (name, options, services, optionKey, serviceKey) => {
   const candidate = options[optionKey]
@@ -42,6 +49,7 @@ function statefulComponentFactory(name, optionKey, serviceKey, options = {}) {
     const host = createHost({
       container: root,
       model,
+      services,
       dispatch,
       context,
     });
@@ -69,6 +77,7 @@ export function createPreviewComponentFactory(options = {}) {
     const createPreviewHost = hostFactory("Preview", options, services, "createPreviewHost", "preview");
     const host = createPreviewHost({
       container: root,
+      services,
       dispatch,
       context,
       theme: model?.theme,
@@ -157,6 +166,21 @@ export function registerHodosExecutionUi(registry, options = {}) {
     createExecutionComponentFactory(options),
     "registerHodosExecutionUi",
   );
+}
+
+/**
+ * Registers the product-neutral safe DOM Execution host. The host consumes
+ * bounded evidence only; Hara compilation, live machine ownership and promise
+ * settlement remain injected application services.
+ */
+export function registerHodosExecutionDomUi(registry, options = {}) {
+  const executionDom = options.executionDom ?? {};
+  const createExecutionHost = options.createExecutionHost
+    ?? ((hostOptions) => createExecutionDomHost({ ...executionDom, ...hostOptions }));
+  return registerHodosExecutionUi(registry, {
+    ...options,
+    createExecutionHost,
+  });
 }
 
 export function registerHodosExplorerUi(registry, options = {}) {

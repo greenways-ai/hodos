@@ -1,0 +1,354 @@
+.hodos-dev-execution {
+  --execution-surface: var(--hodos-surface, #111615);
+  --execution-panel: var(--hodos-panel, #171d1b);
+  --execution-border: var(--hodos-border, rgba(255, 255, 255, 0.12));
+  --execution-muted: var(--hodos-muted, rgba(255, 255, 255, 0.62));
+  --execution-text: var(--hodos-text, #f4f7f5);
+  --execution-accent: var(--hodos-accent, #8ce0b7);
+  --execution-danger: var(--hodos-danger, #ff9c9c);
+  color: var(--execution-text);
+  background: var(--execution-surface);
+  border: 1px solid var(--execution-border);
+  border-radius: 1rem;
+  overflow: hidden;
+  min-height: 30rem;
+  font: 400 0.875rem/1.45 ui-sans-serif, system-ui, sans-serif;
+}
+
+.hodos-dev-execution *,
+.hodos-dev-execution *::before,
+.hodos-dev-execution *::after {
+  box-sizing: border-box;
+}
+
+.hodos-dev-execution-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--execution-border);
+  background: color-mix(in srgb, var(--execution-panel) 88%, transparent);
+}
+
+.hodos-dev-execution-identity h2,
+.hodos-dev-execution-identity p,
+.hodos-dev-execution-section-title {
+  margin: 0;
+}
+
+.hodos-dev-execution-identity h2 {
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.hodos-dev-execution-identity p,
+.hodos-dev-execution-timeline-header small,
+.hodos-dev-execution-omitted,
+.hodos-dev-execution-empty {
+  color: var(--execution-muted);
+}
+
+.hodos-dev-execution-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--execution-border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.hodos-dev-execution-status::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--execution-muted);
+}
+
+.hodos-dev-execution-status[data-status="running"]::before,
+.hodos-dev-execution-status[data-status="returned"]::before {
+  background: var(--execution-accent);
+}
+
+.hodos-dev-execution-status[data-status="failed"]::before {
+  background: var(--execution-danger);
+}
+
+.hodos-dev-execution-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.hodos-dev-execution-action,
+.hodos-dev-execution-boundary {
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--execution-border);
+  border-radius: 0.55rem;
+  cursor: pointer;
+}
+
+.hodos-dev-execution-action {
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.hodos-dev-execution-action:hover:not(:disabled),
+.hodos-dev-execution-boundary:hover,
+.hodos-dev-execution-boundary[data-selected="true"] {
+  border-color: var(--execution-accent);
+  background: color-mix(in srgb, var(--execution-accent) 10%, transparent);
+}
+
+.hodos-dev-execution-action:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.hodos-dev-execution-body {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.9fr) minmax(24rem, 1.4fr);
+  min-height: 28rem;
+}
+
+.hodos-dev-execution-evidence,
+.hodos-dev-execution-inspection {
+  min-width: 0;
+  padding: 1rem;
+}
+
+.hodos-dev-execution-evidence {
+  border-right: 1px solid var(--execution-border);
+}
+
+.hodos-dev-execution-metrics,
+.hodos-dev-execution-timeline,
+.hodos-dev-execution-selected,
+.hodos-dev-execution-diagnostics {
+  margin-bottom: 1rem;
+}
+
+.hodos-dev-execution-section-title {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hodos-dev-execution-scorecards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.hodos-dev-execution-scorecard {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem;
+  background: var(--execution-panel);
+  border: 1px solid var(--execution-border);
+  border-radius: 0.65rem;
+}
+
+.hodos-dev-execution-scorecard strong {
+  font-size: 1.05rem;
+}
+
+.hodos-dev-execution-scorecard span,
+.hodos-dev-execution-opcode span,
+.hodos-dev-execution-boundary span {
+  color: var(--execution-muted);
+  font-size: 0.75rem;
+}
+
+.hodos-dev-execution-opcodes {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.hodos-dev-execution-opcode {
+  display: grid;
+  grid-template-columns: minmax(5rem, 0.7fr) minmax(5rem, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.hodos-dev-execution-opcode progress {
+  width: 100%;
+  height: 0.45rem;
+  accent-color: var(--execution-accent);
+}
+
+.hodos-dev-execution-timeline-header,
+.hodos-dev-execution-snapshot-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.hodos-dev-execution-timeline-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 21rem;
+  overflow: auto;
+}
+
+.hodos-dev-execution-boundary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+}
+
+.hodos-dev-execution-boundary strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hodos-dev-execution-boundary-details {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 0.8rem;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: var(--execution-panel);
+  border: 1px solid var(--execution-border);
+  border-radius: 0.65rem;
+}
+
+.hodos-dev-execution-boundary-details dt {
+  color: var(--execution-muted);
+}
+
+.hodos-dev-execution-boundary-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hodos-dev-execution-instruction,
+.hodos-dev-execution-result,
+.hodos-dev-execution-error {
+  margin: 0.75rem 0;
+  padding: 0.7rem;
+  border-radius: 0.55rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  font: 400 0.78rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.hodos-dev-execution-instruction,
+.hodos-dev-execution-result {
+  background: var(--execution-panel);
+  border: 1px solid var(--execution-border);
+}
+
+.hodos-dev-execution-error {
+  color: var(--execution-danger);
+  background: color-mix(in srgb, var(--execution-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--execution-danger) 45%, transparent);
+}
+
+.hodos-dev-execution-snapshots {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.hodos-dev-execution-snapshot {
+  padding: 0.75rem;
+  background: var(--execution-panel);
+  border: 1px solid var(--execution-border);
+  border-radius: 0.75rem;
+}
+
+.hodos-dev-execution-value-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.65rem;
+}
+
+.hodos-dev-execution-values {
+  min-width: 0;
+  padding: 0.6rem;
+  background: color-mix(in srgb, var(--execution-surface) 80%, transparent);
+  border-radius: 0.55rem;
+}
+
+.hodos-dev-execution-values ol {
+  margin: 0.45rem 0 0;
+  padding-left: 1.8rem;
+  max-height: 10rem;
+  overflow: auto;
+  font: 400 0.75rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.hodos-dev-execution-diagnostics ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hodos-dev-execution-diagnostics li {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  border-left: 0.2rem solid var(--execution-muted);
+  background: var(--execution-panel);
+}
+
+.hodos-dev-execution-diagnostics li[data-severity="error"] {
+  border-left-color: var(--execution-danger);
+}
+
+@media (max-width: 900px) {
+  .hodos-dev-execution-header,
+  .hodos-dev-execution-body {
+    grid-template-columns: 1fr;
+  }
+
+  .hodos-dev-execution-header {
+    align-items: start;
+  }
+
+  .hodos-dev-execution-status {
+    justify-self: start;
+  }
+
+  .hodos-dev-execution-actions {
+    justify-content: flex-start;
+  }
+
+  .hodos-dev-execution-evidence {
+    border-right: 0;
+    border-bottom: 1px solid var(--execution-border);
+  }
+}
+
+@media (max-width: 560px) {
+  .hodos-dev-execution-scorecards,
+  .hodos-dev-execution-value-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hodos-dev-execution-opcode {
+    grid-template-columns: minmax(4rem, 1fr) auto;
+  }
+
+  .hodos-dev-execution-opcode progress {
+    grid-column: 1 / -1;
+  }
+}
