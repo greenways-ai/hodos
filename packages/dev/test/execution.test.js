@@ -143,3 +143,16 @@ test("execution normalization fails closed and reset preserves session policy", 
   assert.equal(state.evidence.metrics, null);
   assert.equal(state.capabilities.requestTrace, true);
 });
+
+test("execution metrics accept Hara named opcode count projections", () => {
+  const evidence = normalizeExecutionEvidence({
+    schema: HARA_BYTECODE_METRICS_SCHEMA,
+    instructions: 4,
+    opcode_counts: [
+      { opcode: "constant", count: 2 },
+      { opcode: "return", count: 1 },
+    ],
+  });
+  assert.equal(evidence.level, "metrics");
+  assert.deepEqual(evidence.value.opcodeCounts, { constant: 2, return: 1 });
+});

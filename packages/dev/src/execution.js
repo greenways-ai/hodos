@@ -164,8 +164,22 @@ const diagnosticValue = (value, index) => {
 };
 
 const opcodeCountsValue = (value = {}) => {
-  const counts = objectValue(value, "Hara bytecode metrics opcodeCounts");
   const output = {};
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      const count = objectValue(entry, `Hara bytecode opcode count ${index}`);
+      const opcode = nonEmptyString(
+        count.opcode,
+        `Hara bytecode opcode count ${index} opcode`,
+      );
+      output[opcode] = nonNegativeInteger(
+        count.count,
+        `Hara bytecode opcode count ${index} count`,
+      );
+    });
+    return Object.freeze(output);
+  }
+  const counts = objectValue(value, "Hara bytecode metrics opcodeCounts");
   for (const [opcode, count] of Object.entries(counts)) {
     output[nonEmptyString(opcode, "Hara bytecode metrics opcode")] = nonNegativeInteger(
       count,
