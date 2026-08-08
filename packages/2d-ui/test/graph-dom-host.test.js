@@ -28,6 +28,8 @@ class FakeElement {
     this.textContent = "";
     this.disabled = false;
     this.type = "";
+    this.capturedPointers = [];
+    this.releasedPointers = [];
   }
   append(...nodes) { for (const node of nodes) { node.parentNode = this; this.children.push(node); } }
   replaceChildren(...nodes) { this.children = []; this.append(...nodes); }
@@ -51,8 +53,8 @@ class FakeElement {
   }
   setAttribute(name, value) { this.attributes.set(name, String(value)); }
   contains(node) { return node === this || this.children.some((child) => child.contains?.(node)); }
-  setPointerCapture() {}
-  releasePointerCapture() {}
+  setPointerCapture(pointerId) { this.capturedPointers.push(pointerId); }
+  releasePointerCapture(pointerId) { this.releasedPointers.push(pointerId); }
 }
 
 class FakeDocument {
@@ -66,7 +68,7 @@ const walk = (node, result = []) => {
   return result;
 };
 
-const model = () => createGraphArea({
+const model = (selection = { nodeIds: [], connectionIds: [] }) => createGraphArea({
   graph: {
     id: "graph/main",
     revision: 2,
@@ -96,7 +98,7 @@ const model = () => createGraphArea({
       to: { nodeId: "node/target", portId: "in:0" },
     }],
   },
-  selection: { nodeIds: [], connectionIds: [] },
+  selection,
   viewport: { x: 0, y: 0, zoom: 1 },
   capabilities: {
     select: true,
@@ -119,7 +121,7 @@ test("Graph DOM projection creates stable nodes, ports and SVG paths", () => {
   assert.equal(Object.isFrozen(view.nodes), true);
 });
 
-test("Graph DOM host emits selection, move and connection semantics", () => {
+test("Graph DOM host separates selection from drag and emits connection semantics", () => {
   const document = new FakeDocument();
   const container = new FakeElement("div", document);
   const events = [];
@@ -128,17 +130,31 @@ test("Graph DOM host emits selection, move and connection semantics", () => {
     dispatch: (event) => events.push(event),
   });
   host.update(model());
-  const nodes = walk(container);
+  let nodes = walk(container);
   assert.equal(container.dataset.hodosComponent, "hodos.2d/graph");
   assert.equal(nodes.some((node) => node.tagName === "SVG"), true);
 
-  const source = nodes.find((node) => node.dataset?.nodeId === "node/source" && node.tagName === "ARTICLE");
-  const handle = nodes.find((node) => node.dataset?.graphDragHandle === "node/source");
+  let source = nodes.find((node) => node.dataset?.nodeId === "node/source" && node.tagName === "ARTICLE");
+  let handle = nodes.find((node) => node.dataset?.graphDragHandle === "node/source");
   assert.ok(source);
   assert.ok(handle);
   handle.emit("pointerdown", { button: 0, pointerId: 7, clientX: 10, clientY: 20 });
   handle.emit("pointermove", { pointerId: 7, clientX: 50, clientY: 60 });
   handle.emit("pointerup", { pointerId: 7, clientX: 50, clientY: 60 });
+  assert.deepEqual(events.map((event) => event["event/type"]), ["graph/select"]);
+  assert.deepEqual(handle.capturedPointers, []);
+
+  host.update(model({ nodeIds: ["node/source"], connectionIds: [] }));
+  nodes = walk(container);
+  source = nodes.find((node) => node.dataset?.nodeId === "node/source" && node.tagName === "ARTICLE");
+  handle = nodes.find((node) => node.dataset?.graphDragHandle === "node/source");
+  assert.ok(source);
+  assert.ok(handle);
+  handle.emit("pointerdown", { button: 0, pointerId: 7, clientX: 10, clientY: 20 });
+  handle.emit("pointermove", { pointerId: 7, clientX: 50, clientY: 60 });
+  handle.emit("pointerup", { pointerId: 7, clientX: 50, clientY: 60 });
+  assert.deepEqual(handle.capturedPointers, [7]);
+  assert.deepEqual(handle.releasedPointers, [7]);
 
   const output = nodes.find((node) => node.dataset?.nodeId === "node/source" && node.dataset?.portId === "out:0");
   const input = nodes.find((node) => node.dataset?.nodeId === "node/target" && node.dataset?.portId === "in:0");
