@@ -24,12 +24,13 @@ npm install @greenways/hodos-dev
 
 ## Areas
 
-The package exports constructors for seven serializable Workspace areas:
+The package exports constructors for eight serializable Workspace areas:
 
 ```js
 import {
   createCatalogArea,
   createEditorArea,
+  createExecutionArea,
   createExplorerArea,
   createPreviewArea,
   createProblemsArea,
@@ -137,6 +138,41 @@ const repl = createReplArea({
 Evaluation, cancellation, history persistence and runtime transport remain Hara
 service responsibilities.
 
+
+### Execution
+
+Execution models normalize three versioned Hara bytecode evidence levels:
+
+```text
+hal.bytecode-metrics/v1  aggregate counters and high-water marks
+hal.bytecode-events/v1   compact sampled or control-flow events
+hal.bytecode-trace/v1    exact single-step state projections
+```
+
+```js
+const execution = createExecutionArea({
+  state: createExecutionState({
+    sessionId: "execution/lesson",
+    capabilities: { pause: true, resume: true, requestTrace: true },
+    limits: { events: 512, trace: 128 },
+  }),
+  evidence: [{
+    schema: "hal.bytecode-metrics/v1",
+    instructions: 7,
+    opcodeCounts: { constant: 3, primitive: 1, return: 1 },
+    maxStackDepth: 3,
+    maxCallDepth: 1,
+  }],
+});
+```
+
+Hara remains authoritative for compilation, execution, instrumentation,
+suspension and full observations. Hodos validates, bounds, selects and
+presents the resulting serializable evidence. This package does not import
+the Hara runtime, WebAssembly, DOM, canvas or a 3D renderer. Products can
+begin with inexpensive metrics, add a compact event timeline, and request a
+full trace only when debugging or teaching requires exact machine state.
+
 ### Problems and Value Inspector
 
 Problems models carry text-only diagnostics, severity, code, source location,
@@ -165,6 +201,7 @@ explorer/select · explorer/toggle · explorer/refresh
 editor/input · editor/selection · editor/evaluate · editor/save
 preview/reload · preview/open
 repl/submit · repl/cancel · repl/history · repl/inspect-value
+execution/ingest · execution/select · execution/request-trace
 problems/select · problems/filter · problems/open-source
 value-inspector/toggle · value-inspector/copy
 catalog/select-toolset · catalog/select-activity · catalog/run
@@ -205,7 +242,7 @@ Hara/application
   source, runtime sessions, diagnostics, retained values, tools and policy
 
 @greenways/hodos-dev
-  serializable developer-area models and semantic event contracts
+  serializable developer-area models, Hara execution evidence and semantic event contracts
 
 @greenways/hodos-dev-ui
   visible component adapters around injected trusted hosts

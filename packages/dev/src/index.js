@@ -917,3 +917,20 @@ export function createCatalogArea({
   });
 }
 
+export {
+  HARA_BYTECODE_EVENTS_SCHEMA,
+  HARA_BYTECODE_METRICS_SCHEMA,
+  HARA_BYTECODE_TRACE_SCHEMA,
+  HODOS_DEV_EXECUTION_AREA_TYPE,
+  HODOS_DEV_EXECUTION_COMPONENT_ID,
+  HODOS_DEV_EXECUTION_EVENTS,
+  createExecutionArea,
+  createExecutionState,
+  ingestExecutionEvidence,
+  normalizeBytecodeEvents,
+  normalizeBytecodeMetrics,
+  normalizeBytecodeTrace,
+  normalizeExecutionEvidence,
+  resetExecutionState,
+  selectExecutionState,
+} from "./execution.js";
