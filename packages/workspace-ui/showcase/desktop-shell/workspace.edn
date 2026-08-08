@@ -1,0 +1,82 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-workspace-ui-desktop
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id "layout/root"
+  :layout/direction :horizontal
+  :layout/ratio 0.22
+  :layout/first
+  {:layout/type :area
+   :layout/area "area/project"}
+  :layout/second
+  {:layout/type :split
+   :layout/id "layout/work"
+   :layout/direction :horizontal
+   :layout/ratio 0.64
+   :layout/first
+   {:layout/type :area
+    :layout/area "area/editor"}
+   :layout/second
+   {:layout/type :area
+    :layout/area "area/preview"}}}
+ :workspace/documents
+ [{:document/id "document/main"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/project"
+   :area/type :project
+   :area/title "Project"
+   :area/presentation
+   {:presentation/role :project
+    :presentation/label "Files"
+    :presentation/surface :files}}
+  {:area/id "area/editor"
+   :area/type :code-editor
+   :area/title "main.hal"
+   :area/presentation
+   {:presentation/role :editor
+    :presentation/label "Code"
+    :presentation/surface :code}}
+  {:area/id "area/preview"
+   :area/type :output
+   :area/title "Preview"
+   :area/presentation
+   {:presentation/role :output
+    :presentation/label "Preview"
+    :presentation/surface :preview}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/source-editor"
+   :link/document "document/main"
+   :link/area "area/editor"}]
+ :workspace/selection
+ {:area/id "area/preview"
+  :surface/id "preview"}
+ :workspace/customizations
+ {:responsive/breakpoint 1000
+  :responsive/default-surface "preview"
+  :responsive/surfaces
+  [{:surface/id "files"
+    :surface/area "area/project"
+    :surface/label "Files"
+    :surface/icon :folder
+    :surface/mode :files}
+   {:surface/id "code"
+    :surface/area "area/editor"
+    :surface/label "Code"
+    :surface/icon :code
+    :surface/mode :code}
+   {:surface/id "preview"
+    :surface/area "area/preview"
+    :surface/label "Preview"
+    :surface/icon :preview
+    :surface/mode :preview}]}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

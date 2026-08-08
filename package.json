@@ -17,6 +17,7 @@
     "test": "node --test packages/core/test/*.test.js packages/web/test/*.test.js packages/workspace-ui/test/*.test.js packages/dev/test/*.test.js packages/dev-ui/test/*.test.js packages/2d/test/*.test.js packages/2d-ui/test/*.test.js packages/world-model/test/*.test.js packages/source-github/test/*.test.js packages/viewer/test/*.test.js apps/demo/test/*.test.js site/test/*.test.js",
     "audit:hal": "node scripts/audit-hal.js",
     "check:packages": "node scripts/check-packages.js",
+    "check:showcases": "node scripts/check-showcases.js",
     "pack:check": "node scripts/pack-packages.js"
   },
   "devDependencies": {

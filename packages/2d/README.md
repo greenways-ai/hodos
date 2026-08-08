@@ -1,76 +1,140 @@
 # @greenways/hodos-2d
 
-HAL-first Hodos 2D Workspace models.
+HAL-first document and graph models for Hodos Workspace components.
 
-The first bounded slice defines two reusable component contracts:
+The package defines the serializable model and semantic event boundary used by
+`hodos.2d/document` and `hodos.2d/graph`. It does not own browser rendering,
+persistence, collaboration, evaluation, signing, or capability policy.
 
-- `hodos.2d/document` projects stable-ID rich documents with embedded Hara artefact nodes;
-- `hodos.2d/graph` projects typed node graphs with validated ports, connections, viewport and selection.
+## Install
+
+```sh
+hara package install greenways/hodos-2d
+npm install @greenways/hodos-2d
+```
+
+Hara package coordinate:
+
+```text
+greenways/hodos-2d
+```
+
+JavaScript package:
+
+```text
+@greenways/hodos-2d
+```
+
+## What ships
+
+| Surface | Hara namespace | Purpose |
+|---|---|---|
+| Document | `gw.hodos.two-d.document` | Normalize document models and semantic document events. |
+| Graph | `gw.hodos.two-d.graph` | Normalize typed graph models and semantic graph events. |
+
+The JavaScript entry point exposes the matching model constructors, event
+helpers, component descriptors, and registration functions.
 
 ```js
 import {
-  createDocumentArea,
-  createGraphArea,
+  createDocumentComponentDescriptor,
+  createGraphComponentDescriptor,
+  registerHodos2d,
 } from "@greenways/hodos-2d";
 
-const documentArea = createDocumentArea({
-  document: {
-    profile: "hodos.rich-text/2",
-    id: "document/main",
-    children: [{
-      id: "block/artefact",
-      type: "hara-artefact",
-      attrs: {
-        artefactId: "artefact/chart",
-        kind: "chart",
-        mode: "live",
-        entry: "app.chart/view",
-        capabilities: ["inspect"],
-      },
-      children: [{ id: "text/source", type: "text", text: "(chart/view data)" }],
-    }],
-  },
+const unregister = registerHodos2d(registry);
+
+const documentArea = createDocumentComponentDescriptor({
+  id: "document/review",
+  title: "Review",
+  children: [],
 });
 
-const graphArea = createGraphArea({
-  graph: {
-    id: "graph/main",
-    nodes: [{
-      id: "node/source",
-      type: "source",
-      ports: [{ id: "out:0", direction: "out", dataType: "number" }],
-    }],
-    connections: [],
-  },
+const graphArea = createGraphComponentDescriptor({
+  id: "graph/flow",
+  nodes: [],
+  connections: [],
 });
 ```
 
-## Hara UI compatibility
+Component IDs are stable:
 
-The original Hara UI document model used the profile `greenways.rich-text/2` with the same stable document, block, text and artefact identity. Existing values can cross the explicit compatibility boundary without bringing an editor instance or Hestia transport into Hodos:
-
-```js
-import {
-  projectLegacyHaraDocument,
-  createLegacyHaraDocumentArea,
-} from "@greenways/hodos-2d/compat/hara-document";
-
-const projected = projectLegacyHaraDocument(haraUiDocument);
-const area = createLegacyHaraDocumentArea({ document: haraUiDocument });
+```text
+hodos.2d/document
+hodos.2d/graph
 ```
 
-The projector validates and freezes the ordinary Hodos rich-document model. It does not mutate the source document and does not project callbacks, runtime sessions, credentials or collaboration policy.
+## Workspace contract
+
+A Workspace selects a component by ID and supplies a serializable model:
+
+```clojure
+{:area/id "area/document"
+ :area/type "hodos.2d/document"
+ :area/component
+ {:component/id "hodos.2d/document"
+  :component/contract "workspace.component/1"
+  :component/model
+  {:document {...}
+   :selection {...}
+   :status "ready"
+   :readOnly false
+   :capabilities {:select true :editText true}
+   :error nil}
+  :component/events
+  ["document/select"
+   "document/edit-text"]}}
+```
+
+The model is data. It cannot install code, grant capabilities, execute metadata,
+or choose persistence policy. Applications apply emitted events and produce the
+next canonical model.
+
+## Package Showcase
+
+This package owns two complete, immutable-story projects:
+
+```text
+showcase/document
+showcase/graph
+```
+
+[`showcase.edn`](showcase.edn) publishes:
+
+- the Document and Graph views;
+- named data-only states;
+- the source files that define each model;
+- complete Playground projects and declared Workspace surfaces.
+
+The package-local manifest deliberately omits source repository and commit.
+Those values are injected from the signed publication request, then checked
+against the exact Git tree before the story can appear in
+`packages.hara-lang.org`.
+
+Run the local source-tree check from the monorepo root:
+
+```sh
+npm run check:showcases
+```
+
+The registry performs a stricter immutable-commit preflight during publication.
 
 ## Authority boundary
 
-Hodos owns visible 2D component models, serializable projection, topology validation, selection shape and semantic event boundaries.
+```text
+Hara / application
+  canonical document and graph state
+  event application
+  capability decisions
+  persistence and collaboration
 
-Hara/runtime and host applications continue to own:
+@greenways/hodos-2d
+  serializable model normalization
+  component descriptors
+  semantic event shapes
 
-- evaluation and retained values;
-- artefact rendering services;
-- persistence, collaboration and signatures;
-- document and graph mutation policy;
-- commands, confirmation and privileged capabilities.
+@greenways/hodos-2d-ui
+  trusted visible DOM/SVG mechanics
+```
 
-Embedded Hara artefacts carry identity, kind, mode, optional entry identity and bounded snapshot evidence. They do not contain executable JavaScript, host credentials or runtime transport.
+No Hestia integration is required or implied by this package.

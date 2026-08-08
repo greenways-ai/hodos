@@ -1,0 +1,18 @@
+{:host/type :graph-dom-svg
+ :host/status :ready
+ :host/read-only false
+ :host/capabilities
+ {:select true
+  :move-node true
+  :connect false
+  :create-node false
+  :delete false}
+ :host/selection {:node-ids ["node/stable"] :connection-ids []}
+ :host/pointer
+ {:capture-after-stable-selection true
+  :transient-drag true
+  :semantic-move-on-release true}
+ :host/lifecycle
+ {:safe-dom true
+  :safe-svg true
+  :dispose-listeners true}}

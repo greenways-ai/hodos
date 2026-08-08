@@ -1,0 +1,17 @@
+{:document/id "document/review"
+ :document/profile "hodos.rich-text/2"
+ :document/revision 0
+ :document/status :ready
+ :document/read-only false
+ :document/selection {:node-id "block/intro"}
+ :document/capabilities
+ {:select true
+  :edit-text true
+  :insert-block false
+  :delete-block false}
+ :document/artefact
+ {:id "artefact/answer"
+  :kind :value
+  :title "Committed Hara value"
+  :display "42"
+  :media-type "application/edn"}}

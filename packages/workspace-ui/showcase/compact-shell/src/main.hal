@@ -1,0 +1,19 @@
+(ns showcase.hodos-workspace-ui.compact)
+
+(defn surface [label selected]
+  [:article {:class "card"}
+   [:span {:class "eyebrow"} (if selected "SELECTED" "AVAILABLE")]
+   [:h1 label]
+   [:p (if selected
+         "This compact surface receives focus."
+         "The dock retains this surface identity.")]])
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:section {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / WORKSPACE UI"]
+    [:h1 "Compact shell"]
+    [:p "Responsive presentation selects one surface without changing canonical Workspace state."]
+    (surface "Preview" true)]])
+
+(view)
