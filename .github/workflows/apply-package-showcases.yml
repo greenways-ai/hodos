@@ -31,6 +31,16 @@ jobs:
           printf '%s  %s\n' 'ebfc8e8dc344583951a72c1c4ebd76b39229b81aadbf25dcf5268c90ed482b6a' '/tmp/hodos-package-showcases.tar.gz' | sha256sum --check
           tar -tzf /tmp/hodos-package-showcases.tar.gz >/dev/null
           tar -xzf /tmp/hodos-package-showcases.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/check-showcases.js')
+          source = path.read_text()
+          before = '  charAs: "string",\n  objectKeysAs: "string",'
+          after = '  charAs: "string",\n  symbolAs: "string",\n  objectKeysAs: "string",'
+          if before not in source:
+              raise SystemExit('Showcase parser option anchor is missing')
+          path.write_text(source.replace(before, after, 1))
+          PY
 
       - name: Install repository dependencies
         run: npm ci
