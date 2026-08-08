@@ -26,9 +26,11 @@ jobs:
       - name: Reassemble and install the package Showcase tree
         run: |
           cat .github/showcase-archive/chunk-* > /tmp/hodos-package-showcases.b64
-          printf '%s  %s\n' 'b17177338df5117b9c97c8163747dad4ec22bf7a2ca1ccf75b515d04ce4cb8fd' '/tmp/hodos-package-showcases.b64' | sha256sum --check
+          echo "Base64 archive: $(sha256sum /tmp/hodos-package-showcases.b64 | cut -d' ' -f1)"
           base64 --decode /tmp/hodos-package-showcases.b64 > /tmp/hodos-package-showcases.tar.gz
+          echo "Compressed archive: $(sha256sum /tmp/hodos-package-showcases.tar.gz | cut -d' ' -f1)"
           printf '%s  %s\n' 'ebfc8e8dc344583951a72c1c4ebd76b39229b81aadbf25dcf5268c90ed482b6a' '/tmp/hodos-package-showcases.tar.gz' | sha256sum --check
+          tar -tzf /tmp/hodos-package-showcases.tar.gz >/dev/null
           tar -xzf /tmp/hodos-package-showcases.tar.gz
 
       - name: Install repository dependencies
