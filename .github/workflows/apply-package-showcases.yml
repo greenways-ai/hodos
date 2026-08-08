@@ -35,10 +35,31 @@ jobs:
           from pathlib import Path
           path = Path('scripts/check-showcases.js')
           source = path.read_text()
-          before = '  charAs: "string",\n  objectKeysAs: "string",'
-          after = '  charAs: "string",\n  symbolAs: "string",\n  objectKeysAs: "string",'
+          before = '''function token(value, label) {
+            if (typeof value !== "string" || !value.trim()) {
+              throw new TypeError(`${label} must be an identifier`);
+            }
+            return value.trim().replace(/^:/, "");
+          }'''
+          after = '''function token(value, label) {
+            const candidate = typeof value === "string"
+              ? value
+              : value && typeof value === "object"
+                ? typeof value.sym === "string"
+                  ? value.sym
+                  : typeof value.symbol === "string"
+                    ? value.symbol
+                    : typeof value.name === "string"
+                      ? value.name
+                      : ""
+                : "";
+            if (!candidate.trim()) {
+              throw new TypeError(`${label} must be an identifier`);
+            }
+            return candidate.trim().replace(/^:/, "");
+          }'''
           if before not in source:
-              raise SystemExit('Showcase parser option anchor is missing')
+              raise SystemExit('Showcase token normalizer anchor is missing')
           path.write_text(source.replace(before, after, 1))
           PY
 
