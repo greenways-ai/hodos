@@ -1,0 +1,110 @@
+{:area/id "execution/main"
+ :area/type "hodos.dev/execution"
+ :area/title "Execution"
+ :session {:id "session/showcase-bounded"
+           :traceId "trace/bounded"
+           :sourceId "src/main.hal"
+           :sequence {:metrics 48 :events 48 :trace 48}
+           :status "returned"}
+ :evidence
+ {:metrics {:schema "hal.bytecode-metrics/v1"
+            :sessionId "session/showcase-bounded"
+            :traceId "trace/bounded"
+            :sourceId "src/main.hal"
+            :sequence 48
+            :status "returned"
+            :instructions 48
+            :opcodeCounts {"constant" 18 "multiply" 11 "add" 11 "return" 1 "other" 7}
+            :calls 2
+            :returns 3
+            :unwinds 0
+            :suspensions 0
+            :resumptions 0
+            :terminalReturns 1
+            :failures 0
+            :maxStackDepth 9
+            :maxCallDepth 2}
+  :events [{:id "event/47"
+            :sequence 47
+            :kind "instruction"
+            :function 0
+            :ip 5
+            :opcode "return"
+            :stackDepth 1
+            :callDepth 0}
+           {:id "event/48"
+            :sequence 48
+            :kind "terminal"
+            :terminal "machine/return"
+            :function 0
+            :ip 6
+            :stackDepth 1
+            :callDepth 0}]
+  :trace [{:id "step/47"
+           :sequence 47
+           :kind "instruction/execute"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 5
+                    :stack [{:kind "number" :display "7"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "running"
+                   :function 0
+                   :ip 6
+                   :stack [{:kind "number" :display "7"}]
+                   :locals []
+                   :calls []
+                   :handlers []}
+           :instruction {:opcode "return" :display "return"}
+           :source {:sourceId "src/main.hal" :offset 0 :line 1 :column 1}
+           :error nil}
+          {:id "step/48"
+           :sequence 48
+           :kind "machine/return"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 6
+                    :stack [{:kind "number" :display "7"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "returned"
+                   :function 0
+                   :ip 6
+                   :stack [{:kind "number" :display "7"}]
+                   :locals []
+                   :calls []
+                   :handlers []
+                   :result {:kind "number" :display "7"}}
+           :instruction {:opcode "return" :display "return"}
+           :source {:sourceId "src/main.hal" :offset 0 :line 1 :column 1}
+           :error nil}]}
+ :retention {:limits {:events 2 :trace 2 :diagnostics 4}
+             :eventsOmitted 37
+             :traceOmitted 19
+             :droppedEvents 9
+             :droppedTrace 4}
+ :availability {:metrics true :events true :trace true}
+ :capabilities {:start true
+                :step false
+                :run false
+                :pause false
+                :resume false
+                :reset true
+                :requestTrace true}
+ :selection {:function 0
+             :ip 6
+             :source {:sourceId "src/main.hal" :offset 0 :line 1 :column 1}
+             :eventIndex 1
+             :traceIndex 1}
+ :diagnostics [{:code "execution/evidence-bounded"
+                :severity "info"
+                :message "Older events and trace snapshots were omitted by retention limits."}]
+ :metadata {:source "(+ 1 (* 2 3))"
+            :result "7"
+            :fixture "execution/bounded"
+            :runtime "none"}}
