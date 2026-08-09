@@ -3,6 +3,86 @@ import { HODOS_PLAYCANVAS_RENDERER_ADDON_ID } from "@greenways/hodos-renderer-pl
 import { HODOS_WORLD_MODEL_ADDON_ID } from "@greenways/hodos-world-model";
 
 export const HODOS_WORLD_AUTHORING_UI_ADDON_ID = "@greenways/hodos-ui-world-authoring";
+export const HODOS_WORLD_AUTHORING_COMPONENT_ID = "hodos.world/authoring";
+
+export const HODOS_WORLD_AUTHORING_EVENTS = Object.freeze([
+  "world/document-commit",
+  "world/editor-mode",
+  "world/editor-select",
+  "world/editor-tool",
+  "world/editor-settings",
+  "world/editor-transform-selection",
+  "world/entity-create",
+  "world/entity-update",
+  "world/entity-transform",
+  "world/entity-duplicate",
+  "world/entity-delete",
+  "world/audio-move",
+  "world/audio-gain",
+  "world/audio-range",
+  "world/audio-loop",
+  "world/audio-toggle",
+  "world/audio-remove",
+  "world/history-undo",
+  "world/history-redo",
+  "world/draft-export",
+  "world/script-run",
+]);
+
+const stateModel = (model) => (
+  model && typeof model === "object" && !Array.isArray(model) && Object.hasOwn(model, "state")
+    ? model.state
+    : model
+);
+
+const hostFactory = (options, services) => {
+  const candidate = options.createWorldAuthoringHost
+    ?? services?.createWorldAuthoringHost
+    ?? services?.worldAuthoring?.createHost;
+  if (typeof candidate !== "function") {
+    throw new Error("Hodos World Authoring requires an injected createWorldAuthoringHost service");
+  }
+  return candidate;
+};
+
+export const createWorldAuthoringComponentFactory = (options = {}) =>
+  ({ root, model, services, dispatch, context }) => {
+    const createHost = hostFactory(options, services);
+    const host = createHost({
+      root,
+      container: root,
+      model: stateModel(model),
+      services,
+      dispatch,
+      context,
+    });
+    if (!host || typeof host !== "object") {
+      throw new TypeError("createWorldAuthoringHost must return a host object");
+    }
+    if (typeof host.update !== "function") {
+      throw new TypeError("Hodos World Authoring host must implement update(state)");
+    }
+    host.update(stateModel(model));
+    return {
+      update(nextModel) {
+        host.update(stateModel(nextModel));
+      },
+      destroy() {
+        if (typeof host.destroy === "function") host.destroy();
+        else host.dispose?.();
+      },
+    };
+  };
+
+export function registerHodosWorldAuthoringUi(registry, options = {}) {
+  if (!registry || typeof registry.register !== "function") {
+    throw new TypeError("registerHodosWorldAuthoringUi requires a Hodos component registry");
+  }
+  return registry.register(
+    HODOS_WORLD_AUTHORING_COMPONENT_ID,
+    createWorldAuthoringComponentFactory(options),
+  );
+}
 
 export const hodosWorldAuthoringUiAddon = defineAddon({
   manifest: {

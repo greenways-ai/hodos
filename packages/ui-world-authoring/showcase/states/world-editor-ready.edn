@@ -1,0 +1,117 @@
+{"showcase/state" "hodos-ui-world-authoring/world-editor-ready"
+ "world"
+ {"repository"
+  {"owner" "greenways-worlds" "repo" "editor"
+   "url" "https://github.com/greenways-worlds/editor"}
+  "commit" "cccccccccccccccccccccccccccccccccccccccc"
+  "project"
+  {"id" "greenways-worlds/editor"
+   "version" "1.0.0"
+   "capabilities" []}
+  "draft"
+  {"format" "hodos-world-draft"
+   "version" "0.1.0"
+   "revision" 4
+   "dirty" true
+   "entities"
+   [{"id" "cube-a"
+     "name" "North block"
+     "kind" "box"
+     "parent" nil
+     "collection" "set"
+     "visible" true
+     "locked" false
+     "origin" [0 0 0]
+     "transform" {"position" [1 0 0] "rotation" [0 15 0] "scale" [1 1 1]}
+     "components"
+     {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}
+      "script"
+      {"language" "hara"
+       "enabled" true
+       "events" ["world/editor-run"]
+       "source" "(fn [event entity world] {\"entity\" entity \"trace\" event})"}}}
+    {"id" "cube-b"
+     "name" "South block"
+     "kind" "box"
+     "parent" nil
+     "collection" "set"
+     "visible" true
+     "locked" false
+     "origin" [0 0 0]
+     "transform" {"position" [3 0 0] "rotation" [0 15 0] "scale" [1 1 1]}
+     "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}
+    {"id" "key-light"
+     "name" "Key light"
+     "kind" "point-light"
+     "parent" nil
+     "collection" "lighting"
+     "visible" true
+     "locked" false
+     "origin" [0 0 0]
+     "transform" {"position" [0 4 2] "rotation" [0 0 0] "scale" [1 1 1]}
+     "components"
+     {"light" {"type" "point" "color" "#fff1ca" "intensity" 1.5 "range" 16 "castShadows" true}}}]
+   "audioSources"
+   [{"id" "room-tone"
+     "kind" "studio/track"
+     "track" "ambience"
+     "clip" nil
+     "label" "Room tone"
+     "position" [0 1 -2]
+     "playing" false
+     "loop" true
+     "gainDb" -9
+     "refDistance" 1
+     "maxDistance" 30
+     "rolloffFactor" 1}]
+   "collections"
+   [{"id" "set" "name" "Set" "parent" nil "visible" true "locked" false}
+    {"id" "lighting" "name" "Lighting" "parent" nil "visible" true "locked" false}]
+   "assets"
+   [{"id" "chair" "name" "Chair" "kind" "gltf"
+     "url" "https://assets.example.test/chair.glb" "thumbnail" nil
+     "metadata" {"license" "CC0"}}]
+   "prefabs"
+   [{"id" "pair" "name" "Block pair" "description" "Reusable pair"
+     "rootIds" ["cube-a" "cube-b"]
+     "entities" [{"id" "cube-a"} {"id" "cube-b"}]}]
+   "animations"
+   [{"id" "main" "name" "Main" "duration" 4 "fps" 30
+     "tracks"
+     [{"id" "track-cube-a-position"
+       "entity" "cube-a"
+       "property" "position"
+       "enabled" true
+       "keyframes"
+       [{"id" "start" "time" 0 "value" [1 0 0] "easing" "linear"}
+        {"id" "end" "time" 4 "value" [4 0 0] "easing" "ease-in-out"}]}]}]
+   "editor"
+   {"mode" "edit"
+    "tool" "translate"
+    "space" "local"
+    "pivot" "median"
+    "cursor" [4 1 -2]
+    "snap" {"enabled" true "translate" 1 "rotate" 15 "scale" 0.25}
+    "isolation" nil
+    "activeCollection" "set"
+    "selection" [{"type" "entity" "id" "cube-a"} {"type" "entity" "id" "cube-b"}]
+    "active" {"type" "entity" "id" "cube-b"}
+    "timeline" {"animation" "main" "time" 1.5 "playing" false "loop" true}}
+   "history"
+   {"undo" [{"command" "transform-selection" "revision" 3}]
+    "redo" []}}
+  "editor"
+  {"mode" "edit"
+   "tool" "translate"
+   "space" "local"
+   "pivot" "median"
+   "cursor" [4 1 -2]
+   "snap" {"enabled" true "translate" 1 "rotate" 15 "scale" 0.25}
+   "isolation" nil
+   "activeCollection" "set"
+   "selection" [{"type" "entity" "id" "cube-a"} {"type" "entity" "id" "cube-b"}]
+   "active" {"type" "entity" "id" "cube-b"}
+   "timeline" {"animation" "main" "time" 1.5 "playing" false "loop" true}}
+  "scripting" {"traces" []}
+  "review" {"proposal" nil "selected" [] "stale" false "publications" []}
+  "publications" []}}

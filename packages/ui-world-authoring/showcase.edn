@@ -1,0 +1,34 @@
+{:hara/type :showcase
+ :showcase/format 1
+ :showcase/package :greenways/hodos-ui-world-authoring
+ :showcase/version "0.1.0"
+ :showcase/title "Hodos World Authoring UI"
+ :showcase/summary
+ "The optional browser Workspace that projects portable authoring state into an outliner, inspector, assets, prefabs, animation and script controls."
+
+ :showcase/views
+ [{:view/id :world-editor
+   :view/title "World Editor Workspace"
+   :view/summary "A browser host receives one portable state value and emits only the declared world authoring events."
+   :view/source "src/world-editor-workspace.js"
+   :view/docs "README.md"}]
+
+ :showcase/states
+ [{:state/id :world-editor/ready
+   :state/title "Ready authoring workspace"
+   :state/summary "Two selected objects, a reusable prefab, an animation and one Hara script are ready for review."
+   :state/file "showcase/states/world-editor-ready.edn"}]
+
+ :showcase/demos
+ [{:demo/id :world-editor/ready
+   :demo/title "Author a small Hodos world"
+   :demo/summary "Mount the optional World Editor through the versioned Workspace component contract."
+   :demo/view :world-editor
+   :demo/state :world-editor/ready
+   :demo/project "showcase/world-editor"
+   :demo/surface :world-authoring
+   :demo/docs "showcase/world-editor/README.md"
+   :demo/tags ["world-editor" "outliner" "inspector" "prefab" "animation"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 1280 :viewport/height 820}
+   :demo/default true}]}
