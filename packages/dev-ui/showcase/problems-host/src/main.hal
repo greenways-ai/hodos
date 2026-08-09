@@ -1,0 +1,6 @@
+(ns showcase.hodos-dev-ui.problems-host)
+
+{:host "hodos.dev/problems"
+ :selected "problem/source-1"
+ :filter {:severity :error :query "symbol"}
+ :authority :application}

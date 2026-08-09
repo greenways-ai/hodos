@@ -1,0 +1,110 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-dev-catalog
+ :workspace/revision 0
+ :workspace/layout {:layout/type :area :layout/area "area/catalog"}
+ :workspace/documents
+ [{:document/id "document/main"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/catalog"
+   :area/type "hodos.dev/catalog"
+   :area/title "Activity Catalog"
+   :area/presentation
+   {:presentation/role :output
+    :presentation/label "Catalog"
+    :presentation/surface "catalog"}
+   :area/component
+   {:component/id "hodos.dev/catalog"
+    :component/contract "workspace.component/1"
+    :component/model
+    {"catalog" {"id" "catalog/hodos-showcase"
+                "title" "Hodos Dev"
+                "version" "1"
+                "source" "greenways-ai/hodos"}
+     "surface" "activity"
+     "toolsets"
+     [{"id" "values"
+       "title" "Value tools"
+       "shortTitle" "Values"
+       "description" "Build and inspect ordinary Hara values."
+       "tools"
+       [{"id" "defn"
+         "label" "Function"
+         "description" "Insert a function template."
+         "detail" "(defn name [x] x)"
+         "metadata" {}}]
+       "metadata" {}}
+      {"id" "collections"
+       "title" "Collection tools"
+       "shortTitle" "Collections"
+       "description" "Shape vectors and maps."
+       "tools"
+       [{"id" "vector"
+         "label" "Vector"
+         "description" "Insert a vector template."
+         "detail" "[1 2 3]"
+         "metadata" {}}]
+       "metadata" {}}]
+     "activities"
+     [{"id" "values/greeting"
+       "toolsetId" "values"
+       "title" "Shape a greeting"
+       "level" "Beginner"
+       "summary" "Change a value and evaluate it."
+       "instructions" ["Open the activity" "Change the greeting" "Run checks"]
+       "path" "src/main.hal"
+       "checkCount" 2
+       "metadata" {"duration" "5 minutes"}}]
+     "selection" {"toolsetId" "values"
+                  "activityId" "values/greeting"
+                  "toolId" nil}
+     "run" {"status" "failed"
+            "message" "One check needs attention"
+            "checks"
+            [{"id" "check/1"
+              "label" "Greeting exists"
+              "status" "passed"
+              "actual" "hello"
+              "expected" ["hello" "Hello"]
+              "error" nil}
+             {"id" "check/2"
+              "label" "Greeting names Hodos"
+              "status" "failed"
+              "actual" "hello"
+              "expected" "hello Hodos"
+              "error" "Add the name to the greeting"}]
+            "counts" {"total" 2 "pending" 0 "passed" 1 "failed" 1}}
+     "capabilities" {"selectToolset" true
+                     "selectActivity" true
+                     "insertTool" true
+                     "openActivity" true
+                     "checkActivity" true
+                     "resetActivity" true}
+     "counts" {"toolsets" 2 "tools" 2 "activities" 1}
+     "metadata" {"authority" "descriptive-only"}}
+    :component/events
+    ["catalog/select-toolset"
+     "catalog/select-activity"
+     "catalog/insert-tool"
+     "catalog/open-activity"
+     "catalog/check-activity"
+     "catalog/reset-activity"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links []
+ :workspace/selection
+ {:area/id "area/catalog"
+  :document/id "document/main"
+  :surface/id "catalog"}
+ :workspace/customizations
+ {:responsive/breakpoint 900
+  :responsive/default-surface "catalog"
+  :responsive/surfaces
+  [{:surface/id "catalog" :surface/area "area/catalog"}]}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

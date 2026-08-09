@@ -1,0 +1,7 @@
+{"host" {"component" "hodos.dev/problems"
+         "lifecycle" ["create" "update" "semantic-event" "dispose"]}
+ "model" {"status" "ready"
+          "selection" {"id" "problem/source-1"}
+          "filter" {"severity" "error" "query" "symbol"}
+          "counts" {"total" 2 "error" 1 "warning" 1 "info" 0 "hint" 0}}
+ "events" ["problems/select" "problems/filter" "problems/open-source"]}

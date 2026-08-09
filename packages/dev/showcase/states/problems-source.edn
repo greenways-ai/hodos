@@ -1,0 +1,30 @@
+{"status" "ready"
+ "problems"
+ [{"id" "problem/runtime-1"
+   "severity" "warning"
+   "message" "Canonical runtime fallback active"
+   "code" nil
+   "source" "runtime"
+   "requestId" "request-4"
+   "path" nil
+   "namespace" nil
+   "range" nil
+   "tags" ["runtime"]
+   "metadata" {"recoverable" true}}
+  {"id" "problem/source-1"
+   "severity" "error"
+   "message" "Unable to resolve symbol card"
+   "code" "resolver/unbound-symbol"
+   "source" "compiler"
+   "requestId" "request-5"
+   "path" "src/main.hal"
+   "namespace" "showcase.hodos-dev.problems"
+   "range" {"start" {"line" 3 "column" 4 "offset" 38}
+            "end" {"line" 3 "column" 8 "offset" 42}}
+   "tags" ["compile" "source"]
+   "metadata" {"recoverable" true}}]
+ "selection" {"id" "problem/source-1"}
+ "filter" {"severity" "error" "query" "symbol"}
+ "counts" {"total" 2 "error" 1 "warning" 1 "info" 0 "hint" 0}
+ "canClear" true
+ "metadata" {"generation" 7 "authority" "application"}}

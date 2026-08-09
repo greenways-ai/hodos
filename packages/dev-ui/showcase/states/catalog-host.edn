@@ -1,0 +1,11 @@
+{"host" {"component" "hodos.dev/catalog"
+         "lifecycle" ["create" "update" "semantic-event" "dispose"]}
+ "model" {"catalog" {"id" "catalog/hodos-showcase"
+                     "title" "Hodos Dev"
+                     "version" "1"
+                     "source" "greenways-ai/hodos"}
+          "surface" "activity"
+          "selection" {"toolsetId" "values" "activityId" "values/greeting"}
+          "run" {"status" "failed" "counts" {"total" 2 "passed" 1 "failed" 1}}
+          "counts" {"toolsets" 2 "tools" 2 "activities" 1}}
+ "events" ["catalog/select-toolset" "catalog/select-activity" "catalog/check-activity"]}

@@ -1,0 +1,58 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-dev-value-inspector
+ :workspace/revision 0
+ :workspace/layout {:layout/type :area :layout/area "area/value"}
+ :workspace/documents
+ [{:document/id "document/main"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/value"
+   :area/type "hodos.dev/value-inspector"
+   :area/title "Value Inspector"
+   :area/presentation
+   {:presentation/role :output
+    :presentation/label "Value"
+    :presentation/surface "value"}
+   :area/component
+   {:component/id "hodos.dev/value-inspector"
+    :component/contract "workspace.component/1"
+    :component/model
+    {"value" {"id" "value-7"
+              "requestId" "request-4"
+              "type" "map"
+              "display" "{:answer 42 :nested [\"alpha\" true nil]}"
+              "data" {"answer" 42
+                      "nested" ["alpha" true nil]
+                      "metadata" {"origin" "repl"}}}
+     "context" {"namespace" "showcase.hodos-dev.value-inspector"
+                "source" "(inspect retained-value)"}
+     "status" "ready"
+     "path" ["nested" 0]
+     "expanded" [[] ["nested"]]
+     "metadata" {"origin" "repl" "retained" true}
+     "error" nil}
+    :component/events
+    ["value/select"
+     "value/toggle"
+     "value/copy"
+     "value/refresh"
+     "value/close"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links []
+ :workspace/selection
+ {:area/id "area/value"
+  :document/id "document/main"
+  :surface/id "value"}
+ :workspace/customizations
+ {:responsive/breakpoint 900
+  :responsive/default-surface "value"
+  :responsive/surfaces
+  [{:surface/id "value" :surface/area "area/value"}]}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}
