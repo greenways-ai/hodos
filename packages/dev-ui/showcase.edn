@@ -4,7 +4,7 @@
  :showcase/version "0.1.0"
  :showcase/title "Hodos Dev UI hosts"
  :showcase/summary
- "Trusted visible Explorer, Editor, Preview and REPL adapters driven by serializable Hodos Dev models."
+ "Trusted visible Explorer, Editor, Preview, REPL and Execution adapters driven by serializable Hodos Dev models."
 
  :showcase/views
  [{:view/id :explorer-host
@@ -26,6 +26,11 @@
    :view/title "REPL host"
    :view/summary "A visible session console emitting only declared semantic events."
    :view/source "src/index.js"
+   :view/docs "README.md"}
+  {:view/id :execution-host
+   :view/title "Execution host"
+   :view/summary "A bounded evidence renderer emitting semantic execution and editor-selection requests."
+   :view/source "src/index.js"
    :view/docs "README.md"}]
 
  :showcase/states
@@ -40,7 +45,11 @@
    :state/file "showcase/states/preview-host.edn"}
   {:state/id :repl-host/ready
    :state/title "REPL host lifecycle"
-   :state/file "showcase/states/repl-host.edn"}]
+   :state/file "showcase/states/repl-host.edn"}
+  {:state/id :execution-host/returned
+   :state/title "Execution host lifecycle"
+   :state/summary "Checked-in result-7 evidence, semantic controls, source selection and disposal."
+   :state/file "showcase/states/execution-host.edn"}]
 
  :showcase/demos
  [{:demo/id :explorer-host/project
@@ -87,4 +96,26 @@
    :demo/docs "showcase/repl-host/README.md"
    :demo/tags ["repl" "console" "session"]
    :demo/theme :dark
-   :demo/viewport {:viewport/width 900 :viewport/height 620}}]}
+   :demo/viewport {:viewport/width 900 :viewport/height 620}}
+  {:demo/id :execution-host/returned
+   :demo/title "Visible returned Execution"
+   :demo/summary "Render immutable result-7 evidence and exercise semantic controls and source selection."
+   :demo/view :execution-host
+   :demo/state :execution-host/returned
+   :demo/project "showcase/execution-host"
+   :demo/surface :execution
+   :demo/docs "showcase/execution-host/README.md"
+   :demo/tags ["execution" "dom" "result-7"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 1100 :viewport/height 720}}
+  {:demo/id :execution-host/compact
+   :demo/title "Visible compact Execution"
+   :demo/summary "Use the shipped responsive host at phone width without a second renderer."
+   :demo/view :execution-host
+   :demo/state :execution-host/returned
+   :demo/project "showcase/execution-host"
+   :demo/surface :execution
+   :demo/docs "showcase/execution-host/README.md"
+   :demo/tags ["execution" "compact" "responsive"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 520 :viewport/height 760}}]}
