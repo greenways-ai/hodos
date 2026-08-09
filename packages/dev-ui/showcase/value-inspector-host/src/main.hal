@@ -1,0 +1,6 @@
+(ns showcase.hodos-dev-ui.value-inspector-host)
+
+{:host "hodos.dev/value-inspector"
+ :value-id "value-7"
+ :path ["nested" 0]
+ :authority :application}

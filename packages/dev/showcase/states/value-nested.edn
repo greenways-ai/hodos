@@ -1,0 +1,14 @@
+{"value" {"id" "value-7"
+          "requestId" "request-4"
+          "type" "map"
+          "display" "{:answer 42 :nested [\"alpha\" true nil]}"
+          "data" {"answer" 42
+                  "nested" ["alpha" true nil]
+                  "metadata" {"origin" "repl"}}}
+ "context" {"namespace" "showcase.hodos-dev.value-inspector"
+            "source" "(inspect retained-value)"}
+ "status" "ready"
+ "path" ["nested" 0]
+ "expanded" [[] ["nested"]]
+ "metadata" {"origin" "repl" "retained" true}
+ "error" nil}

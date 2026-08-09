@@ -1,0 +1,11 @@
+(ns showcase.hodos-dev.catalog)
+
+(def catalog-summary
+  {:catalog/id "catalog/hodos-showcase"
+   :toolsets 2
+   :activities 1
+   :selected "values/greeting"
+   :run-status :failed
+   :failed-checks 1})
+
+catalog-summary

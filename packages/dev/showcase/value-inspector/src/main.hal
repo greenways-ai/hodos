@@ -1,0 +1,8 @@
+(ns showcase.hodos-dev.value-inspector)
+
+(def retained-value
+  {:answer 42
+   :nested ["alpha" true nil]
+   :metadata {:origin :repl}})
+
+retained-value

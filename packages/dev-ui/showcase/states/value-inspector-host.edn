@@ -1,0 +1,7 @@
+{"host" {"component" "hodos.dev/value-inspector"
+         "lifecycle" ["create" "update" "semantic-event" "dispose"]}
+ "model" {"value" {"id" "value-7" "type" "map"}
+          "status" "ready"
+          "path" ["nested" 0]
+          "expanded" [[] ["nested"]]}
+ "events" ["value/select" "value/toggle" "value/copy"]}

@@ -1,0 +1,75 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-dev-problems
+ :workspace/revision 0
+ :workspace/layout {:layout/type :area :layout/area "area/problems"}
+ :workspace/documents
+ [{:document/id "document/main"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/problems"
+   :area/type "hodos.dev/problems"
+   :area/title "Problems"
+   :area/presentation
+   {:presentation/role :output
+    :presentation/label "Problems"
+    :presentation/surface "problems"}
+   :area/component
+   {:component/id "hodos.dev/problems"
+    :component/contract "workspace.component/1"
+    :component/model
+    {"status" "ready"
+     "problems"
+     [{"id" "problem/runtime-1"
+       "severity" "warning"
+       "message" "Canonical runtime fallback active"
+       "code" nil
+       "source" "runtime"
+       "requestId" "request-4"
+       "path" nil
+       "namespace" nil
+       "range" nil
+       "tags" ["runtime"]
+       "metadata" {"recoverable" true}}
+      {"id" "problem/source-1"
+       "severity" "error"
+       "message" "Unable to resolve symbol card"
+       "code" "resolver/unbound-symbol"
+       "source" "compiler"
+       "requestId" "request-5"
+       "path" "src/main.hal"
+       "namespace" "showcase.hodos-dev.problems"
+       "range" {"start" {"line" 3 "column" 4 "offset" 38}
+                "end" {"line" 3 "column" 8 "offset" 42}}
+       "tags" ["compile" "source"]
+       "metadata" {"recoverable" true}}]
+     "selection" {"id" "problem/source-1"}
+     "filter" {"severity" "error" "query" "symbol"}
+     "counts" {"total" 2 "error" 1 "warning" 1 "info" 0 "hint" 0}
+     "canClear" true
+     "metadata" {"generation" 7 "authority" "application"}}
+    :component/events
+    ["problems/select"
+     "problems/open-source"
+     "problems/filter"
+     "problems/clear"
+     "problems/copy"
+     "problems/close"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links []
+ :workspace/selection
+ {:area/id "area/problems"
+  :document/id "document/main"
+  :surface/id "problems"}
+ :workspace/customizations
+ {:responsive/breakpoint 900
+  :responsive/default-surface "problems"
+  :responsive/surfaces
+  [{:surface/id "problems" :surface/area "area/problems"}]}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

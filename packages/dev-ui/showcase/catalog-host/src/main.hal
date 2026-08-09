@@ -1,0 +1,6 @@
+(ns showcase.hodos-dev-ui.catalog-host)
+
+{:host "hodos.dev/catalog"
+ :model :serializable
+ :events :semantic-only
+ :authority :application}

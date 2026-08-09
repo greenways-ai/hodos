@@ -1,0 +1,12 @@
+(ns showcase.hodos-dev.problems)
+
+(def diagnostics
+  [{:severity :warning
+    :source :runtime
+    :message "Canonical runtime fallback active"}
+   {:severity :error
+    :source :compiler
+    :path "src/main.hal"
+    :message "Unable to resolve symbol card"}])
+
+diagnostics
