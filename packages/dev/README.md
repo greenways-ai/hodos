@@ -149,6 +149,12 @@ hal.bytecode-events/v1   compact sampled or control-flow events
 hal.bytecode-trace/v1    exact single-step state projections
 ```
 
+Live documents retain their session, trace, source, sequence, status and
+cumulative dropped-count identity. Compact events and trace steps retain stable
+IDs and sequences, so polling a retained Hara ring repeatedly replaces matching
+rows, preserves sequence order and bounds only after deduplication. A new trace
+identity clears evidence from the previous trace rather than mixing sessions.
+
 ```js
 const execution = createExecutionArea({
   state: createExecutionState({

@@ -129,7 +129,9 @@ execution/request-trace
 A timeline selection carries the matched source position in
 `execution/select`. When `dispatchSourceSelection` is supplied, the same action
 also emits a serializable `editor/selection` event to the application
-compositor. Hodos does not manipulate the editor directly.
+compositor. The source identity carried by the selected trace boundary remains
+authoritative; model metadata is only a fallback when evidence has no source ID.
+Hodos does not manipulate the editor directly.
 
 ## Host contract
 
