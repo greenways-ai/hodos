@@ -1,0 +1,93 @@
+{"showcase/state" "hodos-addon-drafts/reversible-transform"
+ "identity"
+ {"repository" {"owner" "greenways-worlds" "repo" "editor"
+                "url" "https://github.com/greenways-worlds/editor"}
+  "commit" "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  "project" {"id" "greenways-worlds/editor" "version" "1.0.0"}}
+ "before"
+ {"format" "hodos-world-draft"
+  "version" "0.1.0"
+  "revision" 0
+  "dirty" false
+  "audioSources" []
+  "entities"
+  [{"id" "cube-a" "name" "North block" "kind" "box" "parent" nil
+    "visible" true "locked" false
+    "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}}}
+   {"id" "cube-b" "name" "South block" "kind" "box" "parent" nil
+    "visible" true "locked" false
+    "transform" {"position" [2 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}]
+  "editor"
+  {"mode" "edit" "tool" "translate" "space" "world"
+   "selection" [{"type" "entity" "id" "cube-a"} {"type" "entity" "id" "cube-b"}]
+   "active" {"type" "entity" "id" "cube-b"}}
+  "history" {"undo" [] "redo" []}}
+ "event"
+ {"event/type" "world/editor-transform-selection"
+  "items"
+  [{"type" "entity" "id" "cube-a"
+    "transform" {"position" [1 0 0] "rotation" [0 0 0] "scale" [1 1 1]}}
+   {"type" "entity" "id" "cube-b"
+    "transform" {"position" [3 0 0] "rotation" [0 0 0] "scale" [1 1 1]}}]}
+ "after"
+ {"format" "hodos-world-draft"
+  "version" "0.1.0"
+  "revision" 1
+  "dirty" true
+  "audioSources" []
+  "entities"
+  [{"id" "cube-a" "name" "North block" "kind" "box" "parent" nil
+    "visible" true "locked" false
+    "transform" {"position" [1 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}}}
+   {"id" "cube-b" "name" "South block" "kind" "box" "parent" nil
+    "visible" true "locked" false
+    "transform" {"position" [3 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}]
+  "editor"
+  {"mode" "edit" "tool" "translate" "space" "world"
+   "selection" [{"type" "entity" "id" "cube-a"} {"type" "entity" "id" "cube-b"}]
+   "active" {"type" "entity" "id" "cube-b"}}
+  "history"
+  {"undo"
+   [{"audioSources" []
+     "entities"
+     [{"id" "cube-a" "name" "North block" "kind" "box" "parent" nil
+       "visible" true "locked" false
+       "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+       "components" {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}}}
+      {"id" "cube-b" "name" "South block" "kind" "box" "parent" nil
+       "visible" true "locked" false
+       "transform" {"position" [2 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+       "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}]}]
+   "redo" []}}
+ "effects"
+ [{"effect" "scene" "method" "sync-world-entities"
+   "args" [[{"id" "cube-a" "position" [1 0 0]} {"id" "cube-b" "position" [3 0 0]}]]}
+  {"effect" "storage" "method" "save-world-draft"
+   "args" [{"commit" "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"} {"revision" 1}]}]
+ "undo" {"event/type" "world/history-undo"}
+ "restored"
+ {"format" "hodos-world-draft"
+  "version" "0.1.0"
+  "revision" 2
+  "dirty" true
+  "audioSources" []
+  "entities"
+  [{"id" "cube-a" "name" "North block" "kind" "box" "parent" nil
+    "visible" true "locked" false
+    "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}}}
+   {"id" "cube-b" "name" "South block" "kind" "box" "parent" nil
+    "visible" true "locked" false
+    "transform" {"position" [2 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}]
+  "history"
+  {"undo" []
+   "redo"
+   [{"audioSources" []
+     "entities"
+     [{"id" "cube-a" "transform" {"position" [1 0 0]}}
+      {"id" "cube-b" "transform" {"position" [3 0 0]}}]}]}}}

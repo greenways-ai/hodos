@@ -1,0 +1,149 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-addon-authoring-session
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id :layout/root
+  :layout/direction :horizontal
+  :layout/ratio 0.18
+  :layout/first {:layout/type :area :layout/area "area/project"}
+  :layout/second
+  {:layout/type :split
+   :layout/id :layout/work
+   :layout/direction :horizontal
+   :layout/ratio 0.36
+   :layout/first {:layout/type :area :layout/area "area/editor"}
+   :layout/second
+   {:layout/type :split
+    :layout/id :layout/graph-output
+    :layout/direction :vertical
+    :layout/ratio 0.78
+    :layout/first {:layout/type :area :layout/area "area/graph"}
+    :layout/second {:layout/type :area :layout/area "area/output"}}}}
+ :workspace/documents
+ [{:document/id "document/source"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/project"
+   :area/type :project
+   :area/title "Project"
+   :area/presentation {:presentation/role :project :presentation/label "Files"}}
+  {:area/id "area/editor"
+   :area/type :code-editor
+   :area/title "main.hal"
+   :area/presentation {:presentation/role :editor :presentation/label "Code"}}
+  {:area/id "area/output"
+   :area/type :output
+   :area/title "Preview"
+   :area/presentation {:presentation/role :output :presentation/label "Canvas"}}
+  {:area/id "area/graph"
+   :area/type "hodos.2d/graph"
+   :area/title "Semantic authoring session"
+   :area/presentation
+   {:presentation/label "Authoring"
+    :presentation/icon :graph
+    :presentation/surface :graph
+    :presentation/mode :graph
+    :presentation/order 3
+    :presentation/compact true
+    :presentation/auto-focus true}
+   :area/component
+   {:component/id "hodos.2d/graph"
+    :component/contract "workspace.component/1"
+    :component/model
+    {:graph
+     {:id "graph/authoring-session"
+      :revision 6
+      :metadata {:title "Semantic authoring session"
+                 :source "showcase/states/complete-session.edn"}
+      :nodes
+      [{:id "node/document"
+        :type "source"
+        :label "Authoring document"
+        :x 20 :y 160 :width 190 :height 116
+        :ports [{:id "out/document" :direction "out" :dataType "world-document" :label "normalized"}]
+        :metadata {:description "Entities, collection, asset, prefab, animation and script."}}
+       {:id "node/select"
+        :type "transform"
+        :label "Select two"
+        :x 270 :y 70 :width 170 :height 108
+        :ports
+        [{:id "in/document" :direction "in" :dataType "world-document" :label "document"}
+         {:id "out/selection" :direction "out" :dataType "selection" :label "cube-a + cube-b"}]
+        :metadata {:description "One ordered multi-selection."}}
+       {:id "node/transform"
+        :type "transform"
+        :label "Transform once"
+        :x 510 :y 60 :width 190 :height 116
+        :ports
+        [{:id "in/selection" :direction "in" :dataType "selection" :label "2 objects"}
+         {:id "out/draft" :direction "out" :dataType "draft" :label "revision +1"}]
+        :metadata {:description "Both entities move and rotate as one transaction."}}
+       {:id "node/history"
+        :type "history"
+        :label "Undo / redo"
+        :x 780 :y 50 :width 180 :height 116
+        :ports
+        [{:id "in/draft" :direction "in" :dataType "draft" :label "candidate"}
+         {:id "out/draft" :direction "out" :dataType "draft" :label "restored / replayed"}]
+        :metadata {:description "The complete transform is one history boundary."}}
+       {:id "node/settings"
+        :type "transform"
+        :label "Editor settings"
+        :x 480 :y 280 :width 200 :height 120
+        :ports
+        [{:id "in/document" :direction "in" :dataType "world-document" :label "document"}
+         {:id "out/editor" :direction "out" :dataType "editor-state" :label "pivot · snap · timeline"}]
+        :metadata {:description "Cursor pivot, local space, isolation and animation time."}}
+       {:id "node/script"
+        :type "effect-plan"
+        :label "Hara script request"
+        :x 780 :y 280 :width 210 :height 124
+        :ports [{:id "in/editor" :direction "in" :dataType "editor-state" :label "explicit event"}]
+        :metadata {:description "A bounded evaluate effect; no evaluator is embedded."}}]
+      :connections
+      [{:id "connection/document-select"
+        :from {:nodeId "node/document" :portId "out/document"}
+        :to {:nodeId "node/select" :portId "in/document"}}
+       {:id "connection/select-transform"
+        :from {:nodeId "node/select" :portId "out/selection"}
+        :to {:nodeId "node/transform" :portId "in/selection"}}
+       {:id "connection/transform-history"
+        :from {:nodeId "node/transform" :portId "out/draft"}
+        :to {:nodeId "node/history" :portId "in/draft"}}
+       {:id "connection/document-settings"
+        :from {:nodeId "node/document" :portId "out/document"}
+        :to {:nodeId "node/settings" :portId "in/document"}}
+       {:id "connection/settings-script"
+        :from {:nodeId "node/settings" :portId "out/editor"}
+        :to {:nodeId "node/script" :portId "in/editor"}}]}
+     :selection {:nodeIds ["node/transform"] :connectionIds []}
+     :viewport {:x 0 :y 0 :zoom 1}
+     :status "ready"
+     :readOnly true
+     :capabilities
+     {:select true
+      :moveNode false
+      :connect false
+      :createNode false
+      :delete false
+      :command false}
+     :error nil}
+    :component/events ["graph/select"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/source-editor"
+   :link/document "document/source"
+   :link/area "area/editor"}]
+ :workspace/selection {:area/id "area/graph" :surface/id "graph"}
+ :workspace/customizations
+ {:responsive/breakpoint 1000
+  :responsive/default-surface "graph"}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

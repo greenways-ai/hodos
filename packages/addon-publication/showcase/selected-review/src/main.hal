@@ -1,0 +1,18 @@
+(ns showcase.hodos-addon-publication.selected-review)
+
+(def review
+  {:proposal "proposal-1"
+   :base-revision 2
+   :selected ["entity:cube-a" "source:source-a"]
+   :excluded ["source:source-b"]
+   :publication {:signed false :submitted false}})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS PUBLICATION"]
+    [:h1 "Review exact semantic changes"]
+    [:p "Two selected changes advance the draft; publication remains an inert host intent."]
+    [:pre (str review)]]])
+
+(view)

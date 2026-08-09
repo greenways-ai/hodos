@@ -1,0 +1,23 @@
+(ns showcase.hodos-world-model.authoring-document)
+
+(def selection
+  [{:type :entity :id "cube-a"}
+   {:type :entity :id "cube-b"}])
+
+(def transform
+  {:event/type :world/editor-transform-selection
+   :pivot [1 0 0]
+   :snap {:enabled true :translate 1}
+   :items
+   [{:id "cube-a" :position [1 0 0]}
+    {:id "cube-b" :position [3 0 0]}]})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS WORLD MODEL"]
+    [:h1 "One authoring transaction"]
+    [:p "Two selected entities move together through one renderer-neutral value."]
+    [:pre (str transform)]]])
+
+(view)

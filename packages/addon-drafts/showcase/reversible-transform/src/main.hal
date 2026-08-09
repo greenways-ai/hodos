@@ -1,0 +1,17 @@
+(ns showcase.hodos-addon-drafts.reversible-transform)
+
+(def transition
+  {:before {:revision 0 :positions [[0 0 0] [2 0 0]]}
+   :event {:event/type :world/editor-transform-selection}
+   :after {:revision 1 :positions [[1 0 0] [3 0 0]]}
+   :undo {:revision 2 :positions [[0 0 0] [2 0 0]]}})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS DRAFTS"]
+    [:h1 "Transform, persist, undo"]
+    [:p "One semantic transaction advances the draft, and one undo restores its prior content."]
+    [:pre (str transition)]]])
+
+(view)

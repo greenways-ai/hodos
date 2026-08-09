@@ -1,0 +1,151 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-addon-publication-review
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id :layout/root
+  :layout/direction :horizontal
+  :layout/ratio 0.2
+  :layout/first {:layout/type :area :layout/area "area/project"}
+  :layout/second
+  {:layout/type :split
+   :layout/id :layout/work
+   :layout/direction :horizontal
+   :layout/ratio 0.42
+   :layout/first {:layout/type :area :layout/area "area/editor"}
+   :layout/second
+   {:layout/type :split
+    :layout/id :layout/document-output
+    :layout/direction :vertical
+    :layout/ratio 0.78
+    :layout/first {:layout/type :area :layout/area "area/document"}
+    :layout/second {:layout/type :area :layout/area "area/output"}}}}
+ :workspace/documents
+ [{:document/id "document/source"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}
+  {:document/id "document/review"
+   :document/profile "hodos.rich-text/2"}]
+ :workspace/areas
+ [{:area/id "area/project"
+   :area/type :project
+   :area/title "Project"
+   :area/presentation {:presentation/role :project :presentation/label "Files"}}
+  {:area/id "area/editor"
+   :area/type :code-editor
+   :area/title "main.hal"
+   :area/presentation {:presentation/role :editor :presentation/label "Code"}}
+  {:area/id "area/output"
+   :area/type :output
+   :area/title "Preview"
+   :area/presentation {:presentation/role :output :presentation/label "Canvas"}}
+  {:area/id "area/document"
+   :area/type "hodos.2d/document"
+   :area/title "Proposal review"
+   :area/presentation
+   {:presentation/label "Review"
+    :presentation/icon :document
+    :presentation/surface :document
+    :presentation/mode :document
+    :presentation/order 2
+    :presentation/compact true
+    :presentation/auto-focus true}
+   :area/component
+   {:component/id "hodos.2d/document"
+    :component/contract "workspace.component/1"
+    :component/model
+    {:document
+     {:profile "hodos.rich-text/2"
+      :id "document/review"
+      :title "Selected semantic review"
+      :revision 0
+      :metadata {:source "showcase/states/selected-review.edn"
+                 :authority "package-showcase"}
+      :children
+      [{:id "block/title"
+        :type "heading"
+        :attrs {:level 1}
+        :children [{:id "text/title" :type "text" :text "Selected semantic review"}]}
+       {:id "block/identity"
+        :type "paragraph"
+        :attrs {}
+        :children
+        [{:id "text/identity"
+          :type "text"
+          :text "greenways-worlds/room @ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa · base revision 2"}]}
+       {:id "block/proposal"
+        :type "hara-artefact"
+        :attrs
+        {:artefactId "artefact/proposal"
+         :kind "value"
+         :title "Proposal proposal-1"
+         :mode "snapshot"
+         :entry "showcase.hodos-addon-publication.selected-review/review"
+         :capabilities []
+         :snapshotRoot "sha256:hodos-publication-proposal"
+         :snapshotDisplay "3 changes · 2 selected · 1 excluded"
+         :snapshotMediaType "application/edn"
+         :snapshotSourceRoot "sha256:hodos-publication-source"
+         :metadata {:baseRevision 2 :stale false}}
+        :children [{:id "text/proposal" :type "text" :text "proposal"}]}
+       {:id "block/selected"
+        :type "paragraph"
+        :attrs {}
+        :children
+        [{:id "text/selected"
+          :type "text"
+          :text "Selected: move cube-a; move and retune source-a. Excluded: add source-b."}]}
+       {:id "block/intent"
+        :type "hara-artefact"
+        :attrs
+        {:artefactId "artefact/intent"
+         :kind "value"
+         :title "Publication intents"
+         :mode "snapshot"
+         :entry "showcase.hodos-addon-publication.selected-review/review"
+         :capabilities []
+         :snapshotRoot "sha256:hodos-publication-intents"
+         :snapshotDisplay "repository-patch · hestia-contribution"
+         :snapshotMediaType "application/edn"
+         :snapshotSourceRoot "sha256:hodos-publication-source"
+         :metadata {:signed false :submitted false :persisted false}}
+        :children [{:id "text/intent" :type "text" :text "publication intents"}]}
+       {:id "block/boundary"
+        :type "blockquote"
+        :attrs {}
+        :children
+        [{:id "text/boundary"
+          :type "text"
+          :text "Signing, GitHub writes, Hestia admission and durable receipts remain host capabilities."}]}]}
+     :selection {:nodeId "block/proposal" :anchor nil :focus nil}
+     :status "ready"
+     :readOnly true
+     :capabilities
+     {:select true
+      :editText false
+      :insertBlock false
+      :deleteBlock false
+      :activateArtefact false
+      :commitArtefact false
+      :command false}
+     :error nil}
+    :component/events ["document/select"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/source-editor"
+   :link/document "document/source"
+   :link/area "area/editor"}
+  {:link/id "link-review-document"
+   :link/document "document/review"
+   :link/area "area/document"}]
+ :workspace/selection {:area/id "area/document" :document/id "document/review" :surface/id "document"}
+ :workspace/customizations
+ {:responsive/breakpoint 1000
+  :responsive/default-surface "document"}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}

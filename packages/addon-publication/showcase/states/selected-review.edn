@@ -1,0 +1,82 @@
+{"showcase/state" "hodos-addon-publication/selected-review"
+ "identity"
+ {"repository" {"owner" "greenways-worlds" "repo" "room"
+                "url" "https://github.com/greenways-worlds/room"}
+  "commit" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  "project" {"id" "greenways-worlds/room" "version" "1.0.0"}}
+ "draft"
+ {"format" "hodos-world-draft"
+  "version" "0.1.0"
+  "revision" 2
+  "entities"
+  [{"id" "cube-a"
+    "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}}]
+  "audioSources"
+  [{"id" "source-a" "position" [0 0.2 0] "gainDb" 0}]}
+ "proposal"
+ {"format" "hodos-world-draft-proposal"
+  "version" "0.1.0"
+  "id" "proposal-1"
+  "identity"
+  {"repository" {"owner" "greenways-worlds" "repo" "room"
+                 "url" "https://github.com/greenways-worlds/room"}
+   "commit" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   "project" {"id" "greenways-worlds/room" "version" "1.0.0"}}
+  "baseRevision" 2
+  "changes"
+  [{"id" "entity:cube-a"
+    "collection" "entities"
+    "op" "replace"
+    "entity" "cube-a"
+    "label" "Move cube"
+    "before" {"id" "cube-a" "transform" {"position" [0 0 0]}}
+    "after" {"id" "cube-a" "transform" {"position" [4 0 0]}}
+    "fields" [{"field" "transform.position" "before" [0 0 0] "after" [4 0 0]}]}
+   {"id" "source:source-a"
+    "collection" "audioSources"
+    "op" "replace"
+    "source" "source-a"
+    "label" "Retune source"
+    "before" {"id" "source-a" "position" [0 0.2 0] "gainDb" 0}
+    "after" {"id" "source-a" "position" [2 1 -3] "gainDb" -6}
+    "fields"
+    [{"field" "position" "before" [0 0.2 0] "after" [2 1 -3]}
+     {"field" "gainDb" "before" 0 "after" -6}]}
+   {"id" "source:source-b"
+    "collection" "audioSources"
+    "op" "add"
+    "source" "source-b"
+    "label" "Add ambience"
+    "before" nil
+    "after" {"id" "source-b" "position" [-2 0.2 1] "gainDb" -9}
+    "fields" []}]
+  "selected" ["entity:cube-a" "source:source-a" "source:source-b"]
+  "summary" {"add" 1 "remove" 0 "replace" 2 "unchanged" 0}}
+ "review"
+ {"proposal" "proposal-1"
+  "selected" ["entity:cube-a" "source:source-a"]
+  "stale" false}
+ "accepted"
+ {"revision" 3
+  "entities" [{"id" "cube-a" "transform" {"position" [4 0 0]}}]
+  "audioSources" [{"id" "source-a" "position" [2 1 -3] "gainDb" -6}]
+  "excluded" ["source:source-b"]}
+ "publicationIntents"
+ [{"effect" "publication"
+   "method" "repository-patch"
+   "args"
+   [{"repository" "greenways-worlds/room"
+     "commit" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+    {"format" "hodos-world-draft" "version" "0.1.0" "revision" 3}]}
+  {"effect" "publication"
+   "method" "hestia-contribution"
+   "args"
+   [{"repository" "greenways-worlds/room"
+     "commit" "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+    {"format" "hodos-world-draft" "version" "0.1.0" "revision" 3}
+    "hestia:room:review"]}]
+ "boundary"
+ {"signed" false
+  "submitted" false
+  "persisted" false
+  "note" "The package emits intents only; host capabilities own signing and delivery."}}

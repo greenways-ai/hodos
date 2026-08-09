@@ -1,0 +1,34 @@
+{:hara/type :showcase
+ :showcase/format 1
+ :showcase/package :greenways/hodos-addon-authoring
+ :showcase/version "0.1.0"
+ :showcase/title "Hodos semantic authoring"
+ :showcase/summary
+ "A complete authoring document advances through multi-selection, one transform transaction, undo, redo and a bounded script request."
+
+ :showcase/views
+ [{:view/id :authoring-session
+   :view/title "Authoring session"
+   :view/summary "Collections, prefabs, animation, scripts and reversible selection changes remain one semantic session."
+   :view/source "src/gw/hodos/session_authoring.hal"
+   :view/docs "README.md"}]
+
+ :showcase/states
+ [{:state/id :authoring/complete-session
+   :state/title "Complete authoring session"
+   :state/summary "Two objects move together, undo and redo together, and one Hara script request remains an explicit effect."
+   :state/file "showcase/states/complete-session.edn"}]
+
+ :showcase/demos
+ [{:demo/id :authoring/complete-session
+   :demo/title "Author a world as one semantic session"
+   :demo/summary "Follow document commit, multi-selection, transform, history and script boundaries without a renderer or evaluator."
+   :demo/view :authoring-session
+   :demo/state :authoring/complete-session
+   :demo/project "showcase/complete-session"
+   :demo/surface :graph
+   :demo/docs "showcase/complete-session/README.md"
+   :demo/tags ["authoring" "multi-selection" "undo-redo" "hara-script"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 1180 :viewport/height 760}
+   :demo/default true}]}
