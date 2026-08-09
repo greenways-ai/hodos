@@ -66,6 +66,25 @@ const optionalInteger = (value, label) => value == null
   ? null
   : nonNegativeInteger(value, label);
 
+const documentIdentityValue = (value, label, { traceDocument = false } = {}) => {
+  const traceId = value.traceId ?? value.trace_id ?? (traceDocument ? value.id : null);
+  return Object.freeze({
+    sessionId: optionalString(value.sessionId ?? value.session_id, `${label} session id`),
+    traceId: optionalString(traceId, `${label} trace id`),
+    sourceId: optionalString(value.sourceId ?? value.source_id, `${label} source id`),
+    sequence: optionalInteger(value.sequence, `${label} sequence`),
+    status: optionalString(value.status, `${label} status`),
+  });
+};
+
+const projectedExecutionStatus = (value) => {
+  if (value == null) return null;
+  const status = nonEmptyString(value, "Hara bytecode evidence status");
+  if (status === "ready") return "connected";
+  if (status === "disposed") return "idle";
+  return EXECUTION_STATUSES.has(status) ? status : null;
+};
+
 const booleanValue = (value, label, fallback = false) => {
   const resolved = value ?? fallback;
   if (typeof resolved !== "boolean") throw new TypeError(`${label} must be boolean`);
@@ -106,6 +125,7 @@ const positionValue = (value, label) => {
   if (value == null) return null;
   const position = objectValue(value, label);
   return Object.freeze({
+    sourceId: optionalString(position.sourceId ?? position.source_id, `${label} source id`),
     offset: optionalInteger(position.offset, `${label} offset`),
     line: optionalInteger(position.line, `${label} line`),
     column: optionalInteger(position.column, `${label} column`),
@@ -201,8 +221,10 @@ export function normalizeBytecodeMetrics(payload) {
   if (schema !== HARA_BYTECODE_METRICS_SCHEMA) {
     throw new Error(`Unsupported Hara bytecode metrics schema: ${schema}`);
   }
+  const identity = documentIdentityValue(value, "Hara bytecode metrics");
   return Object.freeze({
     schema,
+    ...identity,
     instructions: nonNegativeInteger(value.instructions ?? 0, "Hara bytecode instructions"),
     opcodeCounts: opcodeCountsValue(value.opcodeCounts ?? value.opcode_counts ?? {}),
     calls: nonNegativeInteger(value.calls ?? 0, "Hara bytecode calls"),
@@ -295,10 +317,16 @@ const compactEventValue = (event, index) => {
   const value = objectValue(event, `Hara bytecode event ${index}`);
   const kind = nonEmptyString(value.kind, `Hara bytecode event ${index} kind`);
   const label = `Hara bytecode event ${index}`;
-  if (kind === "instruction") return instructionEventValue(value, label);
-  if (kind === "transition") return transitionEventValue(value, label);
-  if (kind === "terminal") return terminalEventValue(value, label);
-  throw new Error(`${label} has unsupported kind: ${kind}`);
+  let projected;
+  if (kind === "instruction") projected = instructionEventValue(value, label);
+  else if (kind === "transition") projected = transitionEventValue(value, label);
+  else if (kind === "terminal") projected = terminalEventValue(value, label);
+  else throw new Error(`${label} has unsupported kind: ${kind}`);
+  return Object.freeze({
+    id: optionalString(value.id, `${label} id`),
+    sequence: optionalInteger(value.sequence, `${label} sequence`),
+    ...projected,
+  });
 };
 
 export function normalizeBytecodeEvents(payload) {
@@ -308,18 +336,21 @@ export function normalizeBytecodeEvents(payload) {
     throw new Error(`Unsupported Hara bytecode events schema: ${schema}`);
   }
   if (!Array.isArray(value.events)) throw new TypeError("Hara bytecode events must be an array");
+  const identity = documentIdentityValue(value, "Hara bytecode events");
   return Object.freeze({
     schema,
+    ...identity,
     events: Object.freeze(value.events.map(compactEventValue)),
     dropped: nonNegativeInteger(value.dropped ?? 0, "Hara bytecode dropped events"),
   });
 }
-
 const traceStepValue = (step, index) => {
   const value = objectValue(step, `Hara bytecode trace step ${index}`);
   const before = serializableValue(value.before ?? {}, `Hara bytecode trace step ${index} before`);
   const after = serializableValue(value.after ?? {}, `Hara bytecode trace step ${index} after`);
   return Object.freeze({
+    id: optionalString(value.id, `Hara bytecode trace step ${index} id`),
+    sequence: optionalInteger(value.sequence, `Hara bytecode trace step ${index} sequence`),
     kind: nonEmptyString(value.kind, `Hara bytecode trace step ${index} kind`),
     status: optionalString(value.status, `Hara bytecode trace step ${index} status`),
     before,
@@ -341,9 +372,15 @@ export function normalizeBytecodeTrace(payload) {
   }
   const steps = value.steps ?? [value];
   if (!Array.isArray(steps)) throw new TypeError("Hara bytecode trace steps must be an array");
-  return Object.freeze({ schema, steps: Object.freeze(steps.map(traceStepValue)) });
+  const identity = documentIdentityValue(value, "Hara bytecode trace", { traceDocument: true });
+  return Object.freeze({
+    schema,
+    id: optionalString(value.id ?? identity.traceId, "Hara bytecode trace id"),
+    ...identity,
+    steps: Object.freeze(steps.map(traceStepValue)),
+    dropped: nonNegativeInteger(value.dropped ?? 0, "Hara bytecode dropped trace steps"),
+  });
 }
-
 export function normalizeExecutionEvidence(payload) {
   const value = objectValue(payload, "Hodos Dev Execution evidence");
   const schema = nonEmptyString(value.schema, "Hodos Dev Execution evidence schema");
@@ -359,8 +396,25 @@ export function normalizeExecutionEvidence(payload) {
   throw new Error(`Unsupported Hodos Dev Execution evidence schema: ${schema}`);
 }
 
-const boundedTail = (current, added, limit) => {
-  const combined = [...current, ...added];
+const stableEvidenceKey = (value) => {
+  if (value.id != null) return `id/${value.id}`;
+  if (value.sequence != null) return `sequence/${value.kind}/${value.sequence}`;
+  return `legacy/${JSON.stringify(value)}`;
+};
+
+const compareEvidence = (left, right) => {
+  const leftSequence = left.sequence ?? Number.MAX_SAFE_INTEGER;
+  const rightSequence = right.sequence ?? Number.MAX_SAFE_INTEGER;
+  if (leftSequence !== rightSequence) return leftSequence - rightSequence;
+  return String(left.id ?? "").localeCompare(String(right.id ?? ""));
+};
+
+const boundedEvidence = (current, added, limit) => {
+  const byIdentity = new Map();
+  for (const value of [...current, ...added]) {
+    byIdentity.set(stableEvidenceKey(value), value);
+  }
+  const combined = [...byIdentity.values()].sort(compareEvidence);
   const omitted = Math.max(0, combined.length - limit);
   return Object.freeze({
     values: Object.freeze(combined.slice(omitted)),
@@ -369,6 +423,8 @@ const boundedTail = (current, added, limit) => {
 };
 
 const inferStatus = (status, evidence) => {
+  const explicit = projectedExecutionStatus(evidence.value.status);
+  if (explicit != null) return explicit;
   if (evidence.level === "events") {
     const last = evidence.value.events.at(-1);
     if (last?.kind === "terminal") return last.terminal === "machine/fail" ? "failed" : "returned";
@@ -378,8 +434,8 @@ const inferStatus = (status, evidence) => {
   }
   if (evidence.level === "trace") {
     const last = evidence.value.steps.at(-1);
-    const projected = last?.after?.status;
-    if (typeof projected === "string" && EXECUTION_STATUSES.has(projected)) return projected;
+    const projected = projectedExecutionStatus(last?.after?.status);
+    if (projected != null) return projected;
     if (last?.kind === "machine/fail") return "failed";
     if (last?.kind === "machine/return") return "returned";
     if (evidence.value.steps.length > 0) return "running";
@@ -409,23 +465,23 @@ const freezeState = ({
 
 export function createExecutionState({
   sessionId = null,
-  status = sessionId ? "connected" : "idle",
+  traceId = null,
+  sourceId = null,
+  documentSequence = {},
+  status = null,
   metrics = null,
   compactEvents = [],
   traceSteps = [],
   eventsOmitted = 0,
   traceOmitted = 0,
   droppedEvents = 0,
+  droppedTrace = 0,
   selection = {},
   capabilities = {},
   limits = {},
   diagnostics = [],
   metadata = {},
 } = {}) {
-  status = nonEmptyString(status, "Hodos Dev Execution status");
-  if (!EXECUTION_STATUSES.has(status)) {
-    throw new Error(`Unsupported Hodos Dev Execution status: ${status}`);
-  }
   if (!Array.isArray(compactEvents)) {
     throw new TypeError("Hodos Dev Execution compactEvents must be an array");
   }
@@ -436,14 +492,61 @@ export function createExecutionState({
     throw new TypeError("Hodos Dev Execution diagnostics must be an array");
   }
   const normalizedLimits = limitsValue(limits);
-  const retainedEvents = boundedTail([], compactEvents.map(compactEventValue), normalizedLimits.events);
-  const retainedTrace = boundedTail([], traceSteps.map(traceStepValue), normalizedLimits.trace);
+  const normalizedDocumentSequence = objectValue(
+    documentSequence,
+    "Hodos Dev Execution document sequence",
+  );
+  const retainedEvents = boundedEvidence(
+    [],
+    compactEvents.map(compactEventValue),
+    normalizedLimits.events,
+  );
+  const retainedTrace = boundedEvidence(
+    [],
+    traceSteps.map(traceStepValue),
+    normalizedLimits.trace,
+  );
   const retainedDiagnostics = diagnostics.map(diagnosticValue).slice(-normalizedLimits.diagnostics);
   const normalizedMetrics = metrics == null ? null : normalizeBytecodeMetrics(metrics);
+  const normalizedSessionId = optionalString(
+    sessionId ?? normalizedMetrics?.sessionId,
+    "Hodos Dev Execution session id",
+  );
+  const normalizedTraceId = optionalString(
+    traceId ?? normalizedMetrics?.traceId,
+    "Hodos Dev Execution trace id",
+  );
+  const normalizedSourceId = optionalString(
+    sourceId ?? normalizedMetrics?.sourceId,
+    "Hodos Dev Execution source id",
+  );
+  const resolvedStatus = status
+    ?? projectedExecutionStatus(normalizedMetrics?.status)
+    ?? (normalizedSessionId ? "connected" : "idle");
+  const normalizedStatus = nonEmptyString(resolvedStatus, "Hodos Dev Execution status");
+  if (!EXECUTION_STATUSES.has(normalizedStatus)) {
+    throw new Error(`Unsupported Hodos Dev Execution status: ${normalizedStatus}`);
+  }
   return freezeState({
     session: {
-      id: optionalString(sessionId, "Hodos Dev Execution session id"),
-      status,
+      id: normalizedSessionId,
+      traceId: normalizedTraceId,
+      sourceId: normalizedSourceId,
+      sequence: Object.freeze({
+        metrics: optionalInteger(
+          normalizedDocumentSequence.metrics ?? normalizedMetrics?.sequence,
+          "Hodos Dev Execution metrics document sequence",
+        ),
+        events: optionalInteger(
+          normalizedDocumentSequence.events,
+          "Hodos Dev Execution events document sequence",
+        ),
+        trace: optionalInteger(
+          normalizedDocumentSequence.trace,
+          "Hodos Dev Execution trace document sequence",
+        ),
+      }),
+      status: normalizedStatus,
     },
     evidence: {
       metrics: normalizedMetrics,
@@ -457,6 +560,7 @@ export function createExecutionState({
       traceOmitted: nonNegativeInteger(traceOmitted, "Hodos Dev Execution trace omitted")
         + retainedTrace.omitted,
       droppedEvents: nonNegativeInteger(droppedEvents, "Hodos Dev Execution dropped events"),
+      droppedTrace: nonNegativeInteger(droppedTrace, "Hodos Dev Execution dropped trace steps"),
     },
     availability: {
       metrics: normalizedMetrics != null,
@@ -474,29 +578,66 @@ export function ingestExecutionEvidence(state, payload) {
   const current = objectValue(state, "Hodos Dev Execution state");
   const normalized = normalizeExecutionEvidence(payload);
   const limits = current.retention.limits;
-  let metrics = current.evidence.metrics;
-  let events = current.evidence.events;
-  let trace = current.evidence.trace;
-  let eventsOmitted = current.retention.eventsOmitted;
-  let traceOmitted = current.retention.traceOmitted;
-  let droppedEvents = current.retention.droppedEvents;
+  const evidenceSessionId = normalized.value.sessionId;
+  if (
+    current.session.id != null
+    && evidenceSessionId != null
+    && current.session.id !== evidenceSessionId
+  ) {
+    throw new Error(
+      `Hodos Dev Execution session identity mismatch: ${current.session.id} != ${evidenceSessionId}`,
+    );
+  }
 
+  const currentTraceId = current.session.traceId ?? null;
+  const evidenceTraceId = normalized.value.traceId ?? null;
+  const traceChanged = currentTraceId != null
+    && evidenceTraceId != null
+    && currentTraceId !== evidenceTraceId;
+
+  let metrics = traceChanged ? null : current.evidence.metrics;
+  let events = traceChanged ? Object.freeze([]) : current.evidence.events;
+  let trace = traceChanged ? Object.freeze([]) : current.evidence.trace;
+  let eventsOmitted = traceChanged ? 0 : current.retention.eventsOmitted;
+  let traceOmitted = traceChanged ? 0 : current.retention.traceOmitted;
+  let droppedEvents = traceChanged ? 0 : current.retention.droppedEvents;
+  let droppedTrace = traceChanged ? 0 : (current.retention.droppedTrace ?? 0);
+  const selection = traceChanged ? selectionValue() : current.selection;
+  const documentSequence = traceChanged
+    ? { metrics: null, events: null, trace: null }
+    : {
+        metrics: current.session.sequence?.metrics ?? null,
+        events: current.session.sequence?.events ?? null,
+        trace: current.session.sequence?.trace ?? null,
+      };
+
+  if (normalized.value.sequence != null) {
+    const previous = documentSequence[normalized.level];
+    documentSequence[normalized.level] = previous == null
+      ? normalized.value.sequence
+      : Math.max(previous, normalized.value.sequence);
+  }
   if (normalized.level === "metrics") metrics = normalized.value;
   if (normalized.level === "events") {
-    const retained = boundedTail(events, normalized.value.events, limits.events);
+    const retained = boundedEvidence(events, normalized.value.events, limits.events);
     events = retained.values;
-    eventsOmitted += retained.omitted;
-    droppedEvents += normalized.value.dropped;
+    eventsOmitted = Math.max(eventsOmitted, retained.omitted);
+    droppedEvents = Math.max(droppedEvents, normalized.value.dropped);
   }
   if (normalized.level === "trace") {
-    const retained = boundedTail(trace, normalized.value.steps, limits.trace);
+    const retained = boundedEvidence(trace, normalized.value.steps, limits.trace);
     trace = retained.values;
-    traceOmitted += retained.omitted;
+    traceOmitted = Math.max(traceOmitted, retained.omitted);
+    droppedTrace = Math.max(droppedTrace, normalized.value.dropped);
   }
 
   return freezeState({
     session: {
-      ...current.session,
+      id: current.session.id ?? evidenceSessionId,
+      traceId: evidenceTraceId ?? currentTraceId,
+      sourceId: normalized.value.sourceId
+        ?? (traceChanged ? null : current.session.sourceId ?? null),
+      sequence: Object.freeze(documentSequence),
       status: inferStatus(current.session.status, normalized),
     },
     evidence: { metrics, events, trace },
@@ -505,6 +646,7 @@ export function ingestExecutionEvidence(state, payload) {
       eventsOmitted,
       traceOmitted,
       droppedEvents,
+      droppedTrace,
     },
     availability: {
       metrics: metrics != null,
@@ -512,7 +654,7 @@ export function ingestExecutionEvidence(state, payload) {
       trace: trace.length > 0,
     },
     capabilities: current.capabilities,
-    selection: current.selection,
+    selection,
     diagnostics: current.diagnostics,
     metadata: current.metadata,
   });

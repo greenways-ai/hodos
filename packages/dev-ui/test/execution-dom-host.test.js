@@ -177,7 +177,7 @@ const executionModel = () => createExecutionArea({
       severity: "warning",
       message: "Sample execution diagnostic",
     }],
-    metadata: { sourceId: "example/core.hal" },
+    metadata: { sourceId: "fallback/core.hal" },
   }),
 })["area/component"]["component/model"];
 

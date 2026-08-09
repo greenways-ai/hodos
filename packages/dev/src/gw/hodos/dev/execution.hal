@@ -22,13 +22,17 @@
   ([session evidence]
    (model session evidence {}))
   ([session evidence options]
-   {:session session
+   {:session (merge {:traceId nil
+                     :sourceId nil
+                     :sequence {:metrics nil :events nil :trace nil}}
+                    session)
     :evidence evidence
     :retention (get options :retention
                     {:limits {:events 512 :trace 128 :diagnostics 64}
                      :eventsOmitted 0
                      :traceOmitted 0
-                     :droppedEvents 0})
+                     :droppedEvents 0
+                     :droppedTrace 0})
     :availability (get options :availability
                        {:metrics false :events false :trace false})
     :capabilities (get options :capabilities
