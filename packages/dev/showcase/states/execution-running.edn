@@ -1,0 +1,86 @@
+{:area/id "execution/main"
+ :area/type "hodos.dev/execution"
+ :area/title "Execution"
+ :session {:id "session/showcase"
+           :traceId "trace/result-7"
+           :sourceId "src/main.hal"
+           :sequence {:metrics 3 :events 3 :trace 2}
+           :status "running"}
+ :evidence
+ {:metrics {:schema "hal.bytecode-metrics/v1"
+            :sessionId "session/showcase"
+            :traceId "trace/result-7"
+            :sourceId "src/main.hal"
+            :sequence 3
+            :status "running"
+            :instructions 3
+            :opcodeCounts {"constant" 2 "multiply" 1}
+            :calls 0
+            :returns 0
+            :unwinds 0
+            :suspensions 0
+            :resumptions 0
+            :terminalReturns 0
+            :failures 0
+            :maxStackDepth 2
+            :maxCallDepth 0}
+  :events [{:id "event/1"
+            :sequence 1
+            :kind "instruction"
+            :function 0
+            :ip 0
+            :opcode "constant"
+            :stackDepth 0
+            :callDepth 0}
+           {:id "event/2"
+            :sequence 2
+            :kind "instruction"
+            :function 0
+            :ip 1
+            :opcode "constant"
+            :stackDepth 1
+            :callDepth 0}]
+  :trace [{:id "step/2"
+           :sequence 2
+           :kind "instruction/execute"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 1
+                    :stack [{:kind "number" :display "1"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "running"
+                   :function 0
+                   :ip 2
+                   :stack [{:kind "number" :display "1"}
+                           {:kind "number" :display "2"}]
+                   :locals []
+                   :calls []
+                   :handlers []}
+           :instruction {:opcode "constant" :display "constant 2"}
+           :source {:sourceId "src/main.hal" :offset 7 :line 1 :column 8}
+           :error nil}]}
+ :retention {:limits {:events 512 :trace 128 :diagnostics 64}
+             :eventsOmitted 0
+             :traceOmitted 0
+             :droppedEvents 0
+             :droppedTrace 0}
+ :availability {:metrics true :events true :trace true}
+ :capabilities {:start false
+                :step true
+                :run true
+                :pause true
+                :resume false
+                :reset true
+                :requestTrace true}
+ :selection {:function 0
+             :ip 1
+             :source {:sourceId "src/main.hal" :offset 7 :line 1 :column 8}
+             :eventIndex 1
+             :traceIndex 0}
+ :diagnostics []
+ :metadata {:source "(+ 1 (* 2 3))"
+            :fixture "execution/running"
+            :runtime "none"}}
