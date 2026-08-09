@@ -1,0 +1,31 @@
+{:area/id "execution/main"
+ :area/type "hodos.dev/execution"
+ :area/title "Execution"
+ :session {:id nil
+           :traceId nil
+           :sourceId nil
+           :sequence {:metrics nil :events nil :trace nil}
+           :status "idle"}
+ :evidence {:metrics nil :events [] :trace []}
+ :retention {:limits {:events 512 :trace 128 :diagnostics 64}
+             :eventsOmitted 0
+             :traceOmitted 0
+             :droppedEvents 0
+             :droppedTrace 0}
+ :availability {:metrics false :events false :trace false}
+ :capabilities {:start true
+                :step false
+                :run false
+                :pause false
+                :resume false
+                :reset true
+                :requestTrace false}
+ :selection {:function nil
+             :ip nil
+             :source nil
+             :eventIndex nil
+             :traceIndex nil}
+ :diagnostics []
+ :metadata {:source "(+ 1 (* 2 3))"
+            :fixture "execution/idle"
+            :runtime "none"}}
