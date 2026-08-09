@@ -1,0 +1,30 @@
+{:component/id "hodos.dev/execution"
+ :component/contract "workspace.component/1"
+ :host {:kind "trusted-execution-evidence"
+        :containerOwned true
+        :updates "serializable-model"
+        :retention "bounded-before-render"
+        :dispose ["abort-listeners" "clear-model" "owned-dom"]}
+ :events ["execution/start"
+          "execution/step"
+          "execution/run"
+          "execution/pause"
+          "execution/resume"
+          "execution/reset"
+          "execution/request-trace"
+          "execution/select"
+          "editor/selection"]
+ :sourceSelection {:authoritative "trace-boundary.sourceId"
+                   :fallback "model.metadata.sourceId"
+                   :directEditorMutation false}
+ :responsive {:desktop "two-column-evidence-inspection"
+              :compact "single-column-below-900px"
+              :phone "two-card-grid-below-560px"}
+ :authority {:source "application"
+             :runtime "hara"
+             :session "application-controller"
+             :evidence "serializable-hodos-model"
+             :dom "host"}
+ :fixture {:source "(+ 1 (* 2 3))"
+           :result "7"
+           :runtime "none"}}
