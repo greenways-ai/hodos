@@ -1,0 +1,11 @@
+(ns showcase.hodos-dev.execution)
+
+(def expression
+  "(+ 1 (* 2 3))")
+
+(def expected-result 7)
+
+{:source expression
+ :result expected-result
+ :evidence :checked-in
+ :runtime :none}
