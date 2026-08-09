@@ -1,0 +1,186 @@
+{:area/id "execution/main"
+ :area/type "hodos.dev/execution"
+ :area/title "Execution"
+ :session {:id "session/showcase"
+           :traceId "trace/result-7"
+           :sourceId "src/main.hal"
+           :sequence {:metrics 7 :events 7 :trace 7}
+           :status "returned"}
+ :evidence
+ {:metrics {:schema "hal.bytecode-metrics/v1"
+            :sessionId "session/showcase"
+            :traceId "trace/result-7"
+            :sourceId "src/main.hal"
+            :sequence 7
+            :status "returned"
+            :instructions 7
+            :opcodeCounts {"constant" 3 "multiply" 1 "add" 1 "return" 1 "enter" 1}
+            :calls 0
+            :returns 1
+            :unwinds 0
+            :suspensions 0
+            :resumptions 0
+            :terminalReturns 1
+            :failures 0
+            :maxStackDepth 3
+            :maxCallDepth 0}
+  :events [{:id "event/1"
+            :sequence 1
+            :kind "instruction"
+            :function 0
+            :ip 0
+            :opcode "constant"
+            :stackDepth 0
+            :callDepth 0}
+           {:id "event/2"
+            :sequence 2
+            :kind "instruction"
+            :function 0
+            :ip 1
+            :opcode "constant"
+            :stackDepth 1
+            :callDepth 0}
+           {:id "event/3"
+            :sequence 3
+            :kind "instruction"
+            :function 0
+            :ip 2
+            :opcode "constant"
+            :stackDepth 2
+            :callDepth 0}
+           {:id "event/4"
+            :sequence 4
+            :kind "instruction"
+            :function 0
+            :ip 3
+            :opcode "multiply"
+            :stackDepth 3
+            :callDepth 0}
+           {:id "event/5"
+            :sequence 5
+            :kind "instruction"
+            :function 0
+            :ip 4
+            :opcode "add"
+            :stackDepth 2
+            :callDepth 0}
+           {:id "event/7"
+            :sequence 7
+            :kind "terminal"
+            :terminal "machine/return"
+            :function 0
+            :ip 6
+            :stackDepth 1
+            :callDepth 0}]
+  :trace [{:id "step/1"
+           :sequence 1
+           :kind "instruction/execute"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 0
+                    :stack []
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "running"
+                   :function 0
+                   :ip 1
+                   :stack [{:kind "number" :display "1"}]
+                   :locals []
+                   :calls []
+                   :handlers []}
+           :instruction {:opcode "constant" :display "constant 1"}
+           :source {:sourceId "src/main.hal" :offset 1 :line 1 :column 2}
+           :error nil}
+          {:id "step/4"
+           :sequence 4
+           :kind "instruction/execute"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 3
+                    :stack [{:kind "number" :display "1"}
+                            {:kind "number" :display "2"}
+                            {:kind "number" :display "3"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "running"
+                   :function 0
+                   :ip 4
+                   :stack [{:kind "number" :display "1"}
+                           {:kind "number" :display "6"}]
+                   :locals []
+                   :calls []
+                   :handlers []}
+           :instruction {:opcode "multiply" :display "multiply"}
+           :source {:sourceId "src/main.hal" :offset 6 :line 1 :column 7}
+           :error nil}
+          {:id "step/5"
+           :sequence 5
+           :kind "instruction/execute"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 4
+                    :stack [{:kind "number" :display "1"}
+                            {:kind "number" :display "6"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "running"
+                   :function 0
+                   :ip 5
+                   :stack [{:kind "number" :display "7"}]
+                   :locals []
+                   :calls []
+                   :handlers []}
+           :instruction {:opcode "add" :display "add"}
+           :source {:sourceId "src/main.hal" :offset 1 :line 1 :column 2}
+           :error nil}
+          {:id "step/7"
+           :sequence 7
+           :kind "machine/return"
+           :status "ok"
+           :before {:status "running"
+                    :function 0
+                    :ip 6
+                    :stack [{:kind "number" :display "7"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "returned"
+                   :function 0
+                   :ip 6
+                   :stack [{:kind "number" :display "7"}]
+                   :locals []
+                   :calls []
+                   :handlers []
+                   :result {:kind "number" :display "7"}}
+           :instruction {:opcode "return" :display "return"}
+           :source {:sourceId "src/main.hal" :offset 0 :line 1 :column 1}
+           :error nil}]}
+ :retention {:limits {:events 512 :trace 128 :diagnostics 64}
+             :eventsOmitted 0
+             :traceOmitted 0
+             :droppedEvents 0
+             :droppedTrace 0}
+ :availability {:metrics true :events true :trace true}
+ :capabilities {:start true
+                :step false
+                :run false
+                :pause false
+                :resume false
+                :reset true
+                :requestTrace true}
+ :selection {:function 0
+             :ip 6
+             :source {:sourceId "src/main.hal" :offset 0 :line 1 :column 1}
+             :eventIndex 5
+             :traceIndex 3}
+ :diagnostics []
+ :metadata {:source "(+ 1 (* 2 3))"
+            :result "7"
+            :fixture "execution/returned"
+            :runtime "none"}}

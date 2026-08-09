@@ -1,0 +1,82 @@
+{:area/id "execution/main"
+ :area/type "hodos.dev/execution"
+ :area/title "Execution"
+ :session {:id "session/showcase-failed"
+           :traceId "trace/failed"
+           :sourceId "src/main.hal"
+           :sequence {:metrics 4 :events 4 :trace 4}
+           :status "failed"}
+ :evidence
+ {:metrics {:schema "hal.bytecode-metrics/v1"
+            :sessionId "session/showcase-failed"
+            :traceId "trace/failed"
+            :sourceId "src/main.hal"
+            :sequence 4
+            :status "failed"
+            :instructions 4
+            :opcodeCounts {"constant" 2 "divide" 1 "fail" 1}
+            :calls 0
+            :returns 0
+            :unwinds 1
+            :suspensions 0
+            :resumptions 0
+            :terminalReturns 0
+            :failures 1
+            :maxStackDepth 2
+            :maxCallDepth 0}
+  :events [{:id "event/fail"
+            :sequence 4
+            :kind "terminal"
+            :terminal "machine/fail"
+            :function 0
+            :ip 3
+            :stackDepth 0
+            :callDepth 0}]
+  :trace [{:id "step/fail"
+           :sequence 4
+           :kind "machine/fail"
+           :status "failed"
+           :before {:status "running"
+                    :function 0
+                    :ip 3
+                    :stack [{:kind "number" :display "1"}
+                            {:kind "number" :display "0"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "failed"
+                   :function 0
+                   :ip 3
+                   :stack []
+                   :locals []
+                   :calls []
+                   :handlers []
+                   :error "division by zero"}
+           :instruction {:opcode "divide" :display "divide"}
+           :source {:sourceId "src/main.hal" :offset 6 :line 1 :column 7}
+           :error "division by zero"}]}
+ :retention {:limits {:events 512 :trace 128 :diagnostics 64}
+             :eventsOmitted 0
+             :traceOmitted 0
+             :droppedEvents 0
+             :droppedTrace 0}
+ :availability {:metrics true :events true :trace true}
+ :capabilities {:start true
+                :step false
+                :run false
+                :pause false
+                :resume false
+                :reset true
+                :requestTrace true}
+ :selection {:function 0
+             :ip 3
+             :source {:sourceId "src/main.hal" :offset 6 :line 1 :column 7}
+             :eventIndex 0
+             :traceIndex 0}
+ :diagnostics [{:code "execution/runtime-failure"
+                :severity "error"
+                :message "division by zero"
+                :source {:sourceId "src/main.hal" :offset 6 :line 1 :column 7}}]
+ :metadata {:source "(/ 1 0)"
+            :fixture "execution/failed"
+            :runtime "none"}}
