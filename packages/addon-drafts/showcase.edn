@@ -1,0 +1,34 @@
+{:hara/type :showcase
+ :showcase/format 1
+ :showcase/package :greenways/hodos-addon-drafts
+ :showcase/version "0.1.0"
+ :showcase/title "Hodos reversible drafts"
+ :showcase/summary
+ "Inspect one world transform, its persisted candidate state and a deterministic undo boundary."
+
+ :showcase/views
+ [{:view/id :draft-history
+   :view/title "Draft history"
+   :view/summary "A world draft advances through transform and undo without a hidden mutable undo stack."
+   :view/source "src/gw/hodos/session_draft.hal"
+   :view/docs "README.md"}]
+
+ :showcase/states
+ [{:state/id :draft/reversible-transform
+   :state/title "Reversible transform"
+   :state/summary "One two-object transform creates one history entry, then one undo restores the exact prior content."
+   :state/file "showcase/states/reversible-transform.edn"}]
+
+ :showcase/demos
+ [{:demo/id :draft/reversible-transform
+   :demo/title "Transform and undo a world draft"
+   :demo/summary "Follow the candidate draft, bounded effects and exact restoration through one revisioned transaction."
+   :demo/view :draft-history
+   :demo/state :draft/reversible-transform
+   :demo/project "showcase/reversible-transform"
+   :demo/surface :graph
+   :demo/docs "showcase/reversible-transform/README.md"
+   :demo/tags ["draft" "undo" "revision" "effects"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 1120 :viewport/height 720}
+   :demo/default true}]}
