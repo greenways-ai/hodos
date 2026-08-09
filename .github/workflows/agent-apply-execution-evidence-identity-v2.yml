@@ -33,38 +33,6 @@ jobs:
           PY
           python -m py_compile /tmp/apply-execution-evidence-identity.py
           python /tmp/apply-execution-evidence-identity.py
-          python <<'PY'
-          from pathlib import Path
-          import re
-
-          path = Path('packages/dev/src/gw/hodos/dev/execution.hal')
-          text = path.read_text()
-          if ':droppedTrace 0' not in text:
-              pattern = re.compile(
-                  r':session session\n'
-                  r'\s+:evidence evidence\n'
-                  r'\s+:retention \(get options :retention\n'
-                  r'\s+\{:limits \{:events 512 :trace 128 :diagnostics 64\}\n'
-                  r'\s+:eventsOmitted 0\n'
-                  r'\s+:traceOmitted 0\n'
-                  r'\s+:droppedEvents 0\}\)'
-              )
-              replacement = ''':session (merge {:traceId nil
-                         :sourceId nil
-                         :sequence {:metrics nil :events nil :trace nil}}
-                        session)
-       :evidence evidence
-       :retention (get options :retention
-                       {:limits {:events 512 :trace 128 :diagnostics 64}
-                        :eventsOmitted 0
-                        :traceOmitted 0
-                        :droppedEvents 0
-                        :droppedTrace 0})'''
-              text, count = pattern.subn(replacement, text, count=1)
-              if count != 1:
-                  raise SystemExit('expected Hara Execution model block missing')
-              path.write_text(text)
-          PY
       - run: git diff --check
       - run: npm ci
       - run: npm run audit:hal
