@@ -1,0 +1,101 @@
+{"showcase/state" "hodos-addon-authoring/complete-session"
+ "identity"
+ {"repository" {"owner" "greenways-worlds" "repo" "editor"
+                "url" "https://github.com/greenways-worlds/editor"}
+  "commit" "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  "project" {"id" "greenways-worlds/editor" "version" "1.0.0"}}
+ "document"
+ {"entities"
+  [{"id" "cube-a"
+    "name" "North block"
+    "kind" "box"
+    "parent" nil
+    "collection" "set"
+    "visible" true
+    "locked" false
+    "origin" [0 0 0]
+    "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components"
+    {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}
+     "script"
+     {"language" "hara"
+      "enabled" true
+      "events" ["world/editor-run"]
+      "source" "(fn [event entity world] {\"entity\" entity \"trace\" event})"}}}
+   {"id" "cube-b"
+    "name" "South block"
+    "kind" "box"
+    "parent" nil
+    "collection" "set"
+    "visible" true
+    "locked" false
+    "origin" [0 0 0]
+    "transform" {"position" [2 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}]
+  "audioSources" []
+  "collections" [{"id" "set" "name" "Set" "parent" nil "visible" true "locked" false}]
+  "assets"
+  [{"id" "chair" "name" "Chair" "kind" "gltf"
+    "url" "https://assets.example.test/chair.glb" "thumbnail" nil "metadata" {}}]
+  "prefabs"
+  [{"id" "pair" "name" "Pair" "description" "Reusable block pair"
+    "rootIds" ["cube-a" "cube-b"]
+    "entities" [{"id" "cube-a"} {"id" "cube-b"}]}]
+  "animations"
+  [{"id" "main" "name" "Main" "duration" 4 "fps" 30
+    "tracks"
+    [{"id" "track-cube-a-position"
+      "entity" "cube-a"
+      "property" "position"
+      "enabled" true
+      "keyframes"
+      [{"id" "start" "time" 0 "value" [0 0 0] "easing" "linear"}
+       {"id" "end" "time" 4 "value" [4 0 0] "easing" "linear"}]}]}]}
+ "commit"
+ {"event/type" "world/document-commit"
+  "command" "seed-document"}
+ "selection"
+ {"event/type" "world/editor-select"
+  "targets" [{"type" "entity" "id" "cube-a"} {"type" "entity" "id" "cube-b"}]
+  "mode" "replace"}
+ "transform"
+ {"event/type" "world/editor-transform-selection"
+  "items"
+  [{"type" "entity" "id" "cube-a"
+    "transform" {"position" [1 0 0] "rotation" [0 15 0] "scale" [1 1 1]}}
+   {"type" "entity" "id" "cube-b"
+    "transform" {"position" [3 0 0] "rotation" [0 15 0] "scale" [1 1 1]}}]}
+ "history"
+ {"undo" {"event/type" "world/history-undo"
+          "positions" [[0 0 0] [2 0 0]]}
+  "redo" {"event/type" "world/history-redo"
+          "positions" [[1 0 0] [3 0 0]]}}
+ "editorSettings"
+ {"event/type" "world/editor-settings"
+  "patch"
+  {"tool" "box"
+   "space" "local"
+   "pivot" "cursor"
+   "cursor" [4 1 -2]
+   "snap" {"enabled" true "translate" 1 "rotate" 15 "scale" 0.25}
+   "isolation" "set"
+   "timeline" {"animation" "main" "time" 1.5 "playing" true "loop" true}}}
+ "scriptRequest"
+ {"effect" "script"
+  "method" "evaluate"
+  "args"
+  [{"trace" "trace-showcase"
+    "entity" "cube-a"
+    "event" {"event/type" "world/editor-run"}
+    "source" "(fn [event entity world] {\"entity\" entity \"trace\" event})"}]}
+ "scriptResult"
+ {"event/type" "world/script-result"
+  "trace" "trace-showcase"
+  "entity" "cube-a"
+  "status" "completed"
+  "result" {"trace" "ok"}
+  "at" "2026-08-09T00:00:00.000Z"}
+ "boundary"
+ {"scriptEvaluatedByShowcase" false
+  "persistedByShowcase" false
+  "renderedByShowcase" false}}

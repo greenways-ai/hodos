@@ -1,0 +1,25 @@
+(ns showcase.hodos-addon-authoring.complete-session)
+
+(def lifecycle
+  [:document/commit
+   :editor/select-two
+   :editor/transform-selection
+   :history/undo
+   :history/redo
+   :script/request])
+
+(def boundary
+  {:renderer nil
+   :storage nil
+   :script-evaluator nil
+   :publication nil})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS AUTHORING"]
+    [:h1 "One semantic authoring session"]
+    [:p "Selection, transform, history, animation and script intent remain visible state."]
+    [:pre (str {:lifecycle lifecycle :boundary boundary})]]])
+
+(view)
