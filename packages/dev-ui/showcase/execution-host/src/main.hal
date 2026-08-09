@@ -1,0 +1,11 @@
+(ns showcase.hodos-dev-ui.execution-host)
+
+(def fixture-source
+  "(+ 1 (* 2 3))")
+
+(def expected-result 7)
+
+{:source fixture-source
+ :result expected-result
+ :host :hodos.dev/execution
+ :runtime :none}
