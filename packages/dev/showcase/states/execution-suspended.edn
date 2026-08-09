@@ -1,0 +1,80 @@
+{:area/id "execution/main"
+ :area/type "hodos.dev/execution"
+ :area/title "Execution"
+ :session {:id "session/showcase-suspended"
+           :traceId "trace/suspended"
+           :sourceId "src/main.hal"
+           :sequence {:metrics 5 :events 5 :trace 4}
+           :status "suspended"}
+ :evidence
+ {:metrics {:schema "hal.bytecode-metrics/v1"
+            :sessionId "session/showcase-suspended"
+            :traceId "trace/suspended"
+            :sourceId "src/main.hal"
+            :sequence 5
+            :status "suspended"
+            :instructions 5
+            :opcodeCounts {"constant" 3 "multiply" 1 "await" 1}
+            :calls 0
+            :returns 0
+            :unwinds 0
+            :suspensions 1
+            :resumptions 0
+            :terminalReturns 0
+            :failures 0
+            :maxStackDepth 3
+            :maxCallDepth 0}
+  :events [{:id "event/suspend"
+            :sequence 5
+            :kind "transition"
+            :transition "machine/suspend"
+            :function 0
+            :ip 4
+            :stackDepth 1
+            :callDepth 0}]
+  :trace [{:id "step/suspend"
+           :sequence 4
+           :kind "machine/suspend"
+           :status "suspended"
+           :before {:status "running"
+                    :function 0
+                    :ip 4
+                    :stack [{:kind "promise" :display "<pending>"}]
+                    :locals []
+                    :calls []
+                    :handlers []}
+           :after {:status "suspended"
+                   :function 0
+                   :ip 4
+                   :stack [{:kind "promise" :display "<pending>"}]
+                   :locals []
+                   :calls []
+                   :handlers []}
+           :instruction {:opcode "await" :display "await"}
+           :source {:sourceId "src/main.hal" :offset 12 :line 1 :column 13}
+           :error nil}]}
+ :retention {:limits {:events 512 :trace 128 :diagnostics 64}
+             :eventsOmitted 0
+             :traceOmitted 0
+             :droppedEvents 0
+             :droppedTrace 0}
+ :availability {:metrics true :events true :trace true}
+ :capabilities {:start false
+                :step false
+                :run false
+                :pause false
+                :resume false
+                :reset true
+                :requestTrace true}
+ :selection {:function 0
+             :ip 4
+             :source {:sourceId "src/main.hal" :offset 12 :line 1 :column 13}
+             :eventIndex 0
+             :traceIndex 0}
+ :diagnostics [{:code "execution/settlement-required"
+                :severity "info"
+                :message "A suspended session requires an explicit application settlement."}]
+ :metadata {:source "(+ 1 (* 2 3))"
+            :fixture "execution/suspended"
+            :runtime "none"
+            :settlement "unsupported-in-showcase"}}
