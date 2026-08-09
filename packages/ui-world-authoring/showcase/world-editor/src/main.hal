@@ -1,0 +1,21 @@
+(ns showcase.hodos-ui-world-authoring.world-editor)
+
+(def component
+  {:component/id "hodos.world/authoring"
+   :component/contract "workspace.component/1"
+   :events
+   [:world/editor-select
+    :world/editor-transform-selection
+    :world/document-commit
+    :world/history-undo
+    :world/history-redo]})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS WORLD AUTHORING"]
+    [:h1 "Outliner, inspector, assets and timeline"]
+    [:p "One portable state value enters a browser host through a versioned component boundary."]
+    [:pre (str component)]]])
+
+(view)

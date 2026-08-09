@@ -14,7 +14,7 @@
     "site:dev": "npm run dev --prefix site",
     "site:check": "npm run check --prefix site",
     "site:build": "npm run build --prefix site",
-    "test": "node --test packages/core/test/*.test.js packages/web/test/*.test.js packages/workspace-ui/test/*.test.js packages/dev/test/*.test.js packages/dev-ui/test/*.test.js packages/2d/test/*.test.js packages/2d-ui/test/*.test.js packages/world-model/test/*.test.js packages/source-github/test/*.test.js packages/source-tahto/test/*.test.js packages/viewer/test/*.test.js apps/demo/test/*.test.js site/test/*.test.js",
+    "test": "node --test packages/core/test/*.test.js packages/web/test/*.test.js packages/workspace-ui/test/*.test.js packages/dev/test/*.test.js packages/dev-ui/test/*.test.js packages/2d/test/*.test.js packages/2d-ui/test/*.test.js packages/world-model/test/*.test.js packages/source-github/test/*.test.js packages/source-tahto/test/*.test.js packages/ui-world-authoring/test/*.test.js packages/ui-world-publication/test/*.test.js packages/viewer/test/*.test.js apps/demo/test/*.test.js site/test/*.test.js",
     "audit:hal": "node scripts/audit-hal.js",
     "check:packages": "node scripts/check-packages.js",
     "check:showcases": "node scripts/check-showcases.js",

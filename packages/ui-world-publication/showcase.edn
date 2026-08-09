@@ -1,0 +1,34 @@
+{:hara/type :showcase
+ :showcase/format 1
+ :showcase/package :greenways/hodos-ui-world-publication
+ :showcase/version "0.1.0"
+ :showcase/title "Hodos World Publication UI"
+ :showcase/summary
+ "The optional semantic review panel for exact proposal selection and explicit repository or Hestia publication intents."
+
+ :showcase/views
+ [{:view/id :proposal-panel
+   :view/title "Proposal review panel"
+   :view/summary "A browser host mounts exact proposal state and receives only the declared review and publication events."
+   :view/source "src/world-draft-review-panel.js"
+   :view/docs "README.md"}]
+
+ :showcase/states
+ [{:state/id :proposal/ready
+   :state/title "Proposal ready for review"
+   :state/summary "Three semantic changes target revision two; two remain selected and no publication has been submitted."
+   :state/file "showcase/states/proposal-ready.edn"}]
+
+ :showcase/demos
+ [{:demo/id :proposal/ready
+   :demo/title "Review and prepare world publication"
+   :demo/summary "Mount the proposal review UI through a closed Workspace component contract."
+   :demo/view :proposal-panel
+   :demo/state :proposal/ready
+   :demo/project "showcase/proposal-review"
+   :demo/surface :world-publication
+   :demo/docs "showcase/proposal-review/README.md"
+   :demo/tags ["semantic-review" "proposal" "repository-intent" "hestia-intent"]
+   :demo/theme :light
+   :demo/viewport {:viewport/width 1120 :viewport/height 760}
+   :demo/default true}]}

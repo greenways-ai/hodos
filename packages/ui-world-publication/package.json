@@ -4,15 +4,35 @@
   "description": "Optional world draft review and publication UI add-on for Hodos",
   "type": "module",
   "license": "EPL-2.0",
-  "repository": { "type": "git", "url": "git+https://github.com/greenways-ai/hodos.git", "directory": "packages/ui-world-publication" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/greenways-ai/hodos.git",
+    "directory": "packages/ui-world-publication"
+  },
   "exports": {
     ".": "./src/index.js",
     "./panel": "./src/world-draft-review-panel.js",
     "./styles": "./src/world-draft-review-panel.css"
   },
-  "files": ["src", "project.edn", "project.lock.edn", "hara.recipe.edn", "README.md"],
-  "sideEffects": ["**/*.css"],
-  "publishConfig": { "access": "public" },
-  "dependencies": { "@greenways/hodos-core": "0.1.0" },
-  "engines": { "node": ">=20" }
+  "files": [
+    "src",
+    "project.edn",
+    "project.lock.edn",
+    "hara.recipe.edn",
+    "README.md",
+    "showcase.edn",
+    "showcase"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@greenways/hodos-core": "0.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
