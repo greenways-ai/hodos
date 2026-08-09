@@ -1,0 +1,34 @@
+{:hara/type :showcase
+ :showcase/format 1
+ :showcase/package :greenways/hodos-addon-publication
+ :showcase/version "0.1.0"
+ :showcase/title "Hodos proposal review"
+ :showcase/summary
+ "Exact semantic proposal review, selected acceptance and inert publication intents."
+
+ :showcase/views
+ [{:view/id :proposal-review
+   :view/title "Proposal review"
+   :view/summary "A selected subset of semantic changes is accepted against one exact draft revision."
+   :view/source "src/gw/hodos/session_publication.hal"
+   :view/docs "README.md"}]
+
+ :showcase/states
+ [{:state/id :publication/selected-review
+   :state/title "Selected semantic review"
+   :state/summary "Two of three proposed changes remain selected before the draft is accepted and publication is prepared."
+   :state/file "showcase/states/selected-review.edn"}]
+
+ :showcase/demos
+ [{:demo/id :publication/selected-review
+   :demo/title "Review selected world changes"
+   :demo/summary "Inspect identity, base revision, selected changes and closed repository/Hestia intent values."
+   :demo/view :proposal-review
+   :demo/state :publication/selected-review
+   :demo/project "showcase/selected-review"
+   :demo/surface :document
+   :demo/docs "showcase/selected-review/README.md"
+   :demo/tags ["proposal" "review" "selection" "publication-intent"]
+   :demo/theme :light
+   :demo/viewport {:viewport/width 1040 :viewport/height 760}
+   :demo/default true}]}
