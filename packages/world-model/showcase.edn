@@ -1,0 +1,34 @@
+{:hara/type :showcase
+ :showcase/format 1
+ :showcase/package :greenways/hodos-world-model
+ :showcase/version "0.1.0"
+ :showcase/title "Hodos world model"
+ :showcase/summary
+ "Runtime-neutral entity, collection, prefab, animation and editor state with one exact multi-selection transform."
+
+ :showcase/views
+ [{:view/id :authoring-document
+   :view/title "Authoring document"
+   :view/summary "A normalized world document and the exact transaction derived from a two-object selection."
+   :view/source "src/world-authoring-model.js"
+   :view/docs "README.md"}]
+
+ :showcase/states
+ [{:state/id :authoring/normalized
+   :state/title "Normalized authoring document"
+   :state/summary "Three entities, one collection, one asset, one prefab, one animation and a snapped multi-selection."
+   :state/file "showcase/states/authoring-normalized.edn"}]
+
+ :showcase/demos
+ [{:demo/id :authoring/normalized
+   :demo/title "Inspect an authoring transaction"
+   :demo/summary "Inspect the portable document, selection pivot and exact two-object transform without a renderer."
+   :demo/view :authoring-document
+   :demo/state :authoring/normalized
+   :demo/project "showcase/authoring-document"
+   :demo/surface :document
+   :demo/docs "showcase/authoring-document/README.md"
+   :demo/tags ["world-model" "multi-selection" "prefab" "animation"]
+   :demo/theme :light
+   :demo/viewport {:viewport/width 1040 :viewport/height 720}
+   :demo/default true}]}

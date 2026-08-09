@@ -1,0 +1,95 @@
+{"showcase/state" "hodos-world-model/authoring-normalized"
+ "document"
+ {"entities"
+  [{"id" "cube-a"
+    "name" "North block"
+    "kind" "box"
+    "parent" nil
+    "collection" "set"
+    "visible" true
+    "locked" false
+    "origin" [0 0 0]
+    "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components"
+    {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}
+     "script"
+     {"language" "hara"
+      "enabled" true
+      "events" ["world/editor-transform-selection"]
+      "source" "(fn [event entity world] {\"entity\" entity \"trace\" event})"}}}
+   {"id" "cube-b"
+    "name" "South block"
+    "kind" "box"
+    "parent" nil
+    "collection" "set"
+    "visible" true
+    "locked" false
+    "origin" [0 0 0]
+    "transform" {"position" [2 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}
+   {"id" "key-light"
+    "name" "Key light"
+    "kind" "point-light"
+    "parent" nil
+    "collection" "lighting"
+    "visible" true
+    "locked" false
+    "origin" [0 0 0]
+    "transform" {"position" [0 4 2] "rotation" [0 0 0] "scale" [1 1 1]}
+    "components"
+    {"light" {"type" "point" "color" "#fff1ca" "intensity" 1.5 "range" 16 "castShadows" true}}}]
+  "audioSources" []
+  "collections"
+  [{"id" "set" "name" "Set" "parent" nil "visible" true "locked" false}
+   {"id" "lighting" "name" "Lighting" "parent" nil "visible" true "locked" false}]
+  "assets"
+  [{"id" "chair" "name" "Chair" "kind" "gltf" "url" "https://assets.example.test/chair.glb"
+    "thumbnail" nil "metadata" {"license" "CC0"}}]
+  "prefabs"
+  [{"id" "block-pair"
+    "name" "Block pair"
+    "description" "Two reusable set blocks."
+    "rootIds" ["cube-a" "cube-b"]
+    "entities"
+    [{"id" "cube-a" "name" "North block" "kind" "box" "parent" nil "collection" "set"
+      "visible" true "locked" false "origin" [0 0 0]
+      "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+      "components" {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}}}
+     {"id" "cube-b" "name" "South block" "kind" "box" "parent" nil "collection" "set"
+      "visible" true "locked" false "origin" [0 0 0]
+      "transform" {"position" [2 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+      "components" {"primitive" {"shape" "box" "color" "#719f87" "opacity" 1}}}]}]
+  "animations"
+  [{"id" "main"
+    "name" "Main"
+    "duration" 4
+    "fps" 30
+    "tracks"
+    [{"id" "track-cube-a-position"
+      "entity" "cube-a"
+      "property" "position"
+      "enabled" true
+      "keyframes"
+      [{"id" "start" "time" 0 "value" [0 0 0] "easing" "linear"}
+       {"id" "end" "time" 4 "value" [4 0 0] "easing" "ease-in-out"}]}]}]}
+ "editor"
+ {"mode" "edit"
+  "tool" "translate"
+  "space" "world"
+  "pivot" "median"
+  "cursor" [0 0 0]
+  "snap" {"enabled" true "translate" 1 "rotate" 15 "scale" 0.25}
+  "isolation" "set"
+  "activeCollection" "set"
+  "selection" [{"type" "entity" "id" "cube-a"} {"type" "entity" "id" "cube-b"}]
+  "active" {"type" "entity" "id" "cube-b"}
+  "timeline" {"animation" "main" "time" 1.5 "playing" false "loop" true}}
+ "selectionPivot" [1 0 0]
+ "transaction"
+ {"event/type" "world/editor-transform-selection"
+  "items"
+  [{"type" "entity" "id" "cube-a"
+    "transform" {"position" [1 0 0] "rotation" [0 0 0] "scale" [1 1 1]}}
+   {"type" "entity" "id" "cube-b"
+    "transform" {"position" [3 0 0] "rotation" [0 0 0] "scale" [1 1 1]}}]}
+ "resultPositions" {"cube-a" [1 0 0] "cube-b" [3 0 0]}}
