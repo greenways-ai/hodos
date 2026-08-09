@@ -279,15 +279,15 @@ test("Execution Showcase host replaces listeners on update and disposes owned DO
 
   const pausedNodes = walk(container);
   const pausedBoundary = pausedNodes.find((node) => node.dataset?.timelineIndex === "0");
-  for (const action of ["step", "run", "resume", "reset", "request-trace"]) {
+  assert.equal(pausedNodes.find((node) => node.dataset?.action === "step").disabled, true);
+  assert.equal(pausedNodes.find((node) => node.dataset?.action === "run").disabled, true);
+  for (const action of ["resume", "reset", "request-trace"]) {
     pausedNodes.find((node) => node.dataset?.action === action).emit("click");
   }
   pausedBoundary.emit("click");
 
   assert.deepEqual(events.map((event) => event["event/type"]), [
     "execution/start",
-    "execution/step",
-    "execution/run",
     "execution/resume",
     "execution/reset",
     "execution/request-trace",
@@ -310,12 +310,12 @@ test("Execution Showcase host replaces listeners on update and disposes owned DO
 
   host.update(executionModel("returned"));
   pausedBoundary.emit("click");
-  assert.equal(events.length, 7);
+  assert.equal(events.length, 5);
   const returnedReset = walk(container).find((node) => node.dataset?.action === "reset");
 
   host.dispose();
   returnedReset.emit("click");
-  assert.equal(events.length, 7);
+  assert.equal(events.length, 5);
   assert.equal(sourceEvents.length, 1);
   assert.equal(runtimeCalls, 0);
   assert.equal(container.children.length, 0);
