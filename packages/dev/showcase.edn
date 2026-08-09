@@ -4,7 +4,7 @@
  :showcase/version "0.1.0"
  :showcase/title "Hodos Dev models"
  :showcase/summary
- "Serializable Explorer, Editor, Preview and REPL Workspace areas with closed semantic-event contracts."
+ "Serializable Explorer, Editor, Preview, REPL and Execution Workspace areas with closed semantic-event contracts."
 
  :showcase/views
  [{:view/id :explorer
@@ -26,6 +26,11 @@
    :view/title "REPL"
    :view/summary "Session identity, namespace, status, input and transcript entries."
    :view/source "src/gw/hodos/dev/repl.hal"
+   :view/docs "README.md"}
+  {:view/id :execution
+   :view/title "Execution"
+   :view/summary "Identity-safe metrics, compact events and bounded trace evidence without runtime ownership."
+   :view/source "src/gw/hodos/dev/execution.hal"
    :view/docs "README.md"}]
 
  :showcase/states
@@ -44,7 +49,39 @@
   {:state/id :repl/ready
    :state/title "Ready session"
    :state/summary "A Hara session with input and retained result entries."
-   :state/file "showcase/states/repl-ready.edn"}]
+   :state/file "showcase/states/repl-ready.edn"}
+  {:state/id :execution/idle
+   :state/title "Idle"
+   :state/summary "No live session and no retained evidence."
+   :state/file "showcase/states/execution-idle.edn"}
+  {:state/id :execution/running
+   :state/title "Running"
+   :state/summary "A bounded in-progress projection with Step, Run and Pause available."
+   :state/file "showcase/states/execution-running.edn"}
+  {:state/id :execution/paused
+   :state/title "Paused"
+   :state/summary "A source-linked boundary that can be stepped, run or resumed."
+   :state/file "showcase/states/execution-paused.edn"}
+  {:state/id :execution/suspended
+   :state/title "Suspended"
+   :state/summary "A promise boundary that requires explicit application settlement."
+   :state/file "showcase/states/execution-suspended.edn"}
+  {:state/id :execution/returned
+   :state/title "Returned 7"
+   :state/summary "Checked-in evidence for (+ 1 (* 2 3)) with terminal result 7."
+   :state/file "showcase/states/execution-returned.edn"}
+  {:state/id :execution/failed
+   :state/title "Failed"
+   :state/summary "A retained runtime failure with source-linked diagnostics."
+   :state/file "showcase/states/execution-failed.edn"}
+  {:state/id :execution/bounded
+   :state/title "Bounded evidence"
+   :state/summary "A retained tail with cumulative dropped and omitted counts."
+   :state/file "showcase/states/execution-bounded.edn"}
+  {:state/id :execution/compact
+   :state/title "Compact result"
+   :state/summary "A deliberately small retained projection for narrow viewports."
+   :state/file "showcase/states/execution-compact.edn"}]
 
  :showcase/demos
  [{:demo/id :explorer/project
@@ -91,4 +128,26 @@
    :demo/docs "showcase/repl/README.md"
    :demo/tags ["repl" "session" "values"]
    :demo/theme :dark
-   :demo/viewport {:viewport/width 900 :viewport/height 620}}]}
+   :demo/viewport {:viewport/width 900 :viewport/height 620}}
+  {:demo/id :execution/returned
+   :demo/title "Inspect a returned Hara execution"
+   :demo/summary "Explore immutable result-7 metrics, events and source-linked trace snapshots."
+   :demo/view :execution
+   :demo/state :execution/returned
+   :demo/project "showcase/execution"
+   :demo/surface :execution
+   :demo/docs "showcase/execution/README.md"
+   :demo/tags ["execution" "trace" "result-7"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 1100 :viewport/height 720}}
+  {:demo/id :execution/compact
+   :demo/title "Inspect Execution in a compact viewport"
+   :demo/summary "Exercise the same inert Execution surface with bounded evidence at phone width."
+   :demo/view :execution
+   :demo/state :execution/compact
+   :demo/project "showcase/execution"
+   :demo/surface :execution
+   :demo/docs "showcase/execution/README.md"
+   :demo/tags ["execution" "compact" "responsive"]
+   :demo/theme :dark
+   :demo/viewport {:viewport/width 520 :viewport/height 760}}]}
