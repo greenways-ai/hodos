@@ -1,0 +1,17 @@
+(ns showcase.hodos-ui-world-publication.proposal-review)
+
+(def component
+  {:component/id "hodos.world/publication"
+   :component/contract "workspace.component/1"
+   :proposal {:id "proposal-1" :base-revision 2 :changes 3 :selected 2}
+   :authority {:importer nil :signer nil :repository-writer nil :hestia-submitter nil}})
+
+(defn view []
+  [:main {:class "preview-shell"}
+   [:article {:class "card"}
+    [:span {:class "eyebrow"} "GREENWAYS / HODOS WORLD PUBLICATION"]
+    [:h1 "Select exact changes before publication"]
+    [:p "The review UI emits closed intents while delivery authority remains outside the component."]
+    [:pre (str component)]]])
+
+(view)

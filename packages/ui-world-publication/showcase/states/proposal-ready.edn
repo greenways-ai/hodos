@@ -1,0 +1,60 @@
+{"showcase/state" "hodos-ui-world-publication/proposal-ready"
+ "world"
+ {"repository"
+  {"owner" "greenways-worlds" "repo" "room"
+   "url" "https://github.com/greenways-worlds/room"}
+  "commit" "dddddddddddddddddddddddddddddddddddddddd"
+  "project" {"id" "greenways-worlds/room" "version" "1.0.0" "capabilities" []}
+  "draft"
+  {"format" "hodos-world-draft"
+   "version" "0.1.0"
+   "revision" 2
+   "dirty" true
+   "entities"
+   [{"id" "cube-a" "name" "Cube" "kind" "box" "parent" nil "collection" nil
+     "visible" true "locked" false "origin" [0 0 0]
+     "transform" {"position" [0 0 0] "rotation" [0 0 0] "scale" [1 1 1]}
+     "components" {"primitive" {"shape" "box" "color" "#c8ad73" "opacity" 1}}}]
+   "audioSources"
+   [{"id" "source-a" "kind" "studio/track" "track" "track-a" "clip" nil
+     "label" "Room tone" "position" [0 0.2 0] "playing" true "loop" true
+     "gainDb" 0 "refDistance" 1 "maxDistance" 30 "rolloffFactor" 1}]
+   "collections" []
+   "assets" []
+   "prefabs" []
+   "animations" []
+   "history" {"undo" [] "redo" []}}
+  "review"
+  {"proposal"
+   {"format" "hodos-world-draft-proposal"
+    "version" "0.1.0"
+    "id" "proposal-1"
+    "identity"
+    {"repository"
+     {"owner" "greenways-worlds" "repo" "room"
+      "url" "https://github.com/greenways-worlds/room"}
+     "commit" "dddddddddddddddddddddddddddddddddddddddd"
+     "project" {"id" "greenways-worlds/room" "version" "1.0.0"}}
+    "baseRevision" 2
+    "changes"
+    [{"id" "entity:cube-a" "collection" "entities" "op" "replace"
+      "entity" "cube-a" "label" "Move cube"
+      "fields" [{"field" "transform.position" "before" [0 0 0] "after" [4 0 0]}]}
+     {"id" "source:source-a" "collection" "audioSources" "op" "replace"
+      "source" "source-a" "label" "Retune source"
+      "fields"
+      [{"field" "position" "before" [0 0.2 0] "after" [2 1 -3]}
+       {"field" "gainDb" "before" 0 "after" -6}]}
+     {"id" "source:source-b" "collection" "audioSources" "op" "add"
+      "source" "source-b" "label" "Add ambience" "fields" []}]
+    "selected" ["entity:cube-a" "source:source-a" "source:source-b"]
+    "summary" {"add" 1 "remove" 0 "replace" 2 "unchanged" 0}}
+   "selected" ["entity:cube-a" "source:source-a"]
+   "stale" false
+   "publications" []}
+  "publications" []}
+ "boundary"
+ {"importerInstalled" false
+  "signerInstalled" false
+  "repositoryWriterInstalled" false
+  "hestiaSubmitterInstalled" false}}

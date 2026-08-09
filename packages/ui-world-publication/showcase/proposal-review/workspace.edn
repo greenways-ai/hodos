@@ -1,0 +1,116 @@
+{:hara/type :workspace
+ :hara/version "1.0.0"
+ :workspace/id :showcase-hodos-world-publication-ui
+ :workspace/revision 0
+ :workspace/layout
+ {:layout/type :split
+  :layout/id :layout/root
+  :layout/direction :horizontal
+  :layout/ratio 0.2
+  :layout/first {:layout/type :area :layout/area "area/project"}
+  :layout/second
+  {:layout/type :split
+   :layout/id :layout/work
+   :layout/direction :horizontal
+   :layout/ratio 0.36
+   :layout/first {:layout/type :area :layout/area "area/editor"}
+   :layout/second {:layout/type :area :layout/area "area/world-publication"}}}
+ :workspace/documents
+ [{:document/id "document/source"
+   :document/path "src/main.hal"
+   :document/title "main.hal"
+   :document/language :hal
+   :document/dirty? false}]
+ :workspace/areas
+ [{:area/id "area/project"
+   :area/type :project
+   :area/title "Project"
+   :area/presentation {:presentation/role :project :presentation/label "Files"}}
+  {:area/id "area/editor"
+   :area/type :code-editor
+   :area/title "main.hal"
+   :area/presentation {:presentation/role :editor :presentation/label "Code"}}
+  {:area/id "area/world-publication"
+   :area/type "hodos.world/publication"
+   :area/title "World Publication"
+   :area/presentation
+   {:presentation/label "Review"
+    :presentation/icon :review
+    :presentation/surface :world-publication
+    :presentation/mode :world-publication
+    :presentation/order 2
+    :presentation/compact true
+    :presentation/auto-focus true}
+   :area/component
+   {:component/id "hodos.world/publication"
+    :component/contract "workspace.component/1"
+    :component/model
+    {:state
+     {:world
+      {:repository
+       {:owner "greenways-worlds" :repo "room"
+        :url "https://github.com/greenways-worlds/room"}
+       :commit "dddddddddddddddddddddddddddddddddddddddd"
+       :project {:id "greenways-worlds/room" :version "1.0.0" :capabilities []}
+       :draft
+       {:format "hodos-world-draft" :version "0.1.0" :revision 2 :dirty true
+        :entities
+        [{:id "cube-a" :name "Cube" :kind "box" :parent nil :collection nil
+          :visible true :locked false :origin [0 0 0]
+          :transform {:position [0 0 0] :rotation [0 0 0] :scale [1 1 1]}
+          :components {:primitive {:shape "box" :color "#c8ad73" :opacity 1}}}]
+        :audioSources
+        [{:id "source-a" :kind "studio/track" :track "track-a" :clip nil
+          :label "Room tone" :position [0 0.2 0] :playing true :loop true
+          :gainDb 0 :refDistance 1 :maxDistance 30 :rolloffFactor 1}]
+        :collections [] :assets [] :prefabs [] :animations []
+        :history {:undo [] :redo []}}
+       :review
+       {:proposal
+        {:format "hodos-world-draft-proposal"
+         :version "0.1.0"
+         :id "proposal-1"
+         :identity
+         {:repository
+          {:owner "greenways-worlds" :repo "room"
+           :url "https://github.com/greenways-worlds/room"}
+          :commit "dddddddddddddddddddddddddddddddddddddddd"
+          :project {:id "greenways-worlds/room" :version "1.0.0"}}
+         :baseRevision 2
+         :changes
+         [{:id "entity:cube-a" :collection "entities" :op "replace"
+           :entity "cube-a" :label "Move cube"
+           :fields [{:field "transform.position" :before [0 0 0] :after [4 0 0]}]}
+          {:id "source:source-a" :collection "audioSources" :op "replace"
+           :source "source-a" :label "Retune source"
+           :fields
+           [{:field "position" :before [0 0.2 0] :after [2 1 -3]}
+            {:field "gainDb" :before 0 :after -6}]}
+          {:id "source:source-b" :collection "audioSources" :op "add"
+           :source "source-b" :label "Add ambience" :fields []}]
+         :selected ["entity:cube-a" "source:source-a" "source:source-b"]
+         :summary {:add 1 :remove 0 :replace 2 :unchanged 0}}
+        :selected ["entity:cube-a" "source:source-a"]
+        :stale false
+        :publications []}
+       :publications []}}}
+    :component/events
+    ["world/draft-propose"
+     "world/draft-review-toggle"
+     "world/draft-review-accept"
+     "world/draft-review-reject"
+     "world/publish-repository"
+     "world/publish-hestia"]}}]
+ :workspace/nodes []
+ :workspace/connections []
+ :workspace/links
+ [{:link/id "link/source-editor"
+   :link/document "document/source"
+   :link/area "area/editor"}]
+ :workspace/selection {:area/id "area/world-publication" :surface/id "world-publication"}
+ :workspace/customizations
+ {:responsive/breakpoint 1000
+  :responsive/default-surface "world-publication"}
+ :workspace/extensions []
+ :workspace/pending []
+ :workspace/audit []}
