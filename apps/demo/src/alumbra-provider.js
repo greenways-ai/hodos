@@ -7,8 +7,8 @@ export const PEACOCK_BALLROOM_STATES = Object.freeze([
   "ballroom/mosaic-floor",
 ]);
 export const PEACOCK_BALLROOM_DEFAULT_STATE = PEACOCK_BALLROOM_STATES[0];
-export const ALUMBRA_PAGES_ORIGIN = "https://greenways-ai.github.io";
-export const ALUMBRA_PAGES_HOST = `${ALUMBRA_PAGES_ORIGIN}/alumbra/apps/lab/peacock-ballroom.html`;
+export const ALUMBRA_PROVIDER_ORIGIN = "https://oss.greenways.ai";
+export const ALUMBRA_PROVIDER_HOST = `${ALUMBRA_PROVIDER_ORIGIN}/hodos/alumbra/apps/lab/peacock-ballroom.html`;
 
 const deepFreeze = (value) => {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
@@ -16,11 +16,13 @@ const deepFreeze = (value) => {
   return Object.freeze(value);
 };
 
-export function peacockBallroomProviderUrl(state, baseUrl = ALUMBRA_PAGES_HOST) {
+export function peacockBallroomProviderUrl(state, baseUrl = ALUMBRA_PROVIDER_HOST) {
   const selected = PEACOCK_BALLROOM_STATES.includes(state) ? state : PEACOCK_BALLROOM_DEFAULT_STATE;
   const url = new URL(baseUrl);
-  if (url.protocol !== "https:" || url.origin !== ALUMBRA_PAGES_ORIGIN) {
-    throw new Error("Alumbra provider host must use the installed Greenways Pages origin");
+  if (url.protocol !== "https:"
+      || url.origin !== ALUMBRA_PROVIDER_ORIGIN
+      || !url.pathname.startsWith("/hodos/alumbra/")) {
+    throw new Error("Alumbra provider host must use the installed Hodos Greenways origin");
   }
   url.searchParams.set("state", selected);
   url.searchParams.set("embed", "hodos");
@@ -29,7 +31,7 @@ export function peacockBallroomProviderUrl(state, baseUrl = ALUMBRA_PAGES_HOST) 
 
 export function createAlumbraWorldProviderRegistration({
   document = globalThis.document,
-  baseUrl = ALUMBRA_PAGES_HOST,
+  baseUrl = ALUMBRA_PROVIDER_HOST,
 } = {}) {
   if (!document || typeof document.createElement !== "function") {
     throw new TypeError("Alumbra provider adapter requires a document");
