@@ -18,7 +18,7 @@ test("loads a separate provider-world application entry beside the ordinary view
 
 test("resolves the repository manifest before allocating the installed provider", () => {
   const resolution = entry.indexOf("await resolveWorldGraph");
-  const launch = entry.indexOf("createWorldProviderLaunchIntent");
+  const launch = entry.indexOf("const launch = createWorldProviderLaunchIntent");
   const allocation = entry.indexOf("activeHost = createWorldProviderHost");
   assert.ok(resolution >= 0 && launch > resolution && allocation > launch);
   assert.match(entry, /graph\.project\.provider/);
