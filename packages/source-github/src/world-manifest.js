@@ -1,4 +1,5 @@
 import { parseEDNString } from "edn-data";
+import { normalizeWorldProvider } from "./world-provider.js";
 
 export const WORLD_LIMITS = Object.freeze({
   manifestBytes: 1024 * 1024,
@@ -199,7 +200,12 @@ export function validateWorldProject(value) {
   const layers = array(world["world/layers"] ?? [], ":world/layers").map(normalizeLayer);
   const imports = array(world["world/imports"] ?? [], ":world/imports").map(normalizeImport);
   const touchpoints = array(world["world/touchpoints"] ?? [], ":world/touchpoints").map(normalizeTouchpoint);
-  if (!layers.length && !imports.length) throw new Error(":project/world must declare at least one layer or import");
+  const provider = world["world/provider"] === undefined
+    ? null
+    : normalizeWorldProvider(world["world/provider"], ":world/provider");
+  if (!layers.length && !imports.length && !provider) {
+    throw new Error(":project/world must declare at least one layer, import, or provider");
+  }
   if (touchpoints.length > WORLD_LIMITS.touchpoints) {
     throw new Error(`:world/touchpoints exceeds ${WORLD_LIMITS.touchpoints} entries`);
   }
@@ -217,7 +223,7 @@ export function validateWorldProject(value) {
   const background = world["world/background"] ?? "#08110e";
   if (typeof background !== "string" || !hexColor.test(background)) throw new Error(":world/background must be a six-digit hex colour");
 
-  return {
+  const normalized = {
     id: identifier(project["project/id"], ":project/id"),
     version,
     title: world["world/title"] === undefined
@@ -234,6 +240,8 @@ export function validateWorldProject(value) {
     extensionPaths: [...extensionPaths],
     dependencies: project["project/dependencies"] ?? {},
   };
+  if (provider) normalized.provider = provider;
+  return normalized;
 }
 
 export function readWorldProject(source) {
