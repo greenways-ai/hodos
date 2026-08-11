@@ -212,7 +212,7 @@ async function validateShowcase(directory, manifest, packageManifest, project) {
   if (token(manifest["hara/type"], "Showcase :hara/type") !== "showcase") {
     throw new Error(`${packageManifest.name}: showcase.edn must declare :hara/type :showcase`);
   }
-  if (manifest["showcase/format"] !== 1) {
+  if (manifest["showcase/format"] !== "0.0.0-alpha") {
     throw new Error(`${packageManifest.name}: unsupported Showcase format`);
   }
   if (manifest["showcase/source"] !== undefined) {

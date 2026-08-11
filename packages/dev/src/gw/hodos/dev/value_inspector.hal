@@ -1,7 +1,7 @@
 (ns gw.hodos.dev.value-inspector)
 
 (def component-id "hodos.dev/value-inspector")
-(def component-contract "workspace.component/1")
+(def component-contract "workspace.component/0-alpha")
 (def events
   #{"value/select"
     "value/toggle"

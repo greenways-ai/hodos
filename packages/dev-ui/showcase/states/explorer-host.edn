@@ -1,5 +1,5 @@
 {:component/id "hodos.dev/explorer"
- :component/contract "workspace.component/1"
+ :component/contract "workspace.component/0-alpha"
  :host {:kind "trusted-explorer"
         :containerOwned true
         :updates "serializable-model"

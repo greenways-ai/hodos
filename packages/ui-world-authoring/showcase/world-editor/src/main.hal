@@ -2,7 +2,7 @@
 
 (def component
   {:component/id "hodos.world/authoring"
-   :component/contract "workspace.component/1"
+   :component/contract "workspace.component/0-alpha"
    :events
    [:world/editor-select
     :world/editor-transform-selection

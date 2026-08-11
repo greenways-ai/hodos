@@ -25,7 +25,7 @@ test("Value Inspector area is a serializable HAL-shaped Workspace value", () => 
 
   assert.equal(area["area/type"], HODOS_DEV_VALUE_INSPECTOR_AREA_TYPE);
   assert.equal(component["component/id"], HODOS_DEV_VALUE_INSPECTOR_COMPONENT_ID);
-  assert.equal(component["component/contract"], "workspace.component/1");
+  assert.equal(component["component/contract"], "workspace.component/0-alpha");
   assert.equal(model.value.id, "value-7");
   assert.equal(model.value.type, "map");
   assert.deepEqual(model.value.data, { answer: 42, nested: ["a", true, null] });

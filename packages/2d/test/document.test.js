@@ -63,7 +63,7 @@ test("Document area projects stable rich-document and Hara artefact identity", (
 
   assert.equal(area["area/type"], HODOS_2D_DOCUMENT_AREA_TYPE);
   assert.equal(component["component/id"], HODOS_2D_DOCUMENT_COMPONENT_ID);
-  assert.equal(component["component/contract"], "workspace.component/1");
+  assert.equal(component["component/contract"], "workspace.component/0-alpha");
   assert.equal(model.document.profile, HODOS_2D_DOCUMENT_PROFILE);
   assert.equal(model.selection.nodeId, "block/artefact");
   assert.equal(model.capabilities.activateArtefact, true);
@@ -91,6 +91,6 @@ test("Document normalization rejects malformed and executable values", () => {
   assert.throws(() => normalizeRichDocument(executable), /serializable values/);
 
   const badProfile = documentValue();
-  badProfile.profile = "greenways.rich-text/2";
+  badProfile.profile = "greenways.rich-text/0-alpha";
   assert.throws(() => normalizeRichDocument(badProfile), /unsupported profile/);
 });

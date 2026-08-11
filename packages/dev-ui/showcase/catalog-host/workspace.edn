@@ -19,7 +19,7 @@
     :presentation/surface "catalog"}
    :area/component
    {:component/id "hodos.dev/catalog"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {"catalog" {"id" "catalog/hodos-showcase"
                 "title" "Hodos Dev"

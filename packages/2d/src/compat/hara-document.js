@@ -4,7 +4,7 @@ import {
   normalizeRichDocument,
 } from "../index.js";
 
-export const LEGACY_HARA_DOCUMENT_PROFILE = "greenways.rich-text/2";
+export const LEGACY_HARA_DOCUMENT_PROFILE = "greenways.rich-text/0-alpha";
 export const LEGACY_HARA_DOCUMENT_PROFILES = Object.freeze([
   LEGACY_HARA_DOCUMENT_PROFILE,
 ]);

@@ -73,7 +73,7 @@ A Workspace selects a component by ID and supplies a serializable model:
  :area/type "hodos.2d/document"
  :area/component
  {:component/id "hodos.2d/document"
-  :component/contract "workspace.component/1"
+  :component/contract "workspace.component/0-alpha"
   :component/model
   {:document {...}
    :selection {...}

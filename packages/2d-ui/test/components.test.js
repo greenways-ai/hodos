@@ -12,7 +12,7 @@ import {
 } from "../src/index.js";
 
 const document = {
-  profile: "hodos.rich-text/2",
+  profile: "hodos.rich-text/0-alpha",
   id: "document/main",
   children: [{
     id: "block/main",

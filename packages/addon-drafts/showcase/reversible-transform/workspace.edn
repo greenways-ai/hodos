@@ -53,7 +53,7 @@
     :presentation/auto-focus true}
    :area/component
    {:component/id "hodos.2d/graph"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {:graph
      {:id "graph/draft-history"

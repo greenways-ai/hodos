@@ -1,5 +1,5 @@
 {:component/id "hodos.dev/preview"
- :component/contract "workspace.component/1"
+ :component/contract "workspace.component/0-alpha"
  :host {:kind "injected-preview-service"
         :containerOwned true
         :updates "serializable-model"

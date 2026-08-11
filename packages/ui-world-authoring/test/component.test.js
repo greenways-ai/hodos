@@ -43,7 +43,7 @@ test("World Authoring registers one injected Workspace component host", async ()
   });
   host.mount({
     "component/id": HODOS_WORLD_AUTHORING_COMPONENT_ID,
-    "component/contract": "workspace.component/1",
+    "component/contract": "workspace.component/0-alpha",
     "component/model": { state: { world: { draft: { revision: 3 } } } },
     "component/events": HODOS_WORLD_AUTHORING_EVENTS,
   });
@@ -51,7 +51,7 @@ test("World Authoring registers one injected Workspace component host", async ()
 
   host.update({
     "component/id": HODOS_WORLD_AUTHORING_COMPONENT_ID,
-    "component/contract": "workspace.component/1",
+    "component/contract": "workspace.component/0-alpha",
     "component/model": { state: { world: { draft: { revision: 4 } } } },
     "component/events": HODOS_WORLD_AUTHORING_EVENTS,
   });

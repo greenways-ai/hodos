@@ -42,7 +42,7 @@ test("Problems area projects text and located diagnostics with derived counts", 
 
   assert.equal(area["area/type"], HODOS_DEV_PROBLEMS_AREA_TYPE);
   assert.equal(component["component/id"], HODOS_DEV_PROBLEMS_COMPONENT_ID);
-  assert.equal(component["component/contract"], "workspace.component/1");
+  assert.equal(component["component/contract"], "workspace.component/0-alpha");
   assert.deepEqual(model.counts, {
     total: 2,
     error: 1,

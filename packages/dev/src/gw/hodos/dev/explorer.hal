@@ -1,7 +1,7 @@
 (ns gw.hodos.dev.explorer)
 
 (def component-id "hodos.dev/explorer")
-(def component-contract "workspace.component/1")
+(def component-contract "workspace.component/0-alpha")
 (def events
   #{"explorer/select"
     "explorer/toggle"

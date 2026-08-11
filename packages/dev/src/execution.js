@@ -1,8 +1,8 @@
 import { WORKSPACE_COMPONENT_CONTRACT } from "@greenways/hodos-web";
 
-export const HARA_BYTECODE_METRICS_SCHEMA = "hal.bytecode-metrics/v1";
-export const HARA_BYTECODE_EVENTS_SCHEMA = "hal.bytecode-events/v1";
-export const HARA_BYTECODE_TRACE_SCHEMA = "hal.bytecode-trace/v1";
+export const HARA_BYTECODE_METRICS_SCHEMA = "hal.bytecode-metrics/0-alpha";
+export const HARA_BYTECODE_EVENTS_SCHEMA = "hal.bytecode-events/0-alpha";
+export const HARA_BYTECODE_TRACE_SCHEMA = "hal.bytecode-trace/0-alpha";
 
 export const HODOS_DEV_EXECUTION_AREA_TYPE = "hodos.dev/execution";
 export const HODOS_DEV_EXECUTION_COMPONENT_ID = "hodos.dev/execution";

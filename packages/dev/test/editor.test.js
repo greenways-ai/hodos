@@ -21,7 +21,7 @@ test("Editor area is a serializable HAL-shaped Workspace value", () => {
   const component = area["area/component"];
   assert.equal(area["area/type"], HODOS_DEV_EDITOR_AREA_TYPE);
   assert.equal(component["component/id"], HODOS_DEV_EDITOR_COMPONENT_ID);
-  assert.equal(component["component/contract"], "workspace.component/1");
+  assert.equal(component["component/contract"], "workspace.component/0-alpha");
   assert.equal(component["component/model"].document.path, "src/main.hal");
   assert.deepEqual(component["component/model"].selection, { start: 4, end: 8 });
   assert.equal(JSON.parse(JSON.stringify(area))["area/id"], "editor/source");

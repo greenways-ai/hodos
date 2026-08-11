@@ -7,7 +7,7 @@
            :sequence {:metrics 5 :events 5 :trace 4}
            :status "suspended"}
  :evidence
- {:metrics {:schema "hal.bytecode-metrics/v1"
+ {:metrics {:schema "hal.bytecode-metrics/0-alpha"
             :sessionId "session/showcase-suspended"
             :traceId "trace/suspended"
             :sourceId "src/main.hal"

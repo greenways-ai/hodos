@@ -16,7 +16,7 @@
    :document/language :hal
    :document/dirty? false}
   {:document/id "document/ui-host"
-   :document/profile "hodos.rich-text/2"}]
+   :document/profile "hodos.rich-text/0-alpha"}]
  :workspace/areas
  [{:area/id "area/editor"
    :area/type :code-editor
@@ -36,10 +36,10 @@
     :presentation/auto-focus true}
    :area/component
    {:component/id "hodos.2d/document"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {:document
-     {:profile "hodos.rich-text/2"
+     {:profile "hodos.rich-text/0-alpha"
       :id "document/ui-host"
       :title "Safe document host"
       :revision 0

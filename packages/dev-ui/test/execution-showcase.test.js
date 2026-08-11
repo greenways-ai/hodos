@@ -204,7 +204,7 @@ test("Execution Showcase publishes immutable deterministic model and host storie
   assert.equal(returned.session.status, "returned");
   assert.equal(returned.metadata.source, "(+ 1 (* 2 3))");
   assert.equal(returned.metadata.result, "7");
-  assert.equal(returned.evidence.metrics.schema, "hal.bytecode-metrics/v1");
+  assert.equal(returned.evidence.metrics.schema, "hal.bytecode-metrics/0-alpha");
   assert.equal(returned.evidence.metrics.instructions > 0, true);
   assert.equal(returned.evidence.trace.at(-1).after.result.display, "7");
   assert.equal(returned.evidence.trace.at(-1).source.sourceId, "src/main.hal");

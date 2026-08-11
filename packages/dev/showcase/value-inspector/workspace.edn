@@ -19,7 +19,7 @@
     :presentation/surface "value"}
    :area/component
    {:component/id "hodos.dev/value-inspector"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {"value" {"id" "value-7"
               "requestId" "request-4"

@@ -1,7 +1,7 @@
 (ns gw.hodos.two-d.graph)
 
 (def component-id "hodos.2d/graph")
-(def component-contract "workspace.component/1")
+(def component-contract "workspace.component/0-alpha")
 (def events
   #{"graph/select"
     "graph/move-node"

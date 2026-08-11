@@ -27,7 +27,7 @@ test("REPL area is a serializable HAL-shaped Workspace value", () => {
   const component = area["area/component"];
   assert.equal(area["area/type"], HODOS_DEV_REPL_AREA_TYPE);
   assert.equal(component["component/id"], HODOS_DEV_REPL_COMPONENT_ID);
-  assert.equal(component["component/contract"], "workspace.component/1");
+  assert.equal(component["component/contract"], "workspace.component/0-alpha");
   assert.equal(component["component/model"].session.status, "ready");
   assert.deepEqual(component["component/model"].entries.map(({ kind, text, valueId }) => ({
     kind,

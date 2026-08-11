@@ -14,7 +14,7 @@ const field = (value, names) => {
   return undefined;
 };
 
-export const HODOS_WORKSPACE_AREA_CONTRACT = "hodos.workspace-area/1";
+export const HODOS_WORKSPACE_AREA_CONTRACT = "hodos.workspace-area/0-alpha";
 
 export function normalizeWorkspaceArea(value, label = "Hodos Workspace area") {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(`${label} must be an object`);

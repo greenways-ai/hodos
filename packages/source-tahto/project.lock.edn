@@ -1,4 +1,4 @@
-{:lock/format 1
+{:lock/format "0.0.0-alpha"
  :lock/project greenways/hodos-source-tahto
  :lock/version "0.1.0"
  :lock/dependencies {greenways/hodos-core {:version "0.1.0" :source :workspace}}}

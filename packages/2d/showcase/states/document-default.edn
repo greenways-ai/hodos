@@ -1,5 +1,5 @@
 {:document/id "document/review"
- :document/profile "hodos.rich-text/2"
+ :document/profile "hodos.rich-text/0-alpha"
  :document/revision 0
  :document/status :ready
  :document/read-only false

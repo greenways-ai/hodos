@@ -95,7 +95,7 @@ const capabilityValue = (value, keys, label) => {
   return Object.freeze(output);
 };
 
-export const HODOS_2D_DOCUMENT_PROFILE = "hodos.rich-text/2";
+export const HODOS_2D_DOCUMENT_PROFILE = "hodos.rich-text/0-alpha";
 export const HODOS_2D_DOCUMENT_AREA_TYPE = "hodos.2d/document";
 export const HODOS_2D_DOCUMENT_COMPONENT_ID = "hodos.2d/document";
 export const HODOS_2D_DOCUMENT_EVENTS = Object.freeze([

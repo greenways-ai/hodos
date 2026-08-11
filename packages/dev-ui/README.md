@@ -78,9 +78,9 @@ It renders the three existing Hara evidence contracts without compiling or
 controlling Hara itself:
 
 ```text
-hal.bytecode-metrics/v1
-hal.bytecode-events/v1
-hal.bytecode-trace/v1
+hal.bytecode-metrics/0-alpha
+hal.bytecode-events/0-alpha
+hal.bytecode-trace/0-alpha
 ```
 
 ```js

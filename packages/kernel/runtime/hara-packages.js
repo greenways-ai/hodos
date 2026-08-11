@@ -27,7 +27,7 @@ function safeArchivePath(path) {
 
 export async function loadLockedPackageResources(lockSource, request = (...args) => globalThis.fetch(...args)) {
   const lock = parseEDNString(String(lockSource), ednOptions);
-  if (lock["lock/format"] !== 2) throw new Error("project.lock.edn requires :lock/format 2");
+  if (lock["lock/format"] !== "0.0.0-alpha") throw new Error("project.lock.edn requires alpha lock format");
   const staged = {};
   for (const [coordinate, entry] of Object.entries(lock.packages ?? {})) {
     const url = packageUrl(entry);

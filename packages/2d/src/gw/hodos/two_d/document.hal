@@ -1,8 +1,8 @@
 (ns gw.hodos.two-d.document)
 
 (def component-id "hodos.2d/document")
-(def component-contract "workspace.component/1")
-(def profile "hodos.rich-text/2")
+(def component-contract "workspace.component/0-alpha")
+(def profile "hodos.rich-text/0-alpha")
 (def events
   #{"document/select"
     "document/edit-text"

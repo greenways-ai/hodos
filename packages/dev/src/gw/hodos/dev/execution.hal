@@ -1,10 +1,10 @@
 (ns gw.hodos.dev.execution)
 
 (def component-id "hodos.dev/execution")
-(def component-contract "workspace.component/1")
-(def metrics-schema "hal.bytecode-metrics/v1")
-(def events-schema "hal.bytecode-events/v1")
-(def trace-schema "hal.bytecode-trace/v1")
+(def component-contract "workspace.component/0-alpha")
+(def metrics-schema "hal.bytecode-metrics/0-alpha")
+(def events-schema "hal.bytecode-events/0-alpha")
+(def trace-schema "hal.bytecode-trace/0-alpha")
 
 (def events
   #{"execution/connect"

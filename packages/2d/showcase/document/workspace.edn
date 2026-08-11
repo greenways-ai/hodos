@@ -28,7 +28,7 @@
    :document/language :hal
    :document/dirty? false}
   {:document/id "document/review"
-   :document/profile "hodos.rich-text/2"}]
+   :document/profile "hodos.rich-text/0-alpha"}]
  :workspace/areas
  [{:area/id "area/project"
    :area/type :project
@@ -61,10 +61,10 @@
     :presentation/auto-focus true}
    :area/component
    {:component/id "hodos.2d/document"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {:document
-     {:profile "hodos.rich-text/2"
+     {:profile "hodos.rich-text/0-alpha"
       :id "document/review"
       :title "Inspectable document"
       :revision 0

@@ -1,7 +1,7 @@
 (ns gw.hodos.dev.problems)
 
 (def component-id "hodos.dev/problems")
-(def component-contract "workspace.component/1")
+(def component-contract "workspace.component/0-alpha")
 (def events
   #{"problems/select"
     "problems/open-source"

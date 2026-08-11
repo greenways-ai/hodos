@@ -7,7 +7,7 @@
            :sequence {:metrics 7 :events 7 :trace 7}
            :status "returned"}
  :evidence
- {:metrics {:schema "hal.bytecode-metrics/v1"
+ {:metrics {:schema "hal.bytecode-metrics/0-alpha"
             :sessionId "session/showcase"
             :traceId "trace/result-7"
             :sourceId "src/main.hal"

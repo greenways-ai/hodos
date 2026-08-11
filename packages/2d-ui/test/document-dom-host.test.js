@@ -105,7 +105,7 @@ const walk = (node, result = []) => {
 
 const areaModel = () => createDocumentArea({
   document: {
-    profile: "hodos.rich-text/2",
+    profile: "hodos.rich-text/0-alpha",
     id: "document/main",
     title: "Hodos document",
     revision: 3,

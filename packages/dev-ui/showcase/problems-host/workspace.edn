@@ -19,7 +19,7 @@
     :presentation/surface "problems"}
    :area/component
    {:component/id "hodos.dev/problems"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {"status" "ready"
      "problems"

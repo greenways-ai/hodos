@@ -42,7 +42,7 @@ test("World Publication registers one injected review component host", async () 
   });
   host.mount({
     "component/id": HODOS_WORLD_PUBLICATION_COMPONENT_ID,
-    "component/contract": "workspace.component/1",
+    "component/contract": "workspace.component/0-alpha",
     "component/model": {
       state: {
         world: {

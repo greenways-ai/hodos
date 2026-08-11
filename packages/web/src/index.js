@@ -25,7 +25,7 @@ const eventType = (event) => {
   return event["event/type"] ?? event.type ?? null;
 };
 
-export const WORKSPACE_COMPONENT_CONTRACT = "workspace.component/1";
+export const WORKSPACE_COMPONENT_CONTRACT = "workspace.component/0-alpha";
 // Bounded source compatibility for the initial Hodos foundation branch.
 export const HODOS_COMPONENT_CONTRACT = WORKSPACE_COMPONENT_CONTRACT;
 

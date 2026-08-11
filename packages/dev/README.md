@@ -48,7 +48,7 @@ Each constructor returns the ordinary Hodos Workspace component contract:
   "area/title": "main.hal",
   "area/component": {
     "component/id": "hodos.dev/editor",
-    "component/contract": "workspace.component/1",
+    "component/contract": "workspace.component/0-alpha",
     "component/model": { /* serializable data */ },
     "component/events": [ /* declared semantic events */ ]
   }
@@ -144,9 +144,9 @@ service responsibilities.
 Execution models normalize three versioned Hara bytecode evidence levels:
 
 ```text
-hal.bytecode-metrics/v1  aggregate counters and high-water marks
-hal.bytecode-events/v1   compact sampled or control-flow events
-hal.bytecode-trace/v1    exact single-step state projections
+hal.bytecode-metrics/0-alpha  aggregate counters and high-water marks
+hal.bytecode-events/0-alpha   compact sampled or control-flow events
+hal.bytecode-trace/0-alpha    exact single-step state projections
 ```
 
 Live documents retain their session, trace, source, sequence, status and
@@ -163,7 +163,7 @@ const execution = createExecutionArea({
     limits: { events: 512, trace: 128 },
   }),
   evidence: [{
-    schema: "hal.bytecode-metrics/v1",
+    schema: "hal.bytecode-metrics/0-alpha",
     instructions: 7,
     opcodeCounts: { constant: 3, primitive: 1, return: 1 },
     maxStackDepth: 3,

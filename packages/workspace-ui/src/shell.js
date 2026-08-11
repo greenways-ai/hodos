@@ -337,7 +337,7 @@ const safeCall = (candidate, ...args) => {
   }
 };
 
-export const HODOS_WORKSPACE_SHELL_CONTRACT = "hodos.workspace-shell/1";
+export const HODOS_WORKSPACE_SHELL_CONTRACT = "hodos.workspace-shell/0-alpha";
 export const HODOS_WORKSPACE_MODES = Object.freeze(["auto", "desktop", "compact"]);
 
 export class WorkspaceShellHost {

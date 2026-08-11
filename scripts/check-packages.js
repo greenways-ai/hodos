@@ -41,7 +41,7 @@ async function validateHaraProject(label, directory, version) {
       if (project[key] === undefined) errors.push(`${label}: project.edn is missing :${key}`);
     }
     if (project["project/recipe"] !== "hara.recipe.edn") errors.push(`${label}: :project/recipe must select hara.recipe.edn`);
-    if (recipe["recipe/format"] !== 1) errors.push(`${label}: :recipe/format must be 1`);
+    if (recipe["recipe/format"] !== "0.0.0-alpha") errors.push(`${label}: :recipe/format must be 0.0.0-alpha`);
     if (!new Set(["hal", "node-hta"]).has(recipe["recipe/adapter"])) errors.push(`${label}: unsupported :recipe/adapter`);
     if (!recipe["recipe/toolchain"] || !recipe["recipe/inputs"] || !Array.isArray(recipe["recipe/outputs"])) {
       errors.push(`${label}: recipe requires toolchain, inputs, and outputs`);

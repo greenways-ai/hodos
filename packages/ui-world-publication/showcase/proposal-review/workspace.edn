@@ -43,7 +43,7 @@
     :presentation/auto-focus true}
    :area/component
    {:component/id "hodos.world/publication"
-    :component/contract "workspace.component/1"
+    :component/contract "workspace.component/0-alpha"
     :component/model
     {:state
      {:world

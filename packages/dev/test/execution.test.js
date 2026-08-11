@@ -118,7 +118,7 @@ test("execution selection and area remain renderer-neutral serializable values",
 
   assert.equal(area["area/type"], HODOS_DEV_EXECUTION_AREA_TYPE);
   assert.equal(component["component/id"], HODOS_DEV_EXECUTION_COMPONENT_ID);
-  assert.equal(component["component/contract"], "workspace.component/1");
+  assert.equal(component["component/contract"], "workspace.component/0-alpha");
   assert.equal(component["component/model"].selection.function, 1);
   assert.equal(component["component/events"].includes("execution/start"), true);
   assert.equal(component["component/events"].includes("execution/step"), true);
@@ -130,7 +130,7 @@ test("execution selection and area remain renderer-neutral serializable values",
 test("execution normalization fails closed and reset preserves session policy", () => {
   assert.equal(normalizeExecutionEvidence(metrics).level, "metrics");
   assert.throws(
-    () => normalizeExecutionEvidence({ schema: "hal.bytecode-events/v2", events: [] }),
+    () => normalizeExecutionEvidence({ schema: "hal.bytecode-events/0-alpha", events: [] }),
     /Unsupported.*schema/,
   );
   assert.throws(

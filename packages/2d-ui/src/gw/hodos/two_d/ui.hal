@@ -2,7 +2,7 @@
 
 (def document-component-id "hodos.2d/document")
 (def graph-component-id "hodos.2d/graph")
-(def component-contract "workspace.component/1")
+(def component-contract "workspace.component/0-alpha")
 
 (defn host-requirements [component-id]
   {:component/id component-id

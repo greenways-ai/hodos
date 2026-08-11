@@ -1,5 +1,5 @@
 {:component/id "hodos.dev/execution"
- :component/contract "workspace.component/1"
+ :component/contract "workspace.component/0-alpha"
  :host {:kind "trusted-execution-evidence"
         :containerOwned true
         :updates "serializable-model"

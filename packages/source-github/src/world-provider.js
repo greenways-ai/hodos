@@ -1,5 +1,5 @@
-export const WORLD_PROVIDER_FORMAT = "hodos.world-provider/1";
-export const WORLD_PROVIDER_LAUNCH_FORMAT = "hodos.world-provider-launch/1";
+export const WORLD_PROVIDER_FORMAT = "hodos.world-provider/0-alpha";
+export const WORLD_PROVIDER_LAUNCH_FORMAT = "hodos.world-provider-launch/0-alpha";
 
 export const WORLD_PROVIDER_LIMITS = Object.freeze({
   identifierLength: 192,
