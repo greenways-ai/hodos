@@ -1,4 +1,4 @@
-import { parseEDNString } from "edn-data";
+import { parseEDNString } from "./vendor/edn-data-1.1.2.js";
 import { normalizeWorldProvider } from "./world-provider.js";
 
 export const WORLD_LIMITS = Object.freeze({
