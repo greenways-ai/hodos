@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check out the pinned Alumbra provider host
+        uses: actions/checkout@v4
+        with:
+          repository: greenways-ai/alumbra
+          ref: 7438abad9e6357dab970f2b265b44d36cb9740c6
+          path: .alumbra-provider
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -24,10 +30,16 @@ jobs:
       - run: npm run build:demo
       - run: npm run site:install
       - run: npm run site:build
-      - name: Mount the existing demo under the Astro site
+      - name: Install the pinned Alumbra browser dependency
+        run: npm ci --prefix .alumbra-provider
+      - name: Mount the existing demo and installed Alumbra provider under Hodos
         run: |
           mkdir -p site/dist/demo
           cp -R apps/demo/dist/. site/dist/demo/
+          mkdir -p site/dist/alumbra/node_modules
+          cp -R .alumbra-provider/apps site/dist/alumbra/apps
+          cp -R .alumbra-provider/packages site/dist/alumbra/packages
+          cp -R .alumbra-provider/node_modules/playcanvas site/dist/alumbra/node_modules/playcanvas
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
