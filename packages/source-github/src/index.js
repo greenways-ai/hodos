@@ -6,6 +6,7 @@ import {
   resolveWorldGraph,
   searchWorldRepositories,
 } from "./github-worlds.js";
+import {createWorldProviderLaunchIntent} from "./world-provider.js";
 
 export * from "./github-worlds.js";
 export * from "./world-manifest.js";
@@ -23,6 +24,7 @@ export const hodosGithubSourceAddon = defineAddon({
   activate(context) {
     context.contribute("world.source", "github", Object.freeze({
       Client: PublicGitHubClient,
+      createProviderLaunchIntent: createWorldProviderLaunchIntent,
       effect: Object.freeze({ effect: "github", method: "resolve-world" }),
       id: "github",
       label: "GitHub",
