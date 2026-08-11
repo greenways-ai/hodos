@@ -6,12 +6,14 @@
   "dependencies": {
     "@greenways/hodos-core": "0.1.0",
     "@greenways/hodos-runtime-hara": "0.1.0",
+    "@greenways/hodos-source-github": "0.1.0",
     "@greenways/hodos-ui-world-authoring": "0.1.0",
     "@greenways/hodos-ui-world-publication": "0.1.0",
+    "@greenways/hodos-viewer": "0.1.0",
     "@greenways/hodos-viewer-defaults": "0.1.0",
     "@greenways/hodos-world-model": "0.1.0"
   },
   "scripts": {
-    "build": "esbuild src/main.js --bundle --format=esm --platform=browser --target=es2022 --loader:.hal=text --loader:.png=file --external:node:worker_threads --entry-names=hodos --asset-names=hodos --outdir=dist && cp index.html dist/index.html && cp public/* dist/"
+    "build": "esbuild src/main.js --bundle --format=esm --platform=browser --target=es2022 --loader:.hal=text --loader:.png=file --external:node:worker_threads --outfile=dist/hodos.js && esbuild src/provider-entry.js --bundle --format=esm --platform=browser --target=es2022 --external:node:worker_threads --outfile=dist/provider.js && cp index.html dist/index.html && cp public/* dist/"
   }
 }
