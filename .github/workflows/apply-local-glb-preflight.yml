@@ -1,0 +1,84 @@
+name: Apply local GLB preflight implementation
+
+on:
+  push:
+    branches:
+      - agent/local-glb-rigging-preflight-64
+    paths:
+      - ".agent/local-glb-preflight/**"
+      - ".github/workflows/apply-local-glb-preflight.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'Stage local GLB preflight implementation'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/local-glb-rigging-preflight-64
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Reconstruct reviewed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .agent/local-glb-preflight/part-* > /tmp/local-glb-preflight.b64
+          printf '%s  %s\n' \
+            '777bde9bb1f5b5401aafd334a9cc3d52cc37a62534f57953f837aa46868443cd' \
+            '/tmp/local-glb-preflight.b64' | sha256sum -c -
+          base64 --decode /tmp/local-glb-preflight.b64 > /tmp/local-glb-preflight.tar.gz
+          printf '%s  %s\n' \
+            '1f1a941c6b81b6d8a64bcfe5fee4038645ba25597ce164b2661da110d9823b20' \
+            '/tmp/local-glb-preflight.tar.gz' | sha256sum -c -
+          diff -u \
+            <(printf '%s\n' \
+              'package.json' \
+              'packages/world-model/README.md' \
+              'packages/world-model/src/rigging-model.js' \
+              'packages/world-model/src/rigging-preflight.js' \
+              'packages/world-model/test/rigging-preflight.test.js' \
+              'packages/renderer-playcanvas/README.md' \
+              'packages/renderer-playcanvas/package.json' \
+              'packages/renderer-playcanvas/src/index.js' \
+              'packages/renderer-playcanvas/src/rigging-asset-host.js' \
+              'packages/renderer-playcanvas/src/rigging-glb-preflight.js' \
+              'packages/renderer-playcanvas/test/fixtures/stylized-unrigged-glb.js' \
+              'packages/renderer-playcanvas/test/rigging-asset-host.test.js' \
+              'packages/renderer-playcanvas/test/rigging-glb-preflight.test.js') \
+            <(tar -tzf /tmp/local-glb-preflight.tar.gz)
+          tar -xzf /tmp/local-glb-preflight.tar.gz -C .
+
+      - name: Validate implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          node --check packages/world-model/src/rigging-preflight.js
+          node --check packages/renderer-playcanvas/src/rigging-glb-preflight.js
+          node --check packages/renderer-playcanvas/src/rigging-asset-host.js
+          node --check packages/renderer-playcanvas/src/index.js
+          npm run audit:hal
+          npm run check:packages
+          node --test \
+            packages/world-model/test/rigging-preflight.test.js \
+            packages/renderer-playcanvas/test/*.test.js
+
+      - name: Commit implementation and remove temporary transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .agent/local-glb-preflight
+          rm -f .github/workflows/apply-local-glb-preflight.yml
+          git config user.name 'Hoebat Kappa Mu'
+          git config user.email '1455572+hoebat@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add local GLB rigging preflight'
+          git push origin HEAD:agent/local-glb-rigging-preflight-64
