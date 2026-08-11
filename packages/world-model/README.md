@@ -10,16 +10,20 @@ available to renderers and UI packages that need individual model modules.
 
 ## Rigging model
 
-`@greenways/hodos-world-model/rigging` provides the first client-side rigging
-contract used by the Hodos Rigging Harness. It includes:
+`@greenways/hodos-world-model/rigging` provides the client-side rigging
+contracts used by the Hodos Rigging Harness. It includes:
 
 - `hodos.rig/0-alpha` normalization and hierarchy validation;
 - immutable joint create, update, rename, reparent, delete, and mirror helpers;
 - parent-aware rest transforms and joint segments;
 - deterministic nearest-segment initial skin weights over caller-owned arrays;
-- glTF-compatible influence normalization and compact diagnostics; and
-- semantic intent outcomes plus bounded rig evidence.
+- glTF-compatible influence normalization and compact diagnostics;
+- semantic intent outcomes plus bounded rig evidence;
+- `hodos.rig-source/0-alpha` immutable source identity and opaque handle values;
+- `hodos.rig-preflight/0-alpha` bounded model inventory and blocker evidence; and
+- `hodos.rig-session/0-alpha` recoverable local-open session state.
 
-Renderer entities, decoded mesh buffers and GPU resources are deliberately not
-part of the portable document. See `docs/client-side-rigging.md` for the host
-boundary and release train.
+Renderer entities, decoded GLB documents, mesh buffers and GPU resources are
+deliberately not part of the portable documents. Failed replacement opens retain
+the last accepted source and preflight so a working session is not discarded.
+See `docs/client-side-rigging.md` for the host boundary and release train.
