@@ -38,7 +38,37 @@ export function updateRigJoint(documentValue, jointId, patch = {}) {
   const joints = document.joints.map((joint, index) => {
     if (joint.id !== id) return joint;
     found = true;
-    return normalizeJoint({ ...joint, ...clonePortable(patch), id: joint.id, parent: joint.parent }, index);
+    const portablePatch = clonePortable(patch);
+    let rest = joint.rest;
+    if (portablePatch.rest !== undefined) {
+      if (!isPlainObject(portablePatch.rest)) throw new TypeError("Joint rest patch must be an object");
+      rest = { ...joint.rest, ...portablePatch.rest };
+    }
+    let limits = joint.limits;
+    if (portablePatch.limits !== undefined) {
+      if (portablePatch.limits === null) limits = null;
+      else {
+        if (!isPlainObject(portablePatch.limits)) throw new TypeError("Joint limits patch must be null or an object");
+        const axes = portablePatch.limits.axes === undefined
+          ? joint.limits?.axes
+          : isPlainObject(portablePatch.limits.axes)
+            ? { ...(joint.limits?.axes ?? {}), ...portablePatch.limits.axes }
+            : portablePatch.limits.axes;
+        limits = {
+          ...(joint.limits ?? {}),
+          ...portablePatch.limits,
+          ...(axes === undefined ? {} : { axes }),
+        };
+      }
+    }
+    return normalizeJoint({
+      ...joint,
+      ...portablePatch,
+      id: joint.id,
+      parent: joint.parent,
+      rest,
+      limits,
+    }, index);
   });
   if (!found) throw new RangeError(`Unknown joint: ${id}`);
   return nextRigRevision(document, { joints });

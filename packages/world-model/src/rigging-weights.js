@@ -28,6 +28,7 @@ export function normalizeVertexInfluences(influences, { maxInfluences = 4, minim
     const weight = Array.isArray(influence) ? influence[1] : influence?.weight;
     if (!Number.isSafeInteger(joint) || joint < 0) throw new TypeError(`influences[${index}].joint must be a non-negative integer`);
     if (typeof weight !== "number" || !Number.isFinite(weight)) throw new TypeError(`influences[${index}].weight must be finite`);
+    if (weight < 0) throw new TypeError(`influences[${index}].weight cannot be negative`);
     if (weight <= minimumWeight) continue;
     combined.set(joint, (combined.get(joint) ?? 0) + weight);
   }

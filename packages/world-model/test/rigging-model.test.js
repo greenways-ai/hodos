@@ -130,17 +130,33 @@ test("joint authoring operations are immutable and advance one revision", () => 
   assert.equal(added.joints.length, 4);
 
   const updated = updateRigJoint(added, "tail-base", {
-    limits: { swing: 0.8, twist: [-0.25, 0.25] },
+    rest: { translation: [0, -0.75, -0.5] },
+    limits: { swing: 0.8, twist: [-0.25, 0.25], axes: { x: [-0.5, 0.5] } },
   });
-  assert.deepEqual(updated.joints.find(({ id }) => id === "tail-base").limits, {
-    swing: 0.8,
+  const refined = updateRigJoint(updated, "tail-base", {
+    rest: { translation: [0, -1, -0.5] },
+    limits: { swing: 1.1, axes: { y: [-0.25, 0.25] } },
+  });
+  const refinedJoint = refined.joints.find(({ id }) => id === "tail-base");
+  assert.deepEqual(refinedJoint.rest, {
+    translation: [0, -1, -0.5],
+    rotation: [0, 0, 0, 1],
+    scale: [1, 1, 1],
+  });
+  assert.deepEqual(refinedJoint.limits, {
+    swing: 1.1,
     twist: [-0.25, 0.25],
+    axes: { x: [-0.5, 0.5], y: [-0.25, 0.25] },
   });
-  assert.equal(updated.revision, 2);
+  assert.equal(refined.revision, 3);
 
-  const renamed = renameRigJoint(updated, "tail-base", "tail-1");
+  const cyclicPatch = {};
+  cyclicPatch.self = cyclicPatch;
+  assert.throws(() => updateRigJoint(refined, "tail-base", cyclicPatch), /reference cycles/i);
+
+  const renamed = renameRigJoint(refined, "tail-base", "tail-1");
   assert.equal(renamed.joints.find(({ id }) => id === "tail-1").parent, "root");
-  assert.equal(renamed.revision, 3);
+  assert.equal(renamed.revision, 4);
 
   const skinned = attachRigSkin(renamed, {
     weightSetId: "weights:sha256:accepted",
@@ -150,7 +166,7 @@ test("joint authoring operations are immutable and advance one revision", () => 
   });
   assert.equal(skinned.skin.weightSetId, "weights:sha256:accepted");
   assert.equal(skinned.bind.inverseMatricesId, "bind:sha256:accepted");
-  assert.equal(skinned.revision, 4);
+  assert.equal(skinned.revision, 5);
 });
 
 test("reparenting blocks cycles and deletion requires an explicit cascade policy", () => {
@@ -224,6 +240,7 @@ test("vertex influences combine duplicates, cap deterministically and normalize"
   closeTo(normalized.influences[0].weight, 0.5);
   closeTo(normalized.influences[1].weight, 0.5);
   closeTo(normalized.discardedMass, 0.5 / 4.5);
+  assert.throws(() => normalizeVertexInfluences([{ joint: 0, weight: -0.1 }]), /cannot be negative/i);
 });
 
 test("nearest-segment binding is deterministic, normalized and typed-array based", () => {

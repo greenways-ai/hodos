@@ -27,15 +27,37 @@ export function isPlainObject(value) {
   return prototype === Object.prototype || prototype === null;
 }
 
-export function clonePortable(value) {
+export function clonePortable(value, seen = new Set()) {
   if (value === null || ["string", "boolean"].includes(typeof value)) return value;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) throw new TypeError("Portable numbers must be finite");
     return value;
   }
-  if (Array.isArray(value)) return value.map(clonePortable);
-  if (!isPlainObject(value)) throw new TypeError("Portable values may contain only plain objects and arrays");
-  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, clonePortable(entry)]));
+  if (["undefined", "function", "symbol", "bigint"].includes(typeof value)) {
+    throw new TypeError(`Portable values cannot contain ${typeof value}`);
+  }
+  if (typeof value !== "object") throw new TypeError(`Unsupported portable value: ${typeof value}`);
+  if (seen.has(value)) throw new TypeError("Portable values cannot contain reference cycles");
+  if (!Array.isArray(value) && !isPlainObject(value)) {
+    throw new TypeError("Portable values may contain only plain objects and arrays");
+  }
+  seen.add(value);
+  try {
+    if (Array.isArray(value)) {
+      const cloned = [];
+      for (let index = 0; index < value.length; index += 1) {
+        if (!(index in value)) throw new TypeError("Portable arrays cannot contain holes");
+        cloned.push(clonePortable(value[index], seen));
+      }
+      return cloned;
+    }
+    if (Object.getOwnPropertySymbols(value).length) {
+      throw new TypeError("Portable objects cannot contain symbol keys");
+    }
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, clonePortable(entry, seen)]));
+  } finally {
+    seen.delete(value);
+  }
 }
 
 export function portableIssues(value, path = "$", seen = new Set(), issues = []) {
