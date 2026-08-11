@@ -42,7 +42,12 @@ function boundedString(value, label, maximum) {
 }
 
 function identifier(value, label) {
-  const output = boundedString(value, label, WORLD_PROVIDER_LIMITS.identifierLength);
+  const source = typeof value === "string"
+    ? value
+    : value && typeof value === "object" && typeof value.sym === "string"
+      ? value.sym
+      : value;
+  const output = boundedString(source, label, WORLD_PROVIDER_LIMITS.identifierLength);
   if (!IDENTIFIER_PATTERN.test(output)) throw new Error(`${label} is invalid`);
   return output;
 }
