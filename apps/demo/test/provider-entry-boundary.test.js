@@ -36,7 +36,7 @@ test("keeps Alumbra authority in the application adapter rather than Hodos packa
 
 test("deploys the exact pinned Alumbra host under the existing Hodos Pages site", () => {
   assert.match(deploy, /repository: greenways-ai\/alumbra/);
-  assert.match(deploy, /ref: 7438abad9e6357dab970f2b265b44d36cb9740c6/);
+  assert.match(deploy, /ref: 419e02ebe06d90a43ae4510579e3acfaf6d4738e/);
   assert.match(deploy, /path: \.alumbra-provider/);
   assert.match(deploy, /site\/dist\/alumbra\/node_modules/);
   assert.match(deploy, /\.alumbra-provider\/apps site\/dist\/alumbra\/apps/);
