@@ -200,9 +200,12 @@ export function createWorldProviderHost({root, registry = createWorldProviderReg
     const current = controller;
     controller = null;
     activeLaunch = null;
-    await current.destroy?.(reason);
-    root.replaceChildren();
-    disposals += 1;
+    try {
+      await current.destroy?.(reason);
+    } finally {
+      root.replaceChildren();
+      disposals += 1;
+    }
   };
 
   const enqueue = (task) => {
@@ -221,13 +224,23 @@ export function createWorldProviderHost({root, registry = createWorldProviderReg
         const {registration, activity} = validateInstalledLaunch(registry, launch);
         status = "opening";
         await disposeCurrent("provider-switch");
-        const allocated = await registration.factory(Object.freeze({
-          root,
-          launch,
-          activity,
-          metadata: registration.metadata,
-          context: deepFreeze({...object(context, "World-provider launch context")}),
-        }));
+
+        let allocated;
+        try {
+          allocated = await registration.factory(Object.freeze({
+            root,
+            launch,
+            activity,
+            metadata: registration.metadata,
+            context: deepFreeze({...object(context, "World-provider launch context")}),
+          }));
+        } catch (error) {
+          root.replaceChildren();
+          activeLaunch = null;
+          status = "failed";
+          throw error;
+        }
+
         if (!allocated || typeof allocated !== "object" || Array.isArray(allocated)) {
           root.replaceChildren();
           status = "failed";
