@@ -9,6 +9,7 @@ import {
 
 export * from "./github-worlds.js";
 export * from "./world-manifest.js";
+export * from "./world-provider.js";
 
 export const HODOS_GITHUB_SOURCE_ADDON_ID = "@greenways/hodos-source-github";
 
