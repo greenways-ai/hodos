@@ -130,7 +130,7 @@ test("execution selection and area remain renderer-neutral serializable values",
 test("execution normalization fails closed and reset preserves session policy", () => {
   assert.equal(normalizeExecutionEvidence(metrics).level, "metrics");
   assert.throws(
-    () => normalizeExecutionEvidence({ schema: "hal.bytecode-events/0-alpha", events: [] }),
+    () => normalizeExecutionEvidence({ schema: "hal.bytecode-events/1", events: [] }),
     /Unsupported.*schema/,
   );
   assert.throws(
