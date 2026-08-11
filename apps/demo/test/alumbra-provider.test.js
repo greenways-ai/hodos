@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  ALUMBRA_PAGES_HOST,
+  ALUMBRA_PROVIDER_HOST,
   ALUMBRA_PROVIDER_ID,
   PEACOCK_BALLROOM_ACTIVITY_ID,
   PEACOCK_BALLROOM_PACKAGE,
@@ -36,16 +36,20 @@ class FakeRoot {
   replaceChildren(...children) { this.children = children; }
 }
 
-test("builds only the installed Greenways Pages provider URL", () => {
+test("builds only the installed Hodos Greenways provider URL", () => {
   const url = new URL(peacockBallroomProviderUrl("ballroom/gallery-overlook"));
-  assert.equal(url.origin, "https://greenways-ai.github.io");
-  assert.equal(url.pathname, "/alumbra/apps/lab/peacock-ballroom.html");
+  assert.equal(url.origin, "https://oss.greenways.ai");
+  assert.equal(url.pathname, "/hodos/alumbra/apps/lab/peacock-ballroom.html");
   assert.equal(url.searchParams.get("state"), "ballroom/gallery-overlook");
   assert.equal(url.searchParams.get("embed"), "hodos");
   assert.equal(peacockBallroomProviderUrl("ballroom/missing").includes("state=ballroom%2Fday"), true);
   assert.throws(
     () => peacockBallroomProviderUrl("ballroom/day", "https://example.test/world"),
-    /installed Greenways Pages origin/,
+    /installed Hodos Greenways origin/,
+  );
+  assert.throws(
+    () => peacockBallroomProviderUrl("ballroom/day", "https://oss.greenways.ai/visual-language/world"),
+    /installed Hodos Greenways origin/,
   );
 });
 
@@ -67,7 +71,7 @@ test("registers the exact Peacock Ballroom provider activity and states", () => 
 test("allocates one iframe controller and releases it deterministically", () => {
   const document = new FakeDocument();
   const root = new FakeRoot();
-  const registration = createAlumbraWorldProviderRegistration({document, baseUrl: ALUMBRA_PAGES_HOST});
+  const registration = createAlumbraWorldProviderRegistration({document, baseUrl: ALUMBRA_PROVIDER_HOST});
   const controller = registration.factory({
     root,
     launch: {
