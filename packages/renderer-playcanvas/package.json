@@ -1,7 +1,7 @@
 {
   "name": "@greenways/hodos-renderer-playcanvas",
   "version": "0.1.0",
-  "description": "PlayCanvas world renderer add-on for Hodos",
+  "description": "PlayCanvas world, rigging, and character-sequence host add-on for Hodos",
   "type": "module",
   "license": "EPL-2.0",
   "repository": {
@@ -14,6 +14,7 @@
     "./renderer": "./src/world-renderer.js",
     "./advanced": "./src/advanced-world-renderer.js",
     "./enhancer": "./src/world-renderer-enhancer.js",
+    "./sequence": "./src/sequence-host.js",
     "./rigging-assets": "./src/rigging-asset-host.js",
     "./rigging-preflight": "./src/rigging-glb-preflight.js",
     "./rigging-overlay": "./src/rigging-skeleton-overlay.js",

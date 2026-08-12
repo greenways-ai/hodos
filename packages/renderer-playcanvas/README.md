@@ -1,12 +1,37 @@
 # @greenways/hodos-renderer-playcanvas
 
 The PlayCanvas projection for Hodos worlds: Gaussian splat layers, semantic
-entities, spatial sources, touchpoints, selection, camera control, and optional
-advanced authoring overlays.
+entities, spatial sources, touchpoints, selection, camera control, character
+sequences, and optional advanced authoring overlays.
 
 The add-on requires `world.render`, depends on the runtime-neutral world model,
-and contributes `world.renderer/playcanvas`. Browser shells should import the
-`./styles` subpath alongside the renderer.
+and contributes `world.renderer/playcanvas` and `sequence.host/playcanvas`.
+Browser shells should import the `./styles` subpath alongside the renderer.
+
+## Character sequence host
+
+`@greenways/hodos-renderer-playcanvas/sequence` consumes the structured
+`sequence/action` effects emitted by the runtime-neutral Hodos sequence model.
+It provides bounded, idempotent host execution for:
+
+- actor placement, movement, turning, look-at, clip playback, blending,
+  gestures and dialogue;
+- camera cuts and logical-time blends;
+- audio playback and world events; and
+- stable semantic markers such as `arrived`, `clip-complete`,
+  `line-finished`, `camera-complete` and `audio-finished`.
+
+PlayCanvas entities, animation mixers, navigation agents, audio nodes and
+renderer state remain behind the host. Only portable marker, completion and
+failure events are returned to the sequence runtime.
+`createPlayCanvasSequenceOperationProfile` converts host-side immediate actions
+such as placement, camera cuts and world events to externally acknowledged
+runtime cues, so provider failures cannot be lost after the portable runtime
+has already marked a cue complete. Navigation, dialogue and audio can be
+provided as injected drivers; deterministic movement, look-at, animation and
+camera fallbacks cover the first reference profile. Cancellation uses
+`AbortSignal`, restores interrupted camera blends, suppresses late promise
+completion, and disposes provider-owned resources exactly once.
 
 ## Local rigging assets
 

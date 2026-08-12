@@ -129,3 +129,40 @@ application / Hara
 
 The package does not evaluate Hara, persist state, resolve collaboration,
 produce receipts, or integrate with Hestia.
+
+## Focused Flow host
+
+The `./workflow-dom` host composes the portable recipe projection with the safe
+Graph host and adds a bounded inspector plus runtime command controls.
+
+```js
+import { createWorkflowDomHost } from "@greenways/hodos-2d-ui/workflow-dom";
+import "@greenways/hodos-2d-ui/graph.css";
+import "@greenways/hodos-2d-ui/workflow.css";
+
+const host = createWorkflowDomHost({
+  container,
+  dispatch: applyWorkflowEvent,
+});
+
+host.update({
+  recipe,
+  registry: trustedOperationDescriptors,
+  installedCapabilities: grantedCapabilities,
+  run: runtimeQueryProjection,
+  capabilities: {
+    select: true,
+    moveNode: true,
+    run: true,
+    cancel: true,
+    resume: true,
+    fork: true,
+  },
+});
+```
+
+The host emits `workflow/run`, `workflow/cancel`, `workflow/resume` and
+`workflow/fork`; it never executes a recipe, owns a retry loop, or writes a
+checkpoint. Graph selection and movement are translated back to stable recipe
+node identities. Runtime attempts, replayed checkpoints, artifacts and receipt
+state remain read-only projections.

@@ -138,3 +138,32 @@ Hara / application
 ```
 
 No Hestia integration is required or implied by this package.
+
+## Portable `std.work` recipe graphs
+
+The `./workflow` subpath projects normalized `std.work.recipe/0-alpha` values
+through the existing typed Graph contract. It remains a data model: operation
+functions, capability grants, scheduling, checkpoint persistence, retries and
+receipts stay in Hara and the selected `IWorkRuntime`.
+
+```js
+import {
+  applyWorkRunOverlay,
+  projectWorkRecipeGraph,
+  workRecipeFromGraph,
+} from "@greenways/hodos-2d/workflow";
+
+const graph = projectWorkRecipeGraph(recipe, {
+  registry: trustedOperationDescriptors,
+  capabilities: ["sequence.read", "preview.render"],
+});
+
+const canonicalRecipe = workRecipeFromGraph(graph);
+const running = applyWorkRunOverlay(graph, runtimeProjection);
+```
+
+The projection provides one typed node per recipe operation, stable structural
+edges for `chain`, `all`, collections, `choose`, `batch` and `ensure`, and a
+round-trip boundary whose graph coordinates do not affect workflow identity.
+Run overlays are read-only projections derived from runtime queries and never
+mutate the recipe.
