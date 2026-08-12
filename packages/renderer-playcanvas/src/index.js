@@ -2,6 +2,11 @@ import { defineAddon, HODOS_CORE_ADDON_ID } from "@greenways/hodos-core";
 import { HODOS_WORLD_MODEL_ADDON_ID } from "@greenways/hodos-world-model";
 import { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
 import {
+  PlayCanvasMixamoCharacterHost,
+  createPlayCanvasMixamoCharacterHost,
+  inspectPlayCanvasMixamoCharacter,
+} from "./mixamo-character-host.js";
+import {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
 } from "./rigging-asset-host.js";
@@ -30,12 +35,12 @@ import {
   surfaceIndexEvidence,
 } from "./rigging-surface-index.js";
 import {
-PLAYCANVAS_SEQUENCE_EXTERNAL_COMPLETION_OPERATIONS,
-PLAYCANVAS_SEQUENCE_OPERATIONS,
-PlayCanvasSequenceHost,
-createPlayCanvasSequenceHandlers,
-createPlayCanvasSequenceHost,
-createPlayCanvasSequenceOperationProfile,
+  PLAYCANVAS_SEQUENCE_EXTERNAL_COMPLETION_OPERATIONS,
+  PLAYCANVAS_SEQUENCE_OPERATIONS,
+  PlayCanvasSequenceHost,
+  createPlayCanvasSequenceHandlers,
+  createPlayCanvasSequenceHost,
+  createPlayCanvasSequenceOperationProfile,
 } from "./sequence-host.js";
 import {
   enhanceWorldRenderer,
@@ -44,6 +49,7 @@ import {
 import { WorldRenderer } from "./world-renderer.js";
 
 export { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
+export * from "./mixamo-character-host.js";
 export {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
@@ -74,7 +80,7 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       [HODOS_CORE_ADDON_ID]: "^0.1.0",
       [HODOS_WORLD_MODEL_ADDON_ID]: "^0.1.0",
     },
-    capabilities: ["world.render", "sequence.execute"],
+    capabilities: ["world.render", "sequence.execute", "character.animation"],
   },
   activate(context) {
     context.contribute("world.renderer", "playcanvas", Object.freeze({
@@ -90,6 +96,11 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       createOperationProfile: createPlayCanvasSequenceOperationProfile,
       externalCompletionOperations: PLAYCANVAS_SEQUENCE_EXTERNAL_COMPLETION_OPERATIONS,
       operations: PLAYCANVAS_SEQUENCE_OPERATIONS,
+    }));
+    context.contribute("character.host", "playcanvas-mixamo", Object.freeze({
+      Host: PlayCanvasMixamoCharacterHost,
+      create: createPlayCanvasMixamoCharacterHost,
+      inspect: inspectPlayCanvasMixamoCharacter,
     }));
     context.contribute("rig.asset-host", "playcanvas-local", Object.freeze({
       Host: LocalRiggingAssetHost,
