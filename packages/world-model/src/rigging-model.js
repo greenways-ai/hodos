@@ -1,4 +1,6 @@
 export {
+  RIG_AUTHORING_SCHEMA,
+  RIG_EDITOR_SCHEMA,
   RIG_EVIDENCE_SCHEMA,
   RIG_INTENT_SCHEMA,
   RIG_INTENT_TYPES,
@@ -15,3 +17,4 @@ export * from "./rigging-document.js";
 export * from "./rigging-weights.js";
 export * from "./rigging-intents.js";
 export * from "./rigging-preflight.js";
+export * from "./rigging-editor.js";

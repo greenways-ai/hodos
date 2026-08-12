@@ -38,16 +38,27 @@ adapter.
 contracts used by the Hodos Rigging Harness. It includes:
 
 - `hodos.rig/0-alpha` normalization and hierarchy validation;
-- immutable joint create, update, rename, reparent, delete, and mirror helpers;
+- immutable joint create, update, rename, reparent, delete, duplicate, and
+  mirror helpers;
 - parent-aware rest transforms and joint segments;
 - deterministic nearest-segment initial skin weights over caller-owned arrays;
 - glTF-compatible influence normalization and compact diagnostics;
 - semantic intent outcomes plus bounded rig evidence;
 - `hodos.rig-source/0-alpha` immutable source identity and opaque handle values;
-- `hodos.rig-preflight/0-alpha` bounded model inventory and blocker evidence; and
-- `hodos.rig-session/0-alpha` recoverable local-open session state.
+- `hodos.rig-preflight/0-alpha` bounded model inventory and blocker evidence;
+- `hodos.rig-session/0-alpha` recoverable local-open session state;
+- `hodos.rig-editor/0-alpha` selection, focus, expansion, tool, orientation and
+  snapping state; and
+- `hodos.rig-authoring/0-alpha` canonical rig, editor and bounded undo/redo
+  snapshots.
+
+The hierarchy projection is renderer-neutral and suitable for an accessible
+browser tree. Pointer movement remains a host preview; pointer release produces
+one revision-checked rig intent. Undo and redo restore the rig document and
+selection/focus state together.
 
 Renderer entities, decoded GLB documents, mesh buffers and GPU resources are
 deliberately not part of the portable documents. Failed replacement opens retain
 the last accepted source and preflight so a working session is not discarded.
-See `docs/client-side-rigging.md` for the host boundary and release train.
+See `docs/client-side-rigging.md` and `docs/rigging-authoring.md` for the host
+boundary and workbench contract.

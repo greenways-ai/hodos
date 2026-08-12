@@ -2,6 +2,8 @@ export const RIG_SCHEMA = "hodos.rig/0-alpha";
 export const RIG_INTENT_SCHEMA = "hodos.rig-intent/0-alpha";
 export const RIG_OUTCOME_SCHEMA = "hodos.rig-outcome/0-alpha";
 export const RIG_EVIDENCE_SCHEMA = "hodos.rig-evidence/0-alpha";
+export const RIG_EDITOR_SCHEMA = "hodos.rig-editor/0-alpha";
+export const RIG_AUTHORING_SCHEMA = "hodos.rig-authoring/0-alpha";
 
 export const RIG_INTENT_TYPES = Object.freeze([
   "rig/joint-create",
@@ -9,6 +11,7 @@ export const RIG_INTENT_TYPES = Object.freeze([
   "rig/joint-rename",
   "rig/joint-reparent",
   "rig/joint-delete",
+  "rig/joint-duplicate",
   "rig/joint-mirror",
   "rig/skin-attach",
 ]);

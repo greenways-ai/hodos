@@ -15,7 +15,9 @@
     "./panel": "./src/world-editor-panel.js",
     "./advanced": "./src/world-editor-advanced.js",
     "./drafts": "./src/world-draft-panel.js",
-    "./styles": "./src/styles.css"
+    "./rigging": "./src/rigging-workspace.js",
+    "./styles": "./src/styles.css",
+    "./rigging-styles": "./src/rigging-workspace.css"
   },
   "files": [
     "src",

@@ -14,6 +14,7 @@ import {
   addRigJoint,
   attachRigSkin,
   deleteRigJoint,
+  duplicateRigJoints,
   mirrorRigJoints,
   renameRigJoint,
   reparentRigJoint,
@@ -101,6 +102,9 @@ export function applyRigIntent(documentValue, intentValue = {}) {
         break;
       case "rig/joint-delete":
         next = deleteRigJoint(document, intent.jointId, { cascade: Boolean(intent.cascade) });
+        break;
+      case "rig/joint-duplicate":
+        next = duplicateRigJoints(document, { jointIds: intent.jointIds, idMap: intent.idMap, offset: intent.offset });
         break;
       case "rig/joint-mirror":
         next = mirrorRigJoints(document, { jointIds: intent.jointIds, idMap: intent.idMap, axis: intent.axis });

@@ -5,10 +5,12 @@ import {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
 } from "./rigging-asset-host.js";
+import { RiggingAuthoringRenderer } from "./rigging-authoring-renderer.js";
 import {
   analyzeLocalGlb,
   preflightLocalGlb,
 } from "./rigging-glb-preflight.js";
+import { RigSkeletonOverlay } from "./rigging-skeleton-overlay.js";
 import {
   enhanceWorldRenderer,
   installAdvancedWorldRendererPrototype,
@@ -20,7 +22,9 @@ export {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
 } from "./rigging-asset-host.js";
+export * from "./rigging-authoring-renderer.js";
 export * from "./rigging-glb-preflight.js";
+export * from "./rigging-skeleton-overlay.js";
 export { enhanceWorldRenderer, installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
 export { WorldRenderer } from "./world-renderer.js";
 
@@ -48,6 +52,10 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       create: createLocalRiggingAssetHost,
       analyze: analyzeLocalGlb,
       preflight: preflightLocalGlb,
+    }));
+    context.contribute("rig.renderer", "playcanvas", Object.freeze({
+      AuthoringRenderer: RiggingAuthoringRenderer,
+      SkeletonOverlay: RigSkeletonOverlay,
     }));
   },
 });
