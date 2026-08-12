@@ -30,16 +30,16 @@ function deepFreeze(value, seen = new Set()) {
 function portable(value, path, maximumBytes = MAX_RIG_PREFLIGHT_ITEM_BYTES) {
   const cloned = clonePortable(value);
   const encoded = JSON.stringify(cloned);
-  if (encoded.length > maximumBytes) {
+  const byteLength = new TextEncoder().encode(encoded).byteLength;
+  if (byteLength > maximumBytes) {
     throw new TypeError(`${path} exceeds the bounded portable size of ${maximumBytes} bytes`);
   }
   return cloned;
 }
 
 function boundedString(value, fallback, path, maximumLength = 512) {
-  const text = value === undefined || value === null || value === ""
-    ? fallback
-    : requiredString(value, path);
+  const candidate = value === undefined || value === null || value === "" ? fallback : value;
+  const text = requiredString(candidate, path);
   if (text.length > maximumLength) throw new TypeError(`${path} exceeds ${maximumLength} characters`);
   return text;
 }
@@ -60,7 +60,6 @@ function normalizeHandle(value, path = "source.handle") {
 }
 
 export function normalizeRiggingSource(value = {}) {
-  clonePortable(value);
   if (!isPlainObject(value)) throw new TypeError("Rigging source must be an object");
   const schema = value.schema ?? RIG_SOURCE_SCHEMA;
   if (schema !== RIG_SOURCE_SCHEMA) throw new TypeError(`Rigging source schema must be ${RIG_SOURCE_SCHEMA}`);
@@ -68,6 +67,8 @@ export function normalizeRiggingSource(value = {}) {
   if (!SHA256_ID.test(contentId)) throw new TypeError("source.contentId must be a lowercase sha256 content identity");
   const revision = safeInteger(value.revision, 0, "source.revision", 0);
   const byteLength = safeInteger(value.byteLength, undefined, "source.byteLength", 12);
+  const handle = normalizeHandle(value.handle);
+  clonePortable(value);
   const result = {
     schema,
     contentId,
@@ -75,7 +76,7 @@ export function normalizeRiggingSource(value = {}) {
     fileName: boundedString(value.fileName, "asset.glb", "source.fileName"),
     mediaType: boundedString(value.mediaType, "model/gltf-binary", "source.mediaType", 128),
     byteLength,
-    handle: normalizeHandle(value.handle),
+    handle,
   };
   return deepFreeze(result);
 }
@@ -309,10 +310,11 @@ function normalizeActive(value) {
 }
 
 export function normalizeRiggingSession(value = {}) {
-  clonePortable(value);
   if (!isPlainObject(value)) throw new TypeError("Rigging session must be an object");
   const schema = value.schema ?? RIG_SESSION_SCHEMA;
   if (schema !== RIG_SESSION_SCHEMA) throw new TypeError(`Rigging session schema must be ${RIG_SESSION_SCHEMA}`);
+  const id = boundedString(value.id, undefined, "session.id", 256);
+  clonePortable(value);
   const revision = safeInteger(value.revision, 0, "session.revision", 0);
   const active = normalizeActive(value.active);
   const lastAttempt = normalizeAttempt(value.lastAttempt);
@@ -322,7 +324,7 @@ export function normalizeRiggingSession(value = {}) {
   const status = active ? "ready" : lastAttempt?.status === "failed" ? "failed" : "empty";
   return deepFreeze({
     schema,
-    id: boundedString(value.id, undefined, "session.id", 256),
+    id,
     revision,
     status,
     active,

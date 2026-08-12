@@ -186,3 +186,47 @@ test("inventory and issue projection remain bounded for large source documents",
   assert.equal(report.inventory.nodes.omitted, 82);
   assert.ok(report.issues.length <= 4);
 });
+
+test("malformed transform shapes and mixed matrix/TRS nodes fail closed", async () => {
+  const bytes = buildGlb({
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0, 1] }],
+    nodes: [
+      { matrix: "not-a-matrix", translation: [1, 2, 3] },
+      { translation: [1, 2], rotation: [0, 0, 0, 1], scale: [1, 1, 1] },
+    ],
+  });
+  const report = await preflightLocalGlb(bytes);
+  assert.equal(report.summary.status, "blocked");
+  assert.ok(report.issues.some(({ code }) => code === "node/matrix-trs"));
+  assert.ok(report.issues.some(({ code }) => code === "node/matrix"));
+  assert.ok(report.issues.some(({ code }) => code === "node/translation"));
+});
+
+test("document collection limits reject hostile hierarchy depth before recursive projection", async () => {
+  const nodes = Array.from({ length: 5 }, (_, index) => ({
+    ...(index < 4 ? { children: [index + 1] } : {}),
+  }));
+  const bytes = buildGlb({
+    asset: { version: "2.0" },
+    scenes: [{ nodes: [0] }],
+    nodes,
+  });
+  await assert.rejects(() => preflightLocalGlb(bytes, { maximumNodes: 4 }), (error) => {
+    assert.ok(error instanceof GlbPreflightError);
+    assert.equal(error.code, "gltf/node-limit");
+    return true;
+  });
+});
+
+test("uninspected required extensions remain visible in bounded evidence", async () => {
+  const bytes = buildGlb({
+    asset: { version: "2.0" },
+    extensionsUsed: ["EXT_fixture_required"],
+    extensionsRequired: ["EXT_fixture_required"],
+    scenes: [{ nodes: [] }],
+  });
+  const report = await preflightLocalGlb(bytes);
+  assert.equal(report.summary.status, "warn");
+  assert.ok(report.issues.some(({ code }) => code === "extension/required-uninspected"));
+});

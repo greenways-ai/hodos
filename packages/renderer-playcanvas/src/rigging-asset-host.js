@@ -22,6 +22,14 @@ function safeByteLength(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 
+function positiveSafeInteger(value, fallback, label) {
+  const candidate = value ?? fallback;
+  if (!Number.isSafeInteger(candidate) || candidate <= 0) {
+    throw new TypeError(`${label} must be a positive safe integer`);
+  }
+  return candidate;
+}
+
 async function readLocalBytes(source) {
   if (source instanceof ArrayBuffer || ArrayBuffer.isView(source)) return toUint8Array(source);
   if (source && typeof source.arrayBuffer === "function") {
@@ -61,9 +69,16 @@ function structuredOpenError(error) {
 }
 
 export class LocalRiggingAssetHost {
-  constructor({ id = "playcanvas-local-rigging", preflight = {} } = {}) {
+  constructor({
+    id = "playcanvas-local-rigging",
+    preflight = {},
+    maximumAssets = 8,
+    maximumTotalBytes = 512 * 1024 * 1024,
+  } = {}) {
     this.id = boundedText(id, "playcanvas-local-rigging", 128);
     this.preflightOptions = Object.freeze({ ...preflight });
+    this.maximumAssets = positiveSafeInteger(maximumAssets, 8, "maximumAssets");
+    this.maximumTotalBytes = positiveSafeInteger(maximumTotalBytes, 512 * 1024 * 1024, "maximumTotalBytes");
     this.records = new Map();
     this.nextHandle = 1;
     this.destroyed = false;
@@ -79,6 +94,17 @@ export class LocalRiggingAssetHost {
     try {
       const sourceBytes = await readLocalBytes(sourceValue);
       byteLength = sourceBytes.byteLength;
+      if (this.records.size >= this.maximumAssets) {
+        throw new GlbPreflightError("rig/asset-capacity", "Local rigging asset host reached its bounded asset limit", {
+          details: { assets: this.records.size, maximumAssets: this.maximumAssets },
+        });
+      }
+      const totalBytes = this.totalBytes();
+      if (totalBytes + byteLength > this.maximumTotalBytes) {
+        throw new GlbPreflightError("rig/asset-byte-capacity", "Local rigging asset host reached its bounded byte limit", {
+          details: { totalBytes, byteLength, maximumTotalBytes: this.maximumTotalBytes },
+        });
+      }
       ownedBytes = new Uint8Array(byteLength);
       ownedBytes.set(sourceBytes);
       const analysis = await analyzeLocalGlb(ownedBytes, {
@@ -156,14 +182,20 @@ export class LocalRiggingAssetHost {
     return true;
   }
 
+  totalBytes() {
+    let total = 0;
+    for (const record of this.records.values()) total += record.bytes.byteLength;
+    return total;
+  }
+
   evidence() {
-    let totalBytes = 0;
-    for (const record of this.records.values()) totalBytes += record.bytes.byteLength;
     return Object.freeze({
       provider: { id: GLB_PREFLIGHT_PROVIDER_ID, version: GLB_PREFLIGHT_PROVIDER_VERSION },
       hostId: this.id,
       assets: this.records.size,
-      totalBytes,
+      totalBytes: this.totalBytes(),
+      maximumAssets: this.maximumAssets,
+      maximumTotalBytes: this.maximumTotalBytes,
       destroyed: this.destroyed,
     });
   }

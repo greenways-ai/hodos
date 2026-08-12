@@ -185,3 +185,27 @@ test("preflight status is derived from total issue counts rather than trusted in
   assert.equal(report.summary.warnings, 3);
   assert.equal(report.summary.omittedIssues, 2);
 });
+
+
+test("required identifiers fail with descriptive portable paths", () => {
+  assert.throws(() => createRiggingSession(), /session\.id/);
+  assert.throws(() => createRiggingSource({
+    contentId: SOURCE_ID,
+    byteLength: 64,
+    handle: { type: "rig/source-asset", scope: "session" },
+  }), /source\.handle\.id/);
+});
+
+test("portable item limits count UTF-8 bytes rather than UTF-16 code units", () => {
+  const oversized = "🌿".repeat(1100);
+  assert.throws(() => preflight({
+    issues: [{
+      code: "fixture/unicode",
+      severity: "warning",
+      path: "$",
+      message: "Unicode detail",
+      details: { oversized },
+    }],
+    summary: { errors: 0, warnings: 1, info: 0, omittedIssues: 0 },
+  }), /bounded portable size/);
+});
