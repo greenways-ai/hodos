@@ -48,9 +48,9 @@ contracts used by the Hodos Rigging Harness. It includes:
 - `hodos.rig-preflight/0-alpha` bounded model inventory and blocker evidence;
 - `hodos.rig-session/0-alpha` recoverable local-open session state;
 - `hodos.rig-editor/0-alpha` selection, focus, expansion, tool, orientation and
-  snapping state; and
+  snapping state;
 - `hodos.rig-authoring/0-alpha` canonical rig, editor and bounded undo/redo
-  snapshots.
+  snapshots; and
 - transient, revision-bound keyboard and numeric move transactions that produce
   one semantic intent only at an explicit commit boundary.
 
@@ -85,3 +85,20 @@ smooth, flood, prune and normalize operations over caller-owned buffers. CSR
 adjacency diagnostics return bounded summaries plus caller-owned representative
 vertices. `buildRigWeightAttachmentIntent` converts an accepted host artifact
 into the existing portable `rig/skin-attach` command.
+
+## Pose and test-suite model
+
+`@greenways/hodos-world-model/rigging` also exports the renderer-neutral pose
+kernel:
+
+- `hodos.rig-pose/0-alpha` sparse local translation offsets and rotation deltas;
+- deterministic local/world forward kinematics for arbitrary acyclic rigs;
+- swing, twist and per-axis joint-limit evaluation with warn, reject or ignore
+  policy;
+- `hodos.rig-pose-suite/0-alpha` ordered named chains and role-gated cases;
+- bounded pose and suite outcomes; and
+- revision-checked pose set, remove and reset intents.
+
+Pose values contain no animation mixers, solver buffers, renderer objects,
+weights or deformed vertices. See `docs/rigging-pose-kernel.md` for the exact
+transform, limit, suite and semantic editing contracts.
