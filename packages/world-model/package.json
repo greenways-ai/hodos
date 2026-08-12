@@ -1,7 +1,7 @@
 {
   "name": "@greenways/hodos-world-model",
   "version": "0.1.0",
-  "description": "Runtime-neutral world, authoring, draft, drag, and rigging models for Hodos",
+  "description": "Runtime-neutral world, authoring, sequence, character, draft, drag, and rigging models for Hodos",
   "type": "module",
   "license": "EPL-2.0",
   "repository": {
@@ -13,6 +13,8 @@
     ".": "./src/index.js",
     "./editor": "./src/world-editor-model.js",
     "./authoring": "./src/world-authoring-model.js",
+    "./character": "./src/character-model.js",
+    "./sequence": "./src/sequence.js",
     "./drafts": "./src/world-draft-model.js",
     "./drag": "./src/world-drag.js",
     "./rigging": "./src/rigging-model.js"
