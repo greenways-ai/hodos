@@ -18,6 +18,7 @@
     "./rigging-preflight": "./src/rigging-glb-preflight.js",
     "./rigging-overlay": "./src/rigging-skeleton-overlay.js",
     "./rigging-authoring": "./src/rigging-authoring-renderer.js",
+    "./rigging-handles": "./src/rigging-translate-handles.js",
     "./styles": "./src/world-placement.css",
     "./rigging-surface": "./src/rigging-surface-index.js"
   },

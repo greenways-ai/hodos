@@ -14,6 +14,7 @@ import {
 } from "@greenways/hodos-world-model/rigging";
 import { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
 import { RigSkeletonOverlay } from "./rigging-skeleton-overlay.js";
+import { RigTranslateHandles } from "./rigging-translate-handles.js";
 
 const EPSILON = 1e-7;
 
@@ -113,6 +114,16 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.rigEditor = normalizeRigEditor({}, this.rigDocument);
     this.rigOverlay = new RigSkeletonOverlay({ app: this.app, camera: this.camera, canvas: this.canvas });
     this.rigOverlay.sync(this.rigDocument, this.rigEditor);
+    this.rigTranslateHandles = this.entityOverlayRoot ? new RigTranslateHandles({
+      app: this.app,
+      camera: this.camera,
+      canvas: this.canvas,
+      root: this.entityOverlayRoot,
+      onPreview: (jointId, position) => this.previewRigJoint(jointId, position),
+      onCommit: (jointId, position) => this.commitRigJointMove(jointId, position),
+      onCancel: () => this.clearRigPreview(),
+    }) : null;
+    this.rigTranslateHandles?.sync(this.rigDocument, this.rigEditor);
     this.rigAssetRoot = new Entity("Hodos local rigging asset");
     this.app.root.addChild(this.rigAssetRoot);
     this.rigAsset = null;
@@ -132,11 +143,39 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.rigDocument = normalizeRigDocument(documentValue);
     this.rigEditor = normalizeRigEditor(editorValue, this.rigDocument);
     this.rigOverlay.sync(this.rigDocument, this.rigEditor);
+    this.rigTranslateHandles?.sync(this.rigDocument, this.rigEditor);
   }
 
   setRigEditor(editorValue = {}) {
     this.rigEditor = normalizeRigEditor(editorValue, this.rigDocument);
     this.rigOverlay.sync(this.rigDocument, this.rigEditor);
+    this.rigTranslateHandles?.sync(this.rigDocument, this.rigEditor);
+  }
+
+  previewRigJoint(jointId, worldPosition) {
+    this.rigOverlay.sync(this.rigDocument, this.rigEditor, {
+      preview: { jointId, worldPosition },
+    });
+    this.rigTranslateHandles?.setPreview(jointId, worldPosition);
+  }
+
+  clearRigPreview() {
+    this.rigOverlay.sync(this.rigDocument, this.rigEditor);
+    this.rigTranslateHandles?.clearPreview();
+  }
+
+  commitRigJointMove(jointId, worldPosition) {
+    const intent = buildRigEditorIntent(this.rigDocument, this.rigEditor, {
+      type: "move",
+      jointId,
+      worldPosition,
+    });
+    this.clearRigPreview();
+    this.onRigIntent({
+      intent,
+      editorAfter: { selection: [jointId], active: jointId, focused: jointId },
+    });
+    return intent;
   }
 
   async loadRiggingAsset(handleValue) {
@@ -227,7 +266,8 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || this.rigEditor.mode !== "edit") return;
       const tool = this.rigEditor.tool;
-      const picked = this.rigOverlay.pick(event.clientX, event.clientY);
+      const radius = event.pointerType === "touch" ? 36 : event.pointerType === "pen" ? 28 : 22;
+      const picked = this.rigOverlay.pick(event.clientX, event.clientY, { radius });
       if (tool === "select") {
         this.onRigEditor({ action: "select", jointId: picked?.id ?? null, mode: event.shiftKey ? "toggle" : "replace" });
         if (picked) consume(event);
@@ -266,11 +306,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
       const drag = this.rigDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
       drag.current = this.rigPointAt(event.clientX, event.clientY, drag.anchor);
-      if (drag.tool === "translate") {
-        this.rigOverlay.sync(this.rigDocument, this.rigEditor, {
-          preview: { jointId: drag.jointId, worldPosition: drag.current },
-        });
-      }
+      if (drag.tool === "translate") this.previewRigJoint(drag.jointId, drag.current);
       consume(event);
     }, { capture: true, signal });
 
@@ -278,15 +314,10 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
       const drag = this.rigDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
       this.rigDrag = null;
-      this.rigOverlay.sync(this.rigDocument, this.rigEditor);
+      this.clearRigPreview();
       if (!cancelled) {
         if (drag.tool === "translate") {
-          const intent = buildRigEditorIntent(this.rigDocument, this.rigEditor, {
-            type: "move",
-            jointId: drag.jointId,
-            worldPosition: drag.current,
-          });
-          this.onRigIntent({ intent, editorAfter: { selection: [drag.jointId], active: drag.jointId, focused: drag.jointId } });
+          this.commitRigJointMove(drag.jointId, drag.current);
         } else if (drag.tool === "joint-create") {
           const jointId = nextRigJointId(this.rigDocument, "joint");
           const intent = buildRigEditorIntent(this.rigDocument, this.rigEditor, {
@@ -358,6 +389,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
 
   destroy() {
     this.disposeRiggingAsset();
+    this.rigTranslateHandles?.destroy?.();
     this.rigOverlay?.destroy?.();
     this.rigAssetRoot?.destroy?.();
     super.destroy();

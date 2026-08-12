@@ -51,6 +51,8 @@ contracts used by the Hodos Rigging Harness. It includes:
   snapping state; and
 - `hodos.rig-authoring/0-alpha` canonical rig, editor and bounded undo/redo
   snapshots.
+- transient, revision-bound keyboard and numeric move transactions that produce
+  one semantic intent only at an explicit commit boundary.
 
 The hierarchy projection is renderer-neutral and suitable for an accessible
 browser tree. Pointer movement remains a host preview; pointer release produces

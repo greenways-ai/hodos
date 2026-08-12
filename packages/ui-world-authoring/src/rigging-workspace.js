@@ -1,16 +1,22 @@
 import "./rigging-workspace.css";
 import {
   buildRigEditorIntent,
+  buildRigMoveTransactionIntent,
   createRigAuthoringState,
+  createRigMoveTransaction,
   createRiggingSession,
   flattenRigHierarchy,
+  nudgeRigMoveTransaction,
   prepareRigWorkfileRestore,
   reduceRigAuthoringEvent,
   serializeRigWorkfileEdn,
   serializeRigWorkfileJson,
   createRigWorkfile,
   rigJointSubtree,
+  rigLocalPointToWorld,
+  RIG_NUDGE_KEYS,
   rigRestWorldTransforms,
+  updateRigMoveTransaction,
 } from "@greenways/hodos-world-model/rigging";
 import {
   createLocalRiggingAssetHost,
@@ -106,6 +112,9 @@ export class RiggingWorkspace {
     this.loadingHandle = null;
     this.destroyed = false;
     this.abort = new AbortController();
+    this.moveTransaction = null;
+    this.moveKeys = new Set();
+    this.moveCommitTimer = null;
     this.maximumWorkfileBytes = maximumWorkfileBytes;
     const provider = autosave ? resolveWorkfileProvider(workfileStorage, host) : null;
     this.autosave = provider ? createRigWorkfileAutosave({
@@ -156,7 +165,8 @@ export class RiggingWorkspace {
         <header><span>PROPERTIES</span><strong data-rig-inspector-title>Rig</strong></header>
         <div data-rig-properties></div>
       </aside>
-      <footer class="hodos-rigging-status"><span data-rig-status></span><span>Q Select · A Add joint · W Move · F Frame · ⌘/Ctrl-Z Undo</span></footer>`;
+      <div class="hodos-rigging-live" aria-live="polite" aria-atomic="true" data-rig-live></div>
+      <footer class="hodos-rigging-status"><span data-rig-status></span><span>Arrows XY · Page Up/Down Z · Alt fine · Shift coarse · Shift-A add child · Esc cancel</span></footer>`;
     this.openInput = this.root.querySelector("[data-rig-open]");
     this.workfileInput = this.root.querySelector("[data-rig-workfile-open]");
     this.mismatchPolicy = this.root.querySelector("[data-rig-mismatch]");
@@ -172,6 +182,7 @@ export class RiggingWorkspace {
     this.properties = this.root.querySelector("[data-rig-properties]");
     this.inspectorTitle = this.root.querySelector("[data-rig-inspector-title]");
     this.status = this.root.querySelector("[data-rig-status]");
+    this.live = this.root.querySelector("[data-rig-live]");
 
     for (const [tool, label] of [["select", "Select"], ["joint-create", "Add joint"], ["translate", "Move"]]) {
       const control = button(document, label, () => this.emit({
@@ -183,6 +194,7 @@ export class RiggingWorkspace {
     }
     this.undo = button(document, "Undo", () => this.emit({ "event/type": "rig/history-undo" }));
     this.redo = button(document, "Redo", () => this.emit({ "event/type": "rig/history-redo" }));
+    this.addChild = button(document, "Add child", () => this.createKeyboardJoint());
     this.duplicate = button(document, "Duplicate", () => this.commitAction({ type: "duplicate" }));
     this.mirror = button(document, "Mirror X", () => this.commitAction({ type: "mirror", axis: "x" }));
     this.remove = button(document, "Delete subtree", () => this.commitAction({ type: "delete", cascade: true }));
@@ -190,7 +202,7 @@ export class RiggingWorkspace {
     this.saveJson = button(document, "Save JSON", () => this.downloadWorkfile("json"));
     this.saveEdn = button(document, "Save EDN", () => this.downloadWorkfile("edn"));
     this.clearAutosave = button(document, "Clear autosave", () => this.removeAutosave());
-    this.actions.append(this.undo, this.redo, this.duplicate, this.mirror, this.remove, this.frame, this.saveJson, this.saveEdn, this.clearAutosave);
+    this.actions.append(this.undo, this.redo, this.addChild, this.duplicate, this.mirror, this.remove, this.frame, this.saveJson, this.saveEdn, this.clearAutosave);
 
     this.openInput.addEventListener("change", () => {
       const file = this.openInput.files?.[0];
@@ -221,6 +233,109 @@ export class RiggingWorkspace {
         mode: event.mode ?? "replace",
       });
     }
+  }
+
+  activeWorldPosition() {
+    const active = this.state.editor.active;
+    return active
+      ? rigRestWorldTransforms(this.state.document).find((entry) => entry.id === active)?.translation ?? null
+      : null;
+  }
+
+  announce(message) {
+    if (!this.live) return;
+    this.live.textContent = "";
+    queueMicrotask(() => {
+      if (!this.destroyed && this.live) this.live.textContent = String(message ?? "");
+    });
+  }
+
+  announceActive(prefix = "Selected") {
+    const active = this.state.editor.active;
+    const position = this.activeWorldPosition();
+    if (!active || !position) return this.announce("No joint selected");
+    this.announce(`${prefix} ${active}. Position ${position.map((entry) => Number(entry).toFixed(3)).join(", ")}.`);
+  }
+
+  focusCurrentTreeItem() {
+    queueMicrotask(() => this.tree?.querySelector('[tabindex="0"]')?.focus?.());
+  }
+
+  beginMoveTransaction(source = "keyboard") {
+    const active = this.state.editor.active;
+    if (!active) throw new RangeError("Select a joint before moving it");
+    const current = this.moveTransaction;
+    if (current
+      && current.jointId === active
+      && current.revision === this.state.document.revision
+      && current.source === source) return current;
+    this.cancelMoveTransaction({ announce: false });
+    this.moveTransaction = createRigMoveTransaction(this.state.document, this.state.editor, {
+      jointId: active,
+      source,
+    });
+    return this.moveTransaction;
+  }
+
+  previewMovePosition(worldPosition, source = "numeric") {
+    const transaction = this.beginMoveTransaction(source);
+    this.moveTransaction = updateRigMoveTransaction(transaction, worldPosition);
+    this.renderer?.previewRigJoint?.(transaction.jointId, this.moveTransaction.current);
+    this.announce(`${transaction.jointId} preview. Position ${this.moveTransaction.current.map((entry) => entry.toFixed(3)).join(", ")}. Enter or Apply commits; Escape cancels.`);
+    return this.moveTransaction;
+  }
+
+  commitMoveTransaction() {
+    const transaction = this.moveTransaction;
+    if (!transaction) return this.state;
+    clearTimeout(this.moveCommitTimer);
+    this.moveCommitTimer = null;
+    this.moveKeys.clear();
+    this.moveTransaction = null;
+    this.renderer?.clearRigPreview?.();
+    if (!transaction.steps) return this.state;
+    try {
+      const intent = buildRigMoveTransactionIntent(this.state.document, this.state.editor, transaction);
+      return this.emit({
+        "event/type": "rig/intent",
+        intent,
+        editorAfter: { selection: [transaction.jointId], active: transaction.jointId, focused: transaction.jointId },
+      });
+    } catch (error) {
+      this.setStatus(error.message || String(error), "error");
+      return this.state;
+    }
+  }
+
+  cancelMoveTransaction({ announce = true, render = false } = {}) {
+    const transaction = this.moveTransaction;
+    clearTimeout(this.moveCommitTimer);
+    this.moveCommitTimer = null;
+    this.moveKeys.clear();
+    this.moveTransaction = null;
+    this.renderer?.clearRigPreview?.();
+    if (render) this.renderInspector();
+    if (transaction && announce) this.announce(`Cancelled ${transaction.jointId} move preview.`);
+    return Boolean(transaction);
+  }
+
+  scheduleMoveCommit() {
+    clearTimeout(this.moveCommitTimer);
+    this.moveCommitTimer = setTimeout(() => {
+      if (!this.moveKeys.size) this.commitMoveTransaction();
+    }, 220);
+  }
+
+  createKeyboardJoint() {
+    const active = this.state.editor.active;
+    const origin = this.activeWorldPosition() ?? this.renderer?.rigAssetBounds?.center ?? [0, 0, 0];
+    const offset = Math.max(this.state.editor.snap.translate * 10, 0.1);
+    return this.commitAction({
+      type: "create",
+      parentId: active,
+      worldPosition: [origin[0], origin[1] + offset, origin[2]],
+      prefix: active ? `${active}-joint` : "joint",
+    });
   }
 
   async openFile(file) {
@@ -339,12 +454,31 @@ export class RiggingWorkspace {
 
   emit(event) {
     if (this.destroyed) return this.state;
+    const type = event["event/type"] ?? event.type;
+    if (["rig/source-opened", "rig/history-undo", "rig/history-redo", "studio/history-undo", "studio/history-redo"].includes(type)) {
+      this.cancelMoveTransaction({ announce: false });
+    }
     try {
       this.state = reduceRigAuthoringEvent(this.state, event);
       this.update(this.state);
       this.dispatch?.(event);
       this.onChange?.(this.state, event);
-      if ((event["event/type"] ?? event.type) !== "rig/source-opened") this.autosave?.schedule(this.state);
+      if (type !== "rig/source-opened") this.autosave?.schedule(this.state);
+      if (this.state.lastOutcome?.status === "rejected") {
+        this.announce(this.state.lastOutcome.error?.message ?? "Rig operation rejected");
+      } else if (type === "rig/editor-select" || type === "rig/editor-focus") {
+        this.announceActive(type === "rig/editor-focus" ? "Focused" : "Selected");
+      } else if (["rig/history-undo", "studio/history-undo", "world/history-undo"].includes(type)) {
+        this.announceActive("Undo restored");
+        this.focusCurrentTreeItem();
+      } else if (["rig/history-redo", "studio/history-redo", "world/history-redo"].includes(type)) {
+        this.announceActive("Redo restored");
+        this.focusCurrentTreeItem();
+      } else if (type === "rig/intent" && event.intent?.type === "rig/joint-update") {
+        this.announceActive("Moved");
+      } else if (type === "rig/intent" && event.intent?.type === "rig/joint-create") {
+        this.announceActive("Created");
+      }
       return this.state;
     } catch (error) {
       this.setStatus(error.message || String(error), "error");
@@ -380,16 +514,36 @@ export class RiggingWorkspace {
 
   installKeyboard() {
     const document = this.root.ownerDocument ?? globalThis.document;
+    const signal = this.abort.signal;
     document.addEventListener("keydown", (event) => {
       if (this.destroyed || editableTarget(event.target, this.host)) return;
       const modifier = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
-      if (modifier && key === "z") {
+      if (RIG_NUDGE_KEYS.includes(event.key) && this.state.editor.active && !modifier) {
+        event.preventDefault();
+        try {
+          const transaction = this.beginMoveTransaction("keyboard");
+          this.moveKeys.add(event.key);
+          this.moveTransaction = nudgeRigMoveTransaction(transaction, event.key, {
+            baseStep: this.state.editor.snap.translate,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey,
+          });
+          this.renderer?.previewRigJoint?.(transaction.jointId, this.moveTransaction.current);
+          this.announce(`${transaction.jointId} preview. Position ${this.moveTransaction.current.map((entry) => entry.toFixed(3)).join(", ")}.`);
+          this.scheduleMoveCommit();
+        } catch (error) {
+          this.setStatus(error.message || String(error), "error");
+        }
+      } else if (modifier && key === "z") {
         event.preventDefault();
         this.emit({ "event/type": event.shiftKey ? "rig/history-redo" : "rig/history-undo" });
       } else if (modifier && key === "y") {
         event.preventDefault();
         this.emit({ "event/type": "rig/history-redo" });
+      } else if ((event.shiftKey && key === "a") || event.key === "Insert") {
+        event.preventDefault();
+        this.createKeyboardJoint();
       } else if (key === "q") {
         event.preventDefault();
         this.emit({ "event/type": "rig/editor-settings", patch: { tool: "select" } });
@@ -409,15 +563,28 @@ export class RiggingWorkspace {
         event.preventDefault();
         this.commitAction({ type: "duplicate" });
       } else if (event.key === "Escape") {
-        this.emit({ "event/type": "rig/editor-select", jointIds: [], mode: "replace" });
+        event.preventDefault();
+        if (!this.cancelMoveTransaction({ render: true })) {
+          this.emit({ "event/type": "rig/editor-select", jointIds: [], mode: "replace" });
+        }
       }
-    }, { signal: this.abort.signal });
+    }, { signal });
+    document.addEventListener("keyup", (event) => {
+      if (!RIG_NUDGE_KEYS.includes(event.key)) return;
+      this.moveKeys.delete(event.key);
+      if (!this.moveKeys.size) this.commitMoveTransaction();
+    }, { signal });
   }
 
   update(value) {
     if (this.destroyed) return;
     this.state = createRigAuthoringState(valueState(value));
+    if (this.moveTransaction && (
+      this.moveTransaction.revision !== this.state.document.revision
+      || !this.state.document.joints.some((joint) => joint.id === this.moveTransaction.jointId)
+    )) this.cancelMoveTransaction({ announce: false });
     this.renderer?.syncRigging?.(this.state.document, this.state.editor);
+    if (this.moveTransaction) this.renderer?.previewRigJoint?.(this.moveTransaction.jointId, this.moveTransaction.current);
     const handle = activeHandle(this.state);
     if (handle && this.assetHost.has(handle)) this.loadHandle(handle).catch((error) => this.setStatus(error.message, "error"));
     this.renderToolbar();
@@ -436,6 +603,7 @@ export class RiggingWorkspace {
     }
     this.undo.disabled = !this.state.history.undo.length;
     this.redo.disabled = !this.state.history.redo.length;
+    this.addChild.disabled = !this.state.session?.active;
     const selected = this.state.editor.selection.length;
     this.duplicate.disabled = !selected;
     this.mirror.disabled = !selected;
@@ -467,6 +635,7 @@ export class RiggingWorkspace {
       wrapper.setAttribute("aria-expanded", row.hasChildren ? String(row.expanded) : "false");
       wrapper.tabIndex = row.focused ? 0 : -1;
       wrapper.dataset.active = String(row.active);
+      wrapper.dataset.jointId = row.id;
       wrapper.dataset.issues = String(row.issues.length);
       wrapper.style.setProperty("--rig-depth", row.depth);
       const disclosure = button(document, row.hasChildren ? row.expanded ? "▾" : "▸" : "·", () => {
@@ -495,6 +664,7 @@ export class RiggingWorkspace {
   }
 
   handleTreeKey(event, row, rows) {
+    if (this.state.editor.tool === "translate" && RIG_NUDGE_KEYS.includes(event.key)) return;
     const index = rows.findIndex((entry) => entry.id === row.id);
     let target = null;
     if (event.key === "ArrowDown") target = rows[Math.min(rows.length - 1, index + 1)];
@@ -581,25 +751,41 @@ export class RiggingWorkspace {
     const fields = ["X", "Y", "Z"].map((axis, index) => {
       const field = input(document, "number", `${this.state.editor.space} position ${axis}`, values[index]);
       field.step = String(this.state.editor.snap.translate);
+      field.dataset.rigPositionAxis = axis.toLowerCase();
       return field;
     });
-    const apply = button(document, "Apply", () => {
+    const numericWorldPosition = () => {
       const position = fields.map((field) => Number(field.value));
-      if (!position.every(Number.isFinite)) return this.setStatus("Joint position must contain finite numbers", "error");
-      if (this.state.editor.space === "world") {
-        this.commitAction({ type: "move", jointId: active.id, worldPosition: position });
-      } else {
-        this.emit({
-          "event/type": "rig/intent",
-          intent: {
-            type: "rig/joint-update",
-            jointId: active.id,
-            patch: { rest: { translation: position } },
-            expectedRevision: this.state.document.revision,
-          },
-        });
+      if (!position.every(Number.isFinite)) throw new TypeError("Joint position must contain finite numbers");
+      return this.state.editor.space === "world"
+        ? position
+        : rigLocalPointToWorld(this.state.document, active.parent, position);
+    };
+    const preview = () => {
+      try { this.previewMovePosition(numericWorldPosition(), "numeric"); }
+      catch (error) { this.setStatus(error.message || String(error), "error"); }
+    };
+    const apply = button(document, "Apply", () => {
+      try {
+        this.previewMovePosition(numericWorldPosition(), "numeric");
+        this.commitMoveTransaction();
+      } catch (error) {
+        this.setStatus(error.message || String(error), "error");
       }
     });
+    for (const field of fields) {
+      field.addEventListener("input", preview);
+      field.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          preview();
+          this.commitMoveTransaction();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          this.cancelMoveTransaction({ render: true });
+        }
+      });
+    }
     row.append(...fields, apply);
     transform.append(row);
 
@@ -626,6 +812,7 @@ export class RiggingWorkspace {
 
   setStatus(message, tone = "info") {
     this.status.textContent = String(message ?? "");
+    if (tone === "error" || tone === "warning") this.announce(message);
     this.status.dataset.tone = tone;
     this.status.dataset.locked = "true";
     clearTimeout(this.statusTimer);
@@ -639,6 +826,9 @@ export class RiggingWorkspace {
     if (this.destroyed) return;
     this.destroyed = true;
     clearTimeout(this.statusTimer);
+    clearTimeout(this.moveCommitTimer);
+    this.moveKeys.clear();
+    this.moveTransaction = null;
     this.abort.abort();
     this.renderer?.destroy?.();
     this.autosave?.destroy();
