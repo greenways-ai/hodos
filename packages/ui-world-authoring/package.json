@@ -16,7 +16,9 @@
     "./advanced": "./src/world-editor-advanced.js",
     "./drafts": "./src/world-draft-panel.js",
     "./rigging": "./src/rigging-workspace.js",
+    "./sequence-authoring": "./src/sequence-authoring-activity.js",
     "./styles": "./src/styles.css",
+    "./sequence-styles": "./src/sequence-authoring-activity.css",
     "./rigging-styles": "./src/rigging-workspace.css",
     "./rigging-workfile": "./src/rigging-workfile-browser.js"
   },
