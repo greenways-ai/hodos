@@ -15,6 +15,7 @@
     "./authoring": "./src/world-authoring-model.js",
     "./character": "./src/character-model.js",
     "./sequence": "./src/sequence.js",
+    "./sequence-authoring": "./src/sequence-authoring.js",
     "./drafts": "./src/world-draft-model.js",
     "./drag": "./src/world-drag.js",
     "./rigging": "./src/rigging-model.js"
