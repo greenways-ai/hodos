@@ -1,0 +1,215 @@
+#hodos-app[data-experience="rigging"] {
+  min-height: calc(100dvh - var(--hodos-header-height, 3.5rem));
+  background: #dcd5c7;
+}
+
+.rigging-demo-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-height: calc(100dvh - var(--hodos-header-height, 3.5rem));
+  color: #17231d;
+  background: #dcd5c7;
+}
+
+.rigging-demo-header {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  color: #fffdf7;
+  background: #0f3328;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.rigging-demo-header p,
+.rigging-demo-header h1 {
+  margin: 0;
+}
+
+.rigging-demo-header p {
+  color: #b6c8c0;
+  font-size: 0.67rem;
+  letter-spacing: 0.14em;
+}
+
+.rigging-demo-header h1 {
+  font: 600 clamp(1.05rem, 2vw, 1.4rem)/1.2 ui-serif, Georgia, serif;
+}
+
+.rigging-demo-back,
+.rigging-demo-header button,
+.rigging-demo-private {
+  min-height: 2.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.5rem;
+}
+
+.rigging-demo-back,
+.rigging-demo-header button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.rigging-demo-header button:disabled {
+  opacity: 0.58;
+  cursor: progress;
+}
+
+.rigging-demo-private {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.65rem;
+  color: #d5e9df;
+  background: rgba(47, 130, 117, 0.2);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.rigging-demo-evidence {
+  display: grid;
+  grid-template-columns: minmax(12rem, 2fr) repeat(3, minmax(7rem, 1fr));
+  gap: 1px;
+  background: rgba(23, 35, 29, 0.18);
+  border-bottom: 1px solid rgba(23, 35, 29, 0.18);
+}
+
+.rigging-demo-evidence > span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.5rem 0.8rem;
+  background: #ebe4d7;
+}
+
+.rigging-demo-evidence small {
+  color: #66736b;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rigging-demo-evidence strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 0.78rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.rigging-demo-evidence [data-tone="rejected"] {
+  color: #8b2c22;
+}
+
+.rigging-demo-component {
+  min-height: 0;
+}
+
+.rigging-demo-component > .hodos-rigging-workspace {
+  min-height: max(620px, calc(100dvh - var(--hodos-header-height, 3.5rem) - 8.2rem));
+}
+
+.rigging-demo-component .hodos-rigging-viewport canvas {
+  touch-action: none;
+}
+
+.rigging-demo-live {
+  position: fixed;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.rigging-demo-live[data-tone="error"] {
+  color: #8b2c22;
+}
+
+@media (max-width: 760px) {
+  .rigging-demo-header {
+    grid-template-columns: auto 1fr;
+    gap: 0.55rem;
+  }
+
+  .rigging-demo-private,
+  .rigging-demo-header button {
+    grid-column: span 1;
+  }
+
+  .rigging-demo-evidence {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .rigging-demo-component > .hodos-rigging-workspace {
+    min-height: calc(100dvh - var(--hodos-header-height, 3.5rem));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rigging-demo-shell * {
+    scroll-behavior: auto !important;
+  }
+}
+
+.rigging-landing {
+  margin: 2rem 0 0;
+  padding: 1px;
+  border-radius: 0.85rem;
+  background: linear-gradient(135deg, rgba(47, 130, 117, 0.55), rgba(183, 138, 55, 0.48));
+}
+
+.rigging-landing > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem 2rem;
+  padding: clamp(1.1rem, 3vw, 2rem);
+  border-radius: calc(0.85rem - 1px);
+  color: #e9f2ee;
+  background: #102e25;
+}
+
+.rigging-landing p,
+.rigging-landing h3,
+.rigging-landing span {
+  margin: 0;
+}
+
+.rigging-landing p,
+.rigging-landing span {
+  color: #b9cbc3;
+}
+
+.rigging-landing h3 {
+  margin-top: 0.25rem;
+  font: 600 clamp(1.45rem, 3vw, 2.3rem)/1.05 ui-serif, Georgia, serif;
+}
+
+.rigging-landing span {
+  display: block;
+  max-width: 48rem;
+  margin-top: 0.7rem;
+}
+
+.rigging-landing button {
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid #d8c181;
+  border-radius: 0.55rem;
+  color: #14271f;
+  background: #ead697;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .rigging-landing > article {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}

@@ -11,6 +11,7 @@
     "@greenways/hodos-ui-world-publication": "0.1.0",
     "@greenways/hodos-viewer": "0.1.0",
     "@greenways/hodos-viewer-defaults": "0.1.0",
+    "@greenways/hodos-web": "0.1.0",
     "@greenways/hodos-world-model": "0.1.0"
   },
   "scripts": {
