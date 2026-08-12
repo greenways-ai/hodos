@@ -2,12 +2,25 @@ import { defineAddon, HODOS_CORE_ADDON_ID } from "@greenways/hodos-core";
 import { HODOS_WORLD_MODEL_ADDON_ID } from "@greenways/hodos-world-model";
 import { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
 import {
+  LocalRiggingAssetHost,
+  createLocalRiggingAssetHost,
+} from "./rigging-asset-host.js";
+import {
+  analyzeLocalGlb,
+  preflightLocalGlb,
+} from "./rigging-glb-preflight.js";
+import {
   enhanceWorldRenderer,
   installAdvancedWorldRendererPrototype,
 } from "./world-renderer-enhancer.js";
 import { WorldRenderer } from "./world-renderer.js";
 
 export { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
+export {
+  LocalRiggingAssetHost,
+  createLocalRiggingAssetHost,
+} from "./rigging-asset-host.js";
+export * from "./rigging-glb-preflight.js";
 export { enhanceWorldRenderer, installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
 export { WorldRenderer } from "./world-renderer.js";
 
@@ -29,6 +42,12 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       Renderer: WorldRenderer,
       enhance: enhanceWorldRenderer,
       installAdvanced: installAdvancedWorldRendererPrototype,
+    }));
+    context.contribute("rig.asset-host", "playcanvas-local", Object.freeze({
+      Host: LocalRiggingAssetHost,
+      create: createLocalRiggingAssetHost,
+      analyze: analyzeLocalGlb,
+      preflight: preflightLocalGlb,
     }));
   },
 });
