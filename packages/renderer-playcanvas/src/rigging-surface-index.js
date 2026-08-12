@@ -822,3 +822,12 @@ export function destroyRiggingSurfaceIndex(index) {
   index.evidence = surfaceIndexEvidence(index);
   return true;
 }
+
+export {
+  activeNodeInstances as riggingActiveNodeInstances,
+  createAccessorReader as createRiggingAccessorReader,
+  transformPoint as transformRiggingPoint,
+  triangleCountFor as riggingTriangleCountFor,
+  triangleIndices as riggingTriangleIndices,
+  triangleAreaSquared as riggingTriangleAreaSquared,
+};

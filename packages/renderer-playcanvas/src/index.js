@@ -7,11 +7,18 @@ import {
 } from "./rigging-asset-host.js";
 import { RiggingAuthoringRenderer } from "./rigging-authoring-renderer.js";
 import {
+  bindGeometryEvidence,
+  buildRiggingBindGeometry,
+  destroyRiggingBindGeometry,
+} from "./rigging-bind-geometry.js";
+import {
   analyzeLocalGlb,
   preflightLocalGlb,
 } from "./rigging-glb-preflight.js";
 import { RigSkeletonOverlay } from "./rigging-skeleton-overlay.js";
 import { RigTranslateHandles } from "./rigging-translate-handles.js";
+import { RiggingWeightArtifactStore } from "./rigging-weight-artifacts.js";
+import { RiggingWeightTaskRunner } from "./rigging-weight-task.js";
 import {
   buildRiggingSurfaceIndex,
   destroyRiggingSurfaceIndex,
@@ -30,10 +37,13 @@ export {
   createLocalRiggingAssetHost,
 } from "./rigging-asset-host.js";
 export * from "./rigging-authoring-renderer.js";
+export * from "./rigging-bind-geometry.js";
 export * from "./rigging-glb-preflight.js";
 export * from "./rigging-skeleton-overlay.js";
 export * from "./rigging-surface-index.js";
 export * from "./rigging-translate-handles.js";
+export * from "./rigging-weight-artifacts.js";
+export * from "./rigging-weight-task.js";
 export { enhanceWorldRenderer, installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
 export { WorldRenderer } from "./world-renderer.js";
 
@@ -72,6 +82,13 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       destroy: destroyRiggingSurfaceIndex,
       evidence: surfaceIndexEvidence,
       raycast: raycastRiggingSurface,
+    }));
+    context.contribute("rig.weights", "playcanvas-local", Object.freeze({
+      ArtifactStore: RiggingWeightArtifactStore,
+      TaskRunner: RiggingWeightTaskRunner,
+      buildGeometry: buildRiggingBindGeometry,
+      destroyGeometry: destroyRiggingBindGeometry,
+      geometryEvidence: bindGeometryEvidence,
     }));
   },
 });
