@@ -3,6 +3,7 @@ import { HODOS_PLAYCANVAS_RENDERER_ADDON_ID } from "@greenways/hodos-renderer-pl
 import { HODOS_WORLD_MODEL_ADDON_ID } from "@greenways/hodos-world-model";
 
 export * from "./rigging-workfile-browser.js";
+export * from "./sequence-authoring-activity.js";
 
 export const HODOS_WORLD_AUTHORING_UI_ADDON_ID = "@greenways/hodos-ui-world-authoring";
 export const HODOS_WORLD_AUTHORING_COMPONENT_ID = "hodos.world/authoring";
@@ -138,10 +139,16 @@ export const hodosWorldAuthoringUiAddon = defineAddon({
     if (!renderer) throw new Error("Hodos world-authoring UI requires the PlayCanvas renderer contribution");
     if (!rigging) throw new Error("Hodos rigging UI requires the PlayCanvas rig renderer contribution");
     renderer.installAdvanced();
-    const [{ WorldDraftPanel }, { WorldEditorWorkspace }, { RiggingWorkspace, createRiggingWorkspaceHost }] = await Promise.all([
+    const [
+      { WorldDraftPanel },
+      { WorldEditorWorkspace },
+      { RiggingWorkspace, createRiggingWorkspaceHost },
+      sequenceAuthoring,
+    ] = await Promise.all([
       import("./world-draft-panel.js"),
       import("./world-editor-workspace.js"),
       import("./rigging-workspace.js"),
+      import("./sequence-authoring-activity.js"),
     ]);
     context.contribute("world.ui", "authoring", Object.freeze({
       DraftPanel: WorldDraftPanel,
@@ -151,6 +158,7 @@ export const hodosWorldAuthoringUiAddon = defineAddon({
       Workspace: RiggingWorkspace,
       createHost: createRiggingWorkspaceHost,
     }));
+    context.contribute("sequence.ui", "authoring", sequenceAuthoring.sequenceAuthoringActivityPlugin);
   },
 });
 
