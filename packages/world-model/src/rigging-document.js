@@ -5,6 +5,7 @@ import {
   normalizeQuaternion,
   optionalString,
   requiredString,
+  vector,
 } from "./rigging-values.js";
 import {
   normalizeBind,
@@ -115,6 +116,46 @@ export function deleteRigJoint(documentValue, jointId, { cascade = false } = {})
     }
   }
   return nextRigRevision(document, { joints: document.joints.filter((joint) => !removal.has(joint.id)) });
+}
+
+
+export function duplicateRigJoints(documentValue, {
+  jointIds,
+  idMap,
+  offset = [0.15, 0, 0.15],
+} = {}) {
+  const document = canonicalDocument(documentValue);
+  if (!Array.isArray(jointIds) || jointIds.length === 0) throw new TypeError("jointIds must be a non-empty array");
+  if (!isPlainObject(idMap)) throw new TypeError("idMap must be a plain object");
+  const selectedIds = [...new Set(jointIds.map((entry, index) => requiredString(entry, `jointIds[${index}]`)))];
+  const selected = new Set(selectedIds);
+  const jointById = new Map(document.joints.map((joint) => [joint.id, joint]));
+  const targetIds = new Set();
+  for (const id of selectedIds) {
+    if (!jointById.has(id)) throw new RangeError(`Unknown joint: ${id}`);
+    const targetId = requiredString(idMap[id], `idMap.${id}`);
+    if (jointById.has(targetId)) throw new RangeError(`Duplicated joint already exists: ${targetId}`);
+    if (targetIds.has(targetId)) throw new RangeError(`Duplicated id is not unique: ${targetId}`);
+    targetIds.add(targetId);
+  }
+  const displacement = vector(offset, [0.15, 0, 0.15], 3, "offset");
+  const duplicated = selectedIds.map((id) => {
+    const joint = jointById.get(id);
+    const selectedRoot = !joint.parent || !selected.has(joint.parent);
+    const translation = joint.rest.translation.map((entry, axis) => (
+      selectedRoot ? entry + displacement[axis] : entry
+    ));
+    return {
+      ...clonePortable(joint),
+      id: idMap[id],
+      parent: joint.parent && selected.has(joint.parent) ? idMap[joint.parent] : joint.parent,
+      rest: {
+        ...clonePortable(joint.rest),
+        translation,
+      },
+    };
+  });
+  return nextRigRevision(document, { joints: [...document.joints, ...duplicated] });
 }
 
 function mirroredQuaternion(quaternion, axis) {
