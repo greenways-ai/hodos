@@ -11,6 +11,15 @@ import {
   analyzeLocalGlb,
   toUint8Array,
 } from "./rigging-glb-preflight.js";
+import {
+  RIG_SURFACE_INDEX_PROVIDER_ID,
+  RIG_SURFACE_INDEX_PROVIDER_VERSION,
+  RigSurfaceIndexError,
+  buildRiggingSurfaceIndex,
+  destroyRiggingSurfaceIndex,
+  raycastRiggingSurface,
+  surfaceIndexEvidence,
+} from "./rigging-surface-index.js";
 
 function boundedText(value, fallback, maximumLength) {
   const text = typeof value === "string" && value.trim() ? value.trim() : fallback;
@@ -68,15 +77,31 @@ function structuredOpenError(error) {
   };
 }
 
+function surfaceFailure(error) {
+  return Object.freeze({
+    provider: Object.freeze({ id: RIG_SURFACE_INDEX_PROVIDER_ID, version: RIG_SURFACE_INDEX_PROVIDER_VERSION }),
+    status: error instanceof RigSurfaceIndexError ? "unsupported" : "failed",
+    triangles: 0,
+    bvhNodes: 0,
+    error: Object.freeze({
+      code: boundedText(error?.code, "rig/surface-build-failed", 128),
+      message: boundedText(error?.message, "Unable to build the local surface index", 1024),
+      ...(safeDetails(error) ? { details: safeDetails(error) } : {}),
+    }),
+  });
+}
+
 export class LocalRiggingAssetHost {
   constructor({
     id = "playcanvas-local-rigging",
     preflight = {},
+    surface = {},
     maximumAssets = 8,
     maximumTotalBytes = 512 * 1024 * 1024,
   } = {}) {
     this.id = boundedText(id, "playcanvas-local-rigging", 128);
     this.preflightOptions = Object.freeze({ ...preflight });
+    this.surfaceOptions = Object.freeze({ ...surface });
     this.maximumAssets = positiveSafeInteger(maximumAssets, 8, "maximumAssets");
     this.maximumTotalBytes = positiveSafeInteger(maximumTotalBytes, 512 * 1024 * 1024, "maximumTotalBytes");
     this.records = new Map();
@@ -127,6 +152,9 @@ export class LocalRiggingAssetHost {
         binaryChunk: analysis.binaryChunk,
         source,
         preflight: analysis.preflight,
+        surfaceIndex: null,
+        surfacePromise: null,
+        surface: surfaceIndexEvidence(null),
       });
       ownedBytes = null;
       return Object.freeze({
@@ -161,7 +189,7 @@ export class LocalRiggingAssetHost {
 
   describe(handle) {
     const record = this.record(handle);
-    return Object.freeze({ source: record.source, preflight: record.preflight });
+    return Object.freeze({ source: record.source, preflight: record.preflight, surface: record.surface });
   }
 
   readBytes(handle) {
@@ -173,10 +201,61 @@ export class LocalRiggingAssetHost {
     return cloneDocument(this.record(handle).document);
   }
 
+  async prepareSurface(handle, options = {}) {
+    const record = this.record(handle);
+    if (record.surfaceIndex && !record.surfaceIndex.destroyed) return record.surface;
+    if (record.surfacePromise) return record.surfacePromise;
+    record.surfacePromise = (async () => {
+      try {
+        const index = await buildRiggingSurfaceIndex({
+          document: record.document,
+          binaryChunk: record.binaryChunk,
+        }, {
+          ...this.surfaceOptions,
+          ...options,
+        });
+        if (!this.records.has(handle)) {
+          destroyRiggingSurfaceIndex(index);
+          throw new RigSurfaceIndexError("rig/surface-released", "Local rigging asset was released while its surface index was building");
+        }
+        record.surfaceIndex = index;
+        record.surface = surfaceIndexEvidence(index);
+      } catch (error) {
+        record.surfaceIndex = null;
+        record.surface = surfaceFailure(error);
+      } finally {
+        record.surfacePromise = null;
+      }
+      return record.surface;
+    })();
+    return record.surfacePromise;
+  }
+
+  surfaceEvidence(handle) {
+    return this.record(handle).surface;
+  }
+
+  raycastSurface(handle, ray, options = {}) {
+    const record = this.record(handle);
+    if (!record.surfaceIndex || record.surfaceIndex.destroyed) {
+      return Object.freeze({
+        ok: false,
+        hit: null,
+        error: Object.freeze({
+          code: record.surface?.error?.code ?? "rig/surface-unavailable",
+          message: record.surface?.error?.message ?? "Local triangle surface index is not ready",
+        }),
+      });
+    }
+    return raycastRiggingSurface(record.surfaceIndex, ray, options);
+  }
+
   release(handle) {
     this.assertActive();
     const record = this.records.get(handle);
     if (!record) return false;
+    destroyRiggingSurfaceIndex(record.surfaceIndex);
+    record.surfaceIndex = null;
     record.bytes.fill(0);
     this.records.delete(handle);
     return true;
@@ -202,7 +281,11 @@ export class LocalRiggingAssetHost {
 
   destroy() {
     if (this.destroyed) return;
-    for (const record of this.records.values()) record.bytes.fill(0);
+    for (const record of this.records.values()) {
+      destroyRiggingSurfaceIndex(record.surfaceIndex);
+      record.surfaceIndex = null;
+      record.bytes.fill(0);
+    }
     this.records.clear();
     this.destroyed = true;
   }

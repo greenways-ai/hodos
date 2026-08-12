@@ -12,6 +12,12 @@ import {
 } from "./rigging-glb-preflight.js";
 import { RigSkeletonOverlay } from "./rigging-skeleton-overlay.js";
 import {
+  buildRiggingSurfaceIndex,
+  destroyRiggingSurfaceIndex,
+  raycastRiggingSurface,
+  surfaceIndexEvidence,
+} from "./rigging-surface-index.js";
+import {
   enhanceWorldRenderer,
   installAdvancedWorldRendererPrototype,
 } from "./world-renderer-enhancer.js";
@@ -25,6 +31,7 @@ export {
 export * from "./rigging-authoring-renderer.js";
 export * from "./rigging-glb-preflight.js";
 export * from "./rigging-skeleton-overlay.js";
+export * from "./rigging-surface-index.js";
 export { enhanceWorldRenderer, installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
 export { WorldRenderer } from "./world-renderer.js";
 
@@ -56,6 +63,12 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
     context.contribute("rig.renderer", "playcanvas", Object.freeze({
       AuthoringRenderer: RiggingAuthoringRenderer,
       SkeletonOverlay: RigSkeletonOverlay,
+    }));
+    context.contribute("rig.surface", "playcanvas-local", Object.freeze({
+      build: buildRiggingSurfaceIndex,
+      destroy: destroyRiggingSurfaceIndex,
+      evidence: surfaceIndexEvidence,
+      raycast: raycastRiggingSurface,
     }));
   },
 });

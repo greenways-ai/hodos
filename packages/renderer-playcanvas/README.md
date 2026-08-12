@@ -40,3 +40,16 @@ host-local preview; one `hodos.rig-intent/0-alpha` value is emitted only on
 pointer release. Surface placement may use an injected mesh picker; when one is
 not available, the bounded source AABB is used rather than pretending to have
 triangle-accurate evidence.
+
+## Triangle-accurate rigging surfaces
+
+`@greenways/hodos-renderer-playcanvas/rigging-surface` builds a bounded,
+host-owned BVH from locally readable GLB triangle primitives. The opaque asset
+host exposes lazy preparation, transient raycasts, bounded evidence, and
+deterministic disposal. Surface triangles, accessor views and acceleration
+nodes never enter portable Hodos state.
+
+The authoring renderer uses the host raycast for `surface` placement and falls
+back to source bounds or depth when geometry is compressed, external,
+unsupported, or exceeds the configured limits. See
+`docs/rigging-surface-picking.md`.

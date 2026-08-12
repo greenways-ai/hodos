@@ -98,6 +98,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     onRigIntent,
     onRigEditor,
     surfacePick = null,
+    surfaceOffset = 0,
     ...options
   } = {}) {
     super(canvas, options);
@@ -105,6 +106,9 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.onRigIntent = typeof onRigIntent === "function" ? onRigIntent : () => {};
     this.onRigEditor = typeof onRigEditor === "function" ? onRigEditor : () => {};
     this.surfacePick = typeof surfacePick === "function" ? surfacePick : null;
+    this.surfaceOffset = Number.isFinite(surfaceOffset) ? surfaceOffset : 0;
+    this.rigSurfaceEvidence = null;
+    this.rigSurfaceLastRay = null;
     this.rigDocument = ensureRigRoot(normalizeRigDocument({ id: "rig:untitled", assetId: "asset:unassigned" }));
     this.rigEditor = normalizeRigEditor({}, this.rigDocument);
     this.rigOverlay = new RigSkeletonOverlay({ app: this.app, camera: this.camera, canvas: this.canvas });
@@ -169,6 +173,9 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
       this.rigAssetUrl = url;
       this.rigAssetHandle = handle;
       this.applyRiggingBounds(description.preflight?.geometry?.bounds ?? null);
+      this.rigSurfaceEvidence = typeof this.assetHost?.prepareSurface === "function"
+        ? await this.assetHost.prepareSurface(handle)
+        : null;
       return instance;
     } catch (error) {
       bytes.fill(0);
@@ -207,6 +214,8 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.rigAssetUrl = null;
     this.rigAssetHandle = null;
     this.rigAssetBounds = null;
+    this.rigSurfaceEvidence = null;
+    this.rigSurfaceLastRay = null;
   }
 
   installRiggingPointerControls() {
@@ -300,9 +309,18 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     if (!rayValue) return [...anchorValue];
     const ray = { origin: arrayPoint(rayValue.origin), direction: arrayPoint(rayValue.direction) };
     const cameraForward = arrayPoint(this.orbit.target.clone().sub(this.camera.getPosition()).normalize());
-    const surfacePoint = this.rigEditor.snap.mode === "surface"
-      ? this.surfacePick?.({ clientX, clientY, ray, handle: this.rigAssetHandle, renderer: this }) ?? null
-      : null;
+    let surfacePoint = null;
+    if (this.rigEditor.snap.mode === "surface") {
+      const supplied = this.surfacePick?.({ clientX, clientY, ray, handle: this.rigAssetHandle, renderer: this }) ?? null;
+      if (finitePoint(supplied)) surfacePoint = supplied;
+      else if (this.rigAssetHandle && typeof this.assetHost?.raycastSurface === "function") {
+        this.rigSurfaceLastRay = this.assetHost.raycastSurface(this.rigAssetHandle, ray, {
+          backface: "double",
+          offset: this.surfaceOffset,
+        });
+        surfacePoint = finitePoint(this.rigSurfaceLastRay?.hit?.point);
+      }
+    }
     return rigPlacementPoint({
       ray,
       mode: this.rigEditor.snap.mode,
@@ -311,6 +329,18 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
       cameraForward,
       gridY: this.rigAssetBounds?.min?.[1] ?? 0,
       surfacePoint,
+    });
+  }
+
+  setSurfaceOffset(value) {
+    if (!Number.isFinite(value)) throw new TypeError("Surface offset must be finite");
+    this.surfaceOffset = value;
+  }
+
+  surfaceStatus() {
+    return Object.freeze({
+      evidence: this.rigSurfaceEvidence,
+      lastRay: this.rigSurfaceLastRay,
     });
   }
 
