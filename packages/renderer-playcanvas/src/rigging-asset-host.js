@@ -12,6 +12,7 @@ import {
   toUint8Array,
 } from "./rigging-glb-preflight.js";
 import { RiggingWeightArtifactStore } from "./rigging-weight-artifacts.js";
+import { RiggingWeightEditingStore } from "./rigging-weight-editing.js";
 import { RiggingWeightTaskRunner } from "./rigging-weight-task.js";
 import {
   RIG_SURFACE_INDEX_PROVIDER_ID,
@@ -100,6 +101,7 @@ export class LocalRiggingAssetHost {
     surface = {},
     binding = {},
     weights = {},
+    weightEditing = {},
     weightWorkerFactory = null,
     maximumAssets = 8,
     maximumTotalBytes = 512 * 1024 * 1024,
@@ -109,6 +111,7 @@ export class LocalRiggingAssetHost {
     this.surfaceOptions = Object.freeze({ ...surface });
     this.bindingOptions = Object.freeze({ ...binding });
     this.weightOptions = Object.freeze({ ...weights });
+    this.weightEditingOptions = Object.freeze({ ...weightEditing });
     this.weightTaskRunner = new RiggingWeightTaskRunner({ workerFactory: weightWorkerFactory });
     this.maximumAssets = positiveSafeInteger(maximumAssets, 8, "maximumAssets");
     this.maximumTotalBytes = positiveSafeInteger(maximumTotalBytes, 512 * 1024 * 1024, "maximumTotalBytes");
@@ -154,6 +157,19 @@ export class LocalRiggingAssetHost {
         handle: { type: "rig/source-asset", id: handle, scope: "session" },
       });
       const nextSession = acceptRiggingSource(session, { source, preflight: analysis.preflight });
+      const weightStore = new RiggingWeightArtifactStore({
+        source,
+        document: analysis.document,
+        binaryChunk: analysis.binaryChunk,
+        geometry: this.bindingOptions,
+        taskRunner: this.weightTaskRunner,
+        ...this.weightOptions,
+      });
+      const weightEditor = new RiggingWeightEditingStore({
+        artifactStore: weightStore,
+        id: `${handle}:weight-edit`,
+        ...this.weightEditingOptions,
+      });
       this.records.set(handle, {
         bytes: ownedBytes,
         document: analysis.document,
@@ -163,14 +179,8 @@ export class LocalRiggingAssetHost {
         surfaceIndex: null,
         surfacePromise: null,
         surface: surfaceIndexEvidence(null),
-        weightStore: new RiggingWeightArtifactStore({
-          source,
-          document: analysis.document,
-          binaryChunk: analysis.binaryChunk,
-          geometry: this.bindingOptions,
-          taskRunner: this.weightTaskRunner,
-          ...this.weightOptions,
-        }),
+        weightStore,
+        weightEditor,
       });
       ownedBytes = null;
       return Object.freeze({
@@ -279,6 +289,62 @@ export class LocalRiggingAssetHost {
     return this.record(handle).weightStore.readBind(id);
   }
 
+  async selectWeightSphere(handle, options) {
+    return this.record(handle).weightEditor.selectSphere(options);
+  }
+
+  async selectWeightComponents(handle, options) {
+    return this.record(handle).weightEditor.selectComponents(options);
+  }
+
+  async selectWeightVertices(handle, vertices) {
+    return this.record(handle).weightEditor.selectVertices(vertices);
+  }
+
+  async unionWeightSelections(handle, ids) {
+    return this.record(handle).weightEditor.unionSelections(ids);
+  }
+
+  describeWeightSelection(handle, id) {
+    return this.record(handle).weightEditor.describeSelection(id);
+  }
+
+  readWeightSelection(handle, id) {
+    return this.record(handle).weightEditor.readSelection(id);
+  }
+
+  releaseWeightSelection(handle, id) {
+    return this.record(handle).weightEditor.releaseSelection(id);
+  }
+
+  async previewWeightEdit(handle, rig, baseWeightSetId, selectionId, edit, options = {}) {
+    return this.record(handle).weightEditor.preview(rig, baseWeightSetId, selectionId, edit, options);
+  }
+
+  readWeightPreview(handle, id) {
+    return this.record(handle).weightEditor.readPreview(id);
+  }
+
+  commitWeightPreview(handle, id) {
+    return this.record(handle).weightEditor.commitPreview(id);
+  }
+
+  discardWeightPreview(handle, id) {
+    return this.record(handle).weightEditor.discardPreview(id);
+  }
+
+  async editWeights(handle, rig, baseWeightSetId, selectionId, edit, options = {}) {
+    return this.record(handle).weightEditor.edit(rig, baseWeightSetId, selectionId, edit, options);
+  }
+
+  async diagnoseWeights(handle, rig, weightSetId, options = {}) {
+    return this.record(handle).weightEditor.diagnose(rig, weightSetId, options);
+  }
+
+  weightEditEvidence(handle) {
+    return this.record(handle).weightEditor.evidence();
+  }
+
   raycastSurface(handle, ray, options = {}) {
     const record = this.record(handle);
     if (!record.surfaceIndex || record.surfaceIndex.destroyed) {
@@ -300,6 +366,7 @@ export class LocalRiggingAssetHost {
     if (!record) return false;
     destroyRiggingSurfaceIndex(record.surfaceIndex);
     record.surfaceIndex = null;
+    record.weightEditor?.destroy?.();
     record.weightStore?.destroy?.();
     record.bytes.fill(0);
     this.records.delete(handle);
@@ -329,6 +396,7 @@ export class LocalRiggingAssetHost {
     for (const record of this.records.values()) {
       destroyRiggingSurfaceIndex(record.surfaceIndex);
       record.surfaceIndex = null;
+      record.weightEditor?.destroy?.();
       record.weightStore?.destroy?.();
       record.bytes.fill(0);
     }

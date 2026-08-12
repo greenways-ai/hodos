@@ -15,6 +15,7 @@ export {
 } from "./rigging-validation.js";
 export * from "./rigging-document.js";
 export * from "./rigging-weights.js";
+export * from "./rigging-weight-edit.js";
 export * from "./rigging-binding.js";
 export * from "./rigging-intents.js";
 export * from "./rigging-preflight.js";

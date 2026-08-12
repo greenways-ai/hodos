@@ -18,6 +18,8 @@ import {
 import { RigSkeletonOverlay } from "./rigging-skeleton-overlay.js";
 import { RigTranslateHandles } from "./rigging-translate-handles.js";
 import { RiggingWeightArtifactStore } from "./rigging-weight-artifacts.js";
+import { RiggingWeightEditingStore } from "./rigging-weight-editing.js";
+import { RiggingWeightSelectionStore } from "./rigging-weight-selections.js";
 import { RiggingWeightTaskRunner } from "./rigging-weight-task.js";
 import {
   buildRiggingSurfaceIndex,
@@ -43,6 +45,8 @@ export * from "./rigging-skeleton-overlay.js";
 export * from "./rigging-surface-index.js";
 export * from "./rigging-translate-handles.js";
 export * from "./rigging-weight-artifacts.js";
+export * from "./rigging-weight-editing.js";
+export * from "./rigging-weight-selections.js";
 export * from "./rigging-weight-task.js";
 export { enhanceWorldRenderer, installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
 export { WorldRenderer } from "./world-renderer.js";
@@ -85,6 +89,8 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
     }));
     context.contribute("rig.weights", "playcanvas-local", Object.freeze({
       ArtifactStore: RiggingWeightArtifactStore,
+      EditingStore: RiggingWeightEditingStore,
+      SelectionStore: RiggingWeightSelectionStore,
       TaskRunner: RiggingWeightTaskRunner,
       buildGeometry: buildRiggingBindGeometry,
       destroyGeometry: destroyRiggingBindGeometry,
