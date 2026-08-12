@@ -4,11 +4,13 @@ import * as character from "./character-model.js";
 import * as drafts from "./world-draft-model.js";
 import * as drag from "./world-drag.js";
 import * as editor from "./world-editor-model.js";
+import * as mixamo from "./mixamo-model.js";
 import * as rigging from "./rigging-model.js";
 import * as sequence from "./sequence.js";
 import * as sequenceAuthoring from "./sequence-authoring.js";
 
 export * from "./character-model.js";
+export * from "./mixamo-model.js";
 export * from "./rigging-model.js";
 export * from "./sequence.js";
 export * from "./sequence-authoring.js";
@@ -33,6 +35,7 @@ export const hodosWorldModelAddon = defineAddon({
       drafts: Object.freeze({ ...drafts }),
       drag: Object.freeze({ ...drag }),
       editor: Object.freeze({ ...editor }),
+      mixamo: Object.freeze({ ...mixamo }),
       rigging: Object.freeze({ ...rigging }),
       sequence: Object.freeze({ ...sequence }),
       sequenceAuthoring: Object.freeze({ ...sequenceAuthoring }),
