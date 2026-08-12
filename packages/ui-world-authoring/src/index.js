@@ -2,6 +2,8 @@ import { defineAddon, HODOS_CORE_ADDON_ID } from "@greenways/hodos-core";
 import { HODOS_PLAYCANVAS_RENDERER_ADDON_ID } from "@greenways/hodos-renderer-playcanvas";
 import { HODOS_WORLD_MODEL_ADDON_ID } from "@greenways/hodos-world-model";
 
+export * from "./rigging-workfile-browser.js";
+
 export const HODOS_WORLD_AUTHORING_UI_ADDON_ID = "@greenways/hodos-ui-world-authoring";
 export const HODOS_WORLD_AUTHORING_COMPONENT_ID = "hodos.world/authoring";
 export const HODOS_RIGGING_AUTHORING_COMPONENT_ID = "hodos.rigging/authoring";
@@ -32,6 +34,7 @@ export const HODOS_WORLD_AUTHORING_EVENTS = Object.freeze([
 
 export const HODOS_RIGGING_AUTHORING_EVENTS = Object.freeze([
   "rig/source-opened",
+  "rig/authoring-replace",
   "rig/editor-select",
   "rig/editor-settings",
   "rig/editor-toggle-expanded",

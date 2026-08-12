@@ -17,7 +17,8 @@
     "./drafts": "./src/world-draft-panel.js",
     "./rigging": "./src/rigging-workspace.js",
     "./styles": "./src/styles.css",
-    "./rigging-styles": "./src/rigging-workspace.css"
+    "./rigging-styles": "./src/rigging-workspace.css",
+    "./rigging-workfile": "./src/rigging-workfile-browser.js"
   },
   "files": [
     "src",

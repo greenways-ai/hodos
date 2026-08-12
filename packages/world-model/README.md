@@ -62,3 +62,11 @@ deliberately not part of the portable documents. Failed replacement opens retain
 the last accepted source and preflight so a working session is not discarded.
 See `docs/client-side-rigging.md` and `docs/rigging-authoring.md` for the host
 boundary and workbench contract.
+
+## Portable rig workfiles
+
+`@greenways/hodos-world-model/rigging` also exports the bounded
+`hodos.rig-workfile/0-alpha` envelope, deterministic JSON and EDN-compatible
+serializers, source-identity reconciliation, and structured restore preparation.
+Workfiles retain the normalized rig, optional editor state and history limit,
+while omitting sessions, opaque handles, undo snapshots and renderer values.

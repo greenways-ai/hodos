@@ -8,6 +8,7 @@ import {
   RIG_AUTHORING_SCHEMA,
   RIG_EDITOR_SCHEMA,
   RIG_INTENT_SCHEMA,
+  RIG_OUTCOME_SCHEMA,
   clonePortable,
   finiteNumber,
   isPlainObject,
@@ -522,6 +523,35 @@ export function reduceRigAuthoringEvent(stateValue, eventValue = {}) {
     return createRigAuthoringState({
       ...state,
       editor: normalizeRigEditor({ ...state.editor, focused: event.jointId }, state.document),
+    });
+  }
+  if (type === "rig/authoring-replace") {
+    const document = normalizeRigDocument(event.document);
+    const sourceContentId = optionalString(event.sourceContentId, "event.sourceContentId");
+    const activeContentId = optionalString(state.session?.active?.source?.contentId, "state.session.active.source.contentId");
+    if (!sourceContentId || sourceContentId !== document.assetId) {
+      throw new RangeError("Replacement rig source identity must match document.assetId");
+    }
+    if (!activeContentId || activeContentId !== sourceContentId) {
+      throw new RangeError("Replacement rig source identity must match the active local source");
+    }
+    const historyLimit = safeInteger(event.history?.limit, state.history.limit, "event.history.limit", 1);
+    if (historyLimit > MAX_RIG_HISTORY_LIMIT) throw new RangeError(`event.history.limit cannot exceed ${MAX_RIG_HISTORY_LIMIT}`);
+    return createRigAuthoringState({
+      ...state,
+      document,
+      editor: normalizeRigEditor(event.editor ?? {}, document),
+      history: { limit: historyLimit, undo: [], redo: [] },
+      lastOutcome: {
+        schema: RIG_OUTCOME_SCHEMA,
+        operationId: optionalString(event.operationId, "event.operationId") ?? "rig/workfile-restore",
+        type: requiredString(event.reason ?? "rig/authoring-replace", "event.reason"),
+        status: "applied",
+        revisionBefore: state.document.revision,
+        revisionAfter: document.revision,
+        sourcePolicy: optionalString(event.sourcePolicy, "event.sourcePolicy"),
+      },
+      lastEvidence: null,
     });
   }
   if (type === "rig/source-opened") {
