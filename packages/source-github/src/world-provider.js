@@ -1,5 +1,5 @@
-export const WORLD_PROVIDER_FORMAT = "hodos.world-provider/0-alpha";
-export const WORLD_PROVIDER_LAUNCH_FORMAT = "hodos.world-provider-launch/0-alpha";
+export const WORLD_PROVIDER_FORMAT = "hodos.world-provider/1";
+export const WORLD_PROVIDER_LAUNCH_FORMAT = "hodos.world-provider-launch/1";
 
 export const WORLD_PROVIDER_LIMITS = Object.freeze({
   identifierLength: 192,
@@ -7,8 +7,8 @@ export const WORLD_PROVIDER_LIMITS = Object.freeze({
   states: 64,
 });
 
-const IDENTIFIER_PATTERN = /^[A-Za-z0-9_.\/-]+$/;
-const PACKAGE_PATTERN = /^(?:hara|npm):[A-Za-z0-9@._\/-]+@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
+const PROVIDER_IDENTITY_PATTERN = /^[a-z][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/;
+const PACKAGE_PATTERN = /^(?:hara|npm):[a-z0-9@._\/-]+@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const PROVIDER_FIELDS = new Set([
   "provider/id",
   "provider/activity",
@@ -41,14 +41,14 @@ function boundedString(value, label, maximum) {
   return output;
 }
 
-function identifier(value, label) {
+function providerIdentity(value, label) {
   const source = typeof value === "string"
     ? value
     : value && typeof value === "object" && typeof value.sym === "string"
       ? value.sym
       : value;
   const output = boundedString(source, label, WORLD_PROVIDER_LIMITS.identifierLength);
-  if (!IDENTIFIER_PATTERN.test(output)) throw new Error(`${label} is invalid`);
+  if (!PROVIDER_IDENTITY_PATTERN.test(output)) throw new Error(`${label} is invalid`);
   return output;
 }
 
@@ -73,21 +73,21 @@ export function normalizeWorldProvider(value, label = ":world/provider") {
   if (!sourceStates.length || sourceStates.length > WORLD_PROVIDER_LIMITS.states) {
     throw new Error(`${label} :provider/states must contain one to ${WORLD_PROVIDER_LIMITS.states} states`);
   }
-  const states = sourceStates.map((state, index) => identifier(
+  const states = sourceStates.map((state, index) => providerIdentity(
     state,
     `${label} :provider/states[${index}]`,
   ));
   if (new Set(states).size !== states.length) {
     throw new Error(`${label} :provider/states must contain unique identities`);
   }
-  const defaultState = identifier(input["provider/default-state"], `${label} :provider/default-state`);
+  const defaultState = providerIdentity(input["provider/default-state"], `${label} :provider/default-state`);
   if (!states.includes(defaultState)) {
     throw new Error(`${label} :provider/default-state must occur in :provider/states`);
   }
   return deepFreeze({
     format: WORLD_PROVIDER_FORMAT,
-    id: identifier(input["provider/id"], `${label} :provider/id`),
-    activity: identifier(input["provider/activity"], `${label} :provider/activity`),
+    id: providerIdentity(input["provider/id"], `${label} :provider/id`),
+    activity: providerIdentity(input["provider/activity"], `${label} :provider/activity`),
     package: packageCoordinate(input["provider/package"], `${label} :provider/package`),
     defaultState,
     states,
@@ -106,11 +106,11 @@ function normalizeProviderInput(value) {
   }, "World provider");
 }
 
-export function createWorldProviderLaunchIntent(value, { state } = {}) {
+export function createWorldProviderLaunchIntent(value, {state} = {}) {
   const provider = normalizeProviderInput(value);
   const selectedState = state === undefined
     ? provider.defaultState
-    : identifier(state, "World provider launch state");
+    : providerIdentity(state, "World provider launch state");
   if (!provider.states.includes(selectedState)) {
     throw new Error(`World provider does not declare state ${selectedState}`);
   }
