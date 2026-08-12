@@ -1,0 +1,150 @@
+.hodos-workflow-host,
+.hodos-workflow {
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hodos-workflow {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--gw-surface, #f5f1e7);
+  color: var(--gw-ink, #17231c);
+}
+
+.hodos-workflow-toolbar,
+.hodos-workflow-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.9rem;
+  border-color: color-mix(in srgb, currentColor 14%, transparent);
+  background: var(--gw-paper, #fffdf7);
+}
+
+.hodos-workflow-toolbar {
+  border-bottom: 1px solid;
+}
+
+.hodos-workflow-toolbar > div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.hodos-workflow-toolbar span,
+.hodos-workflow-footer {
+  font-size: 0.78rem;
+  opacity: 0.72;
+}
+
+.hodos-workflow-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.hodos-workflow-action {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.hodos-workflow-action:not(:disabled) {
+  cursor: pointer;
+}
+
+.hodos-workflow-action:disabled {
+  opacity: 0.38;
+}
+
+.hodos-workflow-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 22rem);
+  min-height: 0;
+}
+
+.hodos-workflow-graph {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hodos-workflow-inspector {
+  min-width: 0;
+  overflow: auto;
+  padding: 1rem;
+  border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: var(--gw-paper, #fffdf7);
+}
+
+.hodos-workflow-inspector h2 {
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.hodos-workflow-inspector dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.hodos-workflow-field {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.hodos-workflow-field dt {
+  font-size: 0.76rem;
+  opacity: 0.64;
+}
+
+.hodos-workflow-field dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hodos-workflow-value {
+  margin: 1rem 0 0;
+  padding: 0.75rem;
+  overflow: auto;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  font-size: 0.76rem;
+  white-space: pre-wrap;
+}
+
+.hodos-workflow-footer {
+  border-top: 1px solid;
+}
+
+@media (max-width: 760px) {
+  .hodos-workflow-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hodos-workflow-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(20rem, 1fr) auto;
+  }
+
+  .hodos-workflow-inspector {
+    max-height: 42vh;
+    border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-left: 0;
+  }
+
+  .hodos-workflow-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

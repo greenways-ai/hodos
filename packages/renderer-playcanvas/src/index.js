@@ -30,6 +30,14 @@ import {
   surfaceIndexEvidence,
 } from "./rigging-surface-index.js";
 import {
+PLAYCANVAS_SEQUENCE_EXTERNAL_COMPLETION_OPERATIONS,
+PLAYCANVAS_SEQUENCE_OPERATIONS,
+PlayCanvasSequenceHost,
+createPlayCanvasSequenceHandlers,
+createPlayCanvasSequenceHost,
+createPlayCanvasSequenceOperationProfile,
+} from "./sequence-host.js";
+import {
   enhanceWorldRenderer,
   installAdvancedWorldRendererPrototype,
 } from "./world-renderer-enhancer.js";
@@ -52,6 +60,7 @@ export * from "./rigging-weight-heatmap.js";
 export * from "./rigging-weight-painter.js";
 export * from "./rigging-weight-selections.js";
 export * from "./rigging-weight-task.js";
+export * from "./sequence-host.js";
 export { enhanceWorldRenderer, installAdvancedWorldRendererPrototype } from "./world-renderer-enhancer.js";
 export { WorldRenderer } from "./world-renderer.js";
 
@@ -65,7 +74,7 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       [HODOS_CORE_ADDON_ID]: "^0.1.0",
       [HODOS_WORLD_MODEL_ADDON_ID]: "^0.1.0",
     },
-    capabilities: ["world.render"],
+    capabilities: ["world.render", "sequence.execute"],
   },
   activate(context) {
     context.contribute("world.renderer", "playcanvas", Object.freeze({
@@ -73,6 +82,14 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       Renderer: WorldRenderer,
       enhance: enhanceWorldRenderer,
       installAdvanced: installAdvancedWorldRendererPrototype,
+    }));
+    context.contribute("sequence.host", "playcanvas", Object.freeze({
+      Host: PlayCanvasSequenceHost,
+      create: createPlayCanvasSequenceHost,
+      createHandlers: createPlayCanvasSequenceHandlers,
+      createOperationProfile: createPlayCanvasSequenceOperationProfile,
+      externalCompletionOperations: PLAYCANVAS_SEQUENCE_EXTERNAL_COMPLETION_OPERATIONS,
+      operations: PLAYCANVAS_SEQUENCE_OPERATIONS,
     }));
     context.contribute("rig.asset-host", "playcanvas-local", Object.freeze({
       Host: LocalRiggingAssetHost,

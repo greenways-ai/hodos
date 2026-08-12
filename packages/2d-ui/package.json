@@ -15,6 +15,8 @@
     "./document.css": "./src/document.css",
     "./graph-dom": "./src/graph-dom-host.js",
     "./graph.css": "./src/graph.css",
+    "./workflow-dom": "./src/workflow-dom-host.js",
+    "./workflow.css": "./src/workflow.css",
     "./hara/*": "./src/gw/hodos/two_d/*.hal"
   },
   "files": [
@@ -28,7 +30,8 @@
   ],
   "sideEffects": [
     "./src/document.css",
-    "./src/graph.css"
+    "./src/graph.css",
+    "./src/workflow.css"
   ],
   "dependencies": {
     "@greenways/hodos-2d": "0.1.0"

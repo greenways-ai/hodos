@@ -12,7 +12,8 @@
   "exports": {
     ".": "./src/index.js",
     "./hara/*": "./src/gw/hodos/two_d/*.hal",
-    "./compat/hara-document": "./src/compat/hara-document.js"
+    "./compat/hara-document": "./src/compat/hara-document.js",
+    "./workflow": "./src/workflow-graph.js"
   },
   "files": [
     "src",
