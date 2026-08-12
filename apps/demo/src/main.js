@@ -1,4 +1,6 @@
 import "./world.css";
+import { mountRiggingDemo } from "./rigging-demo.js";
+import { RIGGING_DEMO_EXPERIENCE } from "./rigging-demo-model.js";
 import { createHodosHost } from "@greenways/hodos-core";
 import {
   hodosHaraDistribution,
@@ -68,6 +70,7 @@ const searchWorldRepositories = worldsViewer.searchRepositories;
 const root = document.querySelector("#hodos-app");
 const spatialAudio = new SpatialAudioRuntime();
 const worldDrafts = createWorldDraftStore();
+let riggingDemo = null;
 
 function worldIdentity(state) {
   return {
@@ -211,6 +214,7 @@ function renderDemo(error = "") {
   <div class="world-card welcome-card"><section class="welcome-hero"><div class="welcome-hero-art" role="img" aria-label="A curious young teenager entering a Hodos mosaic world"></div><div class="welcome-hero-veil"></div><div class="welcome-hero-copy"><p class="eyebrow">OPEN WORLDS · HARA IN THE BROWSER</p><h1>Enter a<br><i>living world.</i></h1><p>Hodos bundles repository-defined places through a live Hara kernel, then opens their Gaussian-splat scenes and trusted application surfaces in the browser.</p><a class="hero-action" href="#world-collection">Discover the collection ↓</a></div></section>
   <section class="world-browser" id="world-collection"><div class="section-intro"><p class="eyebrow">THE DEMO</p><h2>World objects.<br>Classical interfaces.</h2></div>${error ? `<p role="alert"><code>${escapeHtml(error)}</code></p>` : ""}<section class="featured-worlds" aria-label="Featured worlds">${FEATURED_WORLDS.map((world) => `<article class="featured-world${world.primary ? " featured-world--primary" : ""}"><span>${escapeHtml(world.format)}</span><h2>${escapeHtml(world.title)}</h2><p>${escapeHtml(world.description)}</p><ul class="featured-world-features">${(world.features ?? []).map((feature) => `<li>${escapeHtml(feature)}</li>`).join("")}</ul><div><button type="button" data-featured-world="${escapeHtml(world.id)}">${escapeHtml(world.action || "Open world")}</button><a href="${escapeHtml(world.attribution)}" target="_blank" rel="noreferrer">Source & attribution</a></div></article>`).join("")}</section>
   <section class="showcase-landing"><header><p>ONE COMPOSED JOURNEY</p><h3>Try the whole platform, not only the renderer.</h3><span>The guided Splat Garden connects repository composition, Hara state, precise browser tools, spatial sound, editable world drafts and accountable publication.</span></header><div class="showcase-landing-grid"><article><span>01</span><strong>Explore</strong><p>Resolve a composed world and activate spatial application touchpoints.</p></article><article><span>02</span><strong>Create</strong><p>Import, arrange, edit, persist and export local audio in Studio.</p></article><article><span>03</span><strong>Program</strong><p>Inspect the live Hara state and invoke discoverable commands from M-x.</p></article><article><span>04</span><strong>Publish</strong><p>Review semantic changes, create Git patches and sign Hestia contributions.</p></article></div></section>
+  <section class="rigging-landing" aria-labelledby="rigging-demo-title"><article><div><p class="eyebrow">LOCAL 3D AUTHORING</p><h3 id="rigging-demo-title">Rig the models an auto-rigger cannot.</h3><span>Open a GLB on this device, place an arbitrary skeleton, repair its hierarchy, and keep every committed operation reversible. The model is never uploaded.</span></div><button type="button" data-rigging-workbench>Open rigging workbench</button></article></section>
   <p class="world-divider"><span>Find another place</span></p><form class="catalog-form" role="search"><label>Search greenways-worlds<input name="query" type="search" placeholder="garden, apartment, gaussian splat"></label><button type="submit">Search worlds</button></form><div class="catalog-results" aria-live="polite"></div>
   <form class="world-form"><label>GitHub repository<input name="repo" type="url" required placeholder="https://github.com/owner/world" value="${escapeHtml(state.repository)}"></label><label>Ref (optional)<input name="ref" placeholder="main, tag, or commit SHA" value="${escapeHtml(state.ref)}"></label><label class="mode-control"><input name="strict" type="checkbox" ${state.mode === "strict" ? "checked" : ""}> Strict commits</label><button type="submit">Open with Hodos</button></form></section></div><footer class="welcome-footer"><span>HODOS / WORLDS</span><span>Kernel-bundled places · embedded Hara</span></footer></div></section>`;
 
@@ -273,6 +277,12 @@ function renderDemo(error = "") {
       renderDemo(requestError.message);
     }
   }));
+  root.querySelector("[data-rigging-workbench]")?.addEventListener("click", () => navigate({
+    repository: "",
+    ref: "",
+    mode: "dev",
+    experience: RIGGING_DEMO_EXPERIENCE,
+  }));
 }
 
 async function openWorld(initial) {
@@ -301,12 +311,20 @@ async function openWorld(initial) {
 }
 
 const initial = queryState();
-if (initial.repository) {
+if (initial.experience === RIGGING_DEMO_EXPERIENCE) {
+  mountRiggingDemo({ root, hodosHost: host })
+    .then((controller) => { riggingDemo = controller; })
+    .catch((error) => {
+      console.error("Hodos rigging demo failed", error);
+      renderDemo(error.message);
+    });
+} else if (initial.repository) {
   openWorld(initial).catch(() => {});
 } else {
   renderDemo();
 }
 window.addEventListener("beforeunload", () => {
+  riggingDemo?.destroy?.();
   spatialAudio.destroy();
   viewer.destroy();
 }, { once: true });
