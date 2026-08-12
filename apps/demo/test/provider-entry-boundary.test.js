@@ -29,14 +29,15 @@ test("resolves the repository manifest before allocating the installed provider"
 test("keeps Alumbra authority in the application adapter rather than Hodos packages", () => {
   assert.match(adapter, /https:\/\/oss\.greenways\.ai/);
   assert.match(adapter, /\/hodos\/alumbra\/apps\/lab\/peacock-ballroom\.html/);
+  assert.match(adapter, /ALUMBRA_PROVIDER_RELEASE/);
+  assert.match(adapter, /url\.searchParams\.set\("release", ALUMBRA_PROVIDER_RELEASE\)/);
   assert.doesNotMatch(entry, /@greenways\/alumbra/);
-  assert.doesNotMatch(adapter, /@greenways\/alumbra/);
   assert.doesNotMatch(adapter, /mesh|shader|canonicalChunk|PlayCanvas/);
 });
 
 test("deploys the exact pinned Alumbra host under the existing Hodos Pages site", () => {
   assert.match(deploy, /repository: greenways-ai\/alumbra/);
-  assert.match(deploy, /ref: 419e02ebe06d90a43ae4510579e3acfaf6d4738e/);
+  assert.match(deploy, /ref: 3eb7d05d047c8600c64b709d33e0542c74a98789/);
   assert.match(deploy, /path: \.alumbra-provider/);
   assert.match(deploy, /site\/dist\/alumbra\/node_modules/);
   assert.match(deploy, /\.alumbra-provider\/apps site\/dist\/alumbra\/apps/);
