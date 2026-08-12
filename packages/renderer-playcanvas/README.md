@@ -71,3 +71,11 @@ connected-component binding. The task runner accepts an injected module Worker
 factory and falls back to the same deterministic inline implementation when a
 Worker is unavailable. Releasing an asset zeroes all retained geometry, weights
 and inverse bind matrices.
+
+## Weight selections and editing
+
+The local provider owns opaque world-space/component vertex selections, private
+preview buffers and immutable derived weight artifacts. It exports
+`./rigging-weight-selections` and `./rigging-weight-editing`; the asset host
+exposes selection, preview, commit, discard, direct edit and adjacency diagnostic
+operations without placing vertex or weight arrays in portable Hodos state.

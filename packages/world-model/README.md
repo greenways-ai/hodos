@@ -77,3 +77,11 @@ The rigging model also provides deterministic rigid-component initial weights
 and inverse bind matrix generation. These pure functions accept caller-owned
 typed arrays; the arrays remain host values and are never embedded in portable
 Hodos documents.
+
+## Bounded weight editing
+
+The rigging export also provides deterministic add, subtract, replace, rigid,
+smooth, flood, prune and normalize operations over caller-owned buffers. CSR
+adjacency diagnostics return bounded summaries plus caller-owned representative
+vertices. `buildRigWeightAttachmentIntent` converts an accepted host artifact
+into the existing portable `rig/skin-attach` command.
