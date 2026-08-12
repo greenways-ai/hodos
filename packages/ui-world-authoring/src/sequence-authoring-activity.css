@@ -1,0 +1,148 @@
+.hodos-sequence-authoring {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-height: 24rem;
+  color: var(--hodos-ink, #18352e);
+  background: var(--hodos-paper, #f6f0e4);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.9rem;
+  overflow: hidden;
+}
+
+.hodos-sequence-authoring__header,
+.hodos-sequence-authoring__transport,
+.hodos-sequence-authoring__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.hodos-sequence-authoring__header {
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  background: var(--hodos-green, #123f35);
+  color: #fffdf7;
+}
+
+.hodos-sequence-authoring__title { font-weight: 720; }
+.hodos-sequence-authoring__toolbar button,
+.hodos-sequence-authoring__transport button,
+.hodos-sequence-authoring__inspector button {
+  min-height: 2.1rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  color: inherit;
+  font: inherit;
+}
+
+.hodos-sequence-authoring__transport {
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.hodos-sequence-authoring__transport input {
+  width: 7rem;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 0.45rem;
+  background: #fffdf7;
+  color: inherit;
+}
+
+.hodos-sequence-authoring__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 24rem);
+  min-height: 0;
+}
+
+.hodos-sequence-authoring__timeline {
+  overflow: auto;
+  padding: 0.8rem;
+}
+
+.hodos-sequence-authoring__track {
+  display: grid;
+  grid-template-columns: 10rem minmax(32rem, 1fr);
+  min-height: 3.1rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.hodos-sequence-authoring__track-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding-inline: 0.55rem;
+  background: var(--hodos-paper, #f6f0e4);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.hodos-sequence-authoring__lane {
+  display: flex;
+  align-items: center;
+  min-width: 32rem;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 5.95rem,
+    color-mix(in srgb, currentColor 8%, transparent) 6rem
+  );
+}
+
+.hodos-sequence-authoring__cue {
+  flex: 0 0 auto;
+  max-width: 18rem;
+  overflow: hidden;
+  padding: 0.38rem 0.6rem;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 999px;
+  background: #fffdf7;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hodos-sequence-authoring__cue.is-selected {
+  outline: 2px solid var(--hodos-teal, #178b7c);
+  outline-offset: 2px;
+}
+
+.hodos-sequence-authoring__inspector {
+  overflow: auto;
+  padding: 0.9rem;
+  border-left: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: color-mix(in srgb, #fff 38%, transparent);
+}
+
+.hodos-sequence-authoring__inspector pre {
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.65rem;
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  font-size: 0.72rem;
+}
+
+.hodos-sequence-authoring__diagnostics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  font-size: 0.78rem;
+}
+
+.hodos-sequence-authoring__diagnostic.is-error { font-weight: 700; }
+
+@media (max-width: 760px) {
+  .hodos-sequence-authoring__header { align-items: flex-start; flex-direction: column; }
+  .hodos-sequence-authoring__body { grid-template-columns: 1fr; }
+  .hodos-sequence-authoring__inspector {
+    border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-left: 0;
+  }
+}
