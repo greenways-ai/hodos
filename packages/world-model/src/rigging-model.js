@@ -22,3 +22,4 @@ export * from "./rigging-preflight.js";
 export * from "./rigging-editor.js";
 export * from "./rigging-input.js";
 export * from "./rigging-workfile.js";
+export * from "./rigging-pose.js";
