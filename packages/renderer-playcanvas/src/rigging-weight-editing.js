@@ -4,6 +4,7 @@ import {
   diagnoseRigWeights,
   normalizeRigDocument,
 } from "@greenways/hodos-world-model/rigging";
+import { createRigWeightHeatmapSample } from "./rigging-weight-heatmap.js";
 import {
   RIG_WEIGHT_SELECTION_PROVIDER_ID,
   RIG_WEIGHT_SELECTION_PROVIDER_VERSION,
@@ -352,6 +353,22 @@ export class RiggingWeightEditingStore {
     return Object.freeze({
       jointIndices: preview.jointIndices.slice(),
       weights: preview.weights.slice(),
+    });
+  }
+
+  previewHeatmap(id, jointIndex, options = {}) {
+    const preview = this.previewRecord(id);
+    const geometry = this.artifactStore.geometry;
+    if (!geometry || geometry.destroyed) throw editingError("rig/binding-geometry", "Binding geometry is not ready for heat-map sampling");
+    return createRigWeightHeatmapSample({
+      artifactId: preview.id,
+      positions: geometry.positions,
+      jointIndices: preview.jointIndices,
+      weights: preview.weights,
+      vertexCount: preview.vertexCount,
+      maxInfluences: preview.maxInfluences,
+      jointIndex,
+      ...options,
     });
   }
 

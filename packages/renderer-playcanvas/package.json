@@ -22,6 +22,8 @@
     "./rigging-geometry": "./src/rigging-bind-geometry.js",
     "./rigging-binding": "./src/rigging-weight-artifacts.js",
     "./rigging-weight-editing": "./src/rigging-weight-editing.js",
+    "./rigging-weight-heatmap": "./src/rigging-weight-heatmap.js",
+    "./rigging-weight-painter": "./src/rigging-weight-painter.js",
     "./rigging-weight-selections": "./src/rigging-weight-selections.js",
     "./rigging-weight-task": "./src/rigging-weight-task.js",
     "./styles": "./src/world-placement.css",

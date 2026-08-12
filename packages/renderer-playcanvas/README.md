@@ -79,3 +79,11 @@ preview buffers and immutable derived weight artifacts. It exports
 `./rigging-weight-selections` and `./rigging-weight-editing`; the asset host
 exposes selection, preview, commit, discard, direct edit and adjacency diagnostic
 operations without placing vertex or weight arrays in portable Hodos state.
+
+## Weight heat maps and painting
+
+`./rigging-weight-heatmap` projects a bounded sample of one joint's host-owned
+weights over the accepted PlayCanvas model. `./rigging-weight-painter` converts
+triangle-surface pointer hits into opaque sphere selections, accumulates one
+host-local stroke preview, and commits one immutable weight artifact on release.
+Neither full weight buffers nor preview selections enter portable Hodos state.

@@ -115,6 +115,16 @@ export class RiggingWorkspace {
     this.moveTransaction = null;
     this.moveKeys = new Set();
     this.moveCommitTimer = null;
+    this.activity = "skeleton";
+    this.weightSettings = {
+      operation: "add",
+      radius: 0.25,
+      radiusPixels: 32,
+      strength: 0.1,
+      threshold: 0.01,
+      iterations: 1,
+    };
+    this.weightEvent = null;
     this.maximumWorkfileBytes = maximumWorkfileBytes;
     const provider = autosave ? resolveWorkfileProvider(workfileStorage, host) : null;
     this.autosave = provider ? createRigWorkfileAutosave({
@@ -132,6 +142,7 @@ export class RiggingWorkspace {
       entityOverlayRoot: this.viewportOverlay,
       onRigIntent: ({ intent, editorAfter }) => this.emit({ "event/type": "rig/intent", intent, editorAfter }),
       onRigEditor: (event) => this.handleRendererEditorEvent(event),
+      onRigWeights: (event) => this.handleRendererWeightEvent(event),
       ...rendererOptions,
     });
     this.installKeyboard();
@@ -146,7 +157,9 @@ export class RiggingWorkspace {
         <div class="hodos-rigging-brand"><span>HODOS</span><strong>Rigging</strong></div>
         <label class="hodos-rigging-open">Open GLB<input type="file" accept=".glb,model/gltf-binary" data-rig-open></label>
         <label class="hodos-rigging-open">Open rig<input type="file" accept=".json,.rig.json,application/json" data-rig-workfile-open></label>
+        <div class="hodos-rigging-activities" data-rig-activities></div>
         <div class="hodos-rigging-tools" data-rig-tools></div>
+        <div class="hodos-rigging-weight-controls" data-rig-weight-controls hidden></div>
         <label>Space<select data-rig-space><option value="world">World</option><option value="local">Local</option></select></label>
         <label>Snap<select data-rig-snap><option value="surface">Surface</option><option value="depth">Depth</option><option value="grid">Grid</option><option value="none">None</option></select></label>
         <label>Rig mismatch<select data-rig-mismatch><option value="reject">Require same model</option><option value="rebind">Rebind skeleton</option></select></label>
@@ -170,7 +183,9 @@ export class RiggingWorkspace {
     this.openInput = this.root.querySelector("[data-rig-open]");
     this.workfileInput = this.root.querySelector("[data-rig-workfile-open]");
     this.mismatchPolicy = this.root.querySelector("[data-rig-mismatch]");
+    this.activities = this.root.querySelector("[data-rig-activities]");
     this.tools = this.root.querySelector("[data-rig-tools]");
+    this.weightControls = this.root.querySelector("[data-rig-weight-controls]");
     this.space = this.root.querySelector("[data-rig-space]");
     this.snap = this.root.querySelector("[data-rig-snap]");
     this.actions = this.root.querySelector("[data-rig-actions]");
@@ -184,6 +199,11 @@ export class RiggingWorkspace {
     this.status = this.root.querySelector("[data-rig-status]");
     this.live = this.root.querySelector("[data-rig-live]");
 
+    for (const [activity, label] of [["skeleton", "Skeleton"], ["weights", "Skin / Weights"]]) {
+      const control = button(document, label, () => this.setActivity(activity));
+      control.dataset.rigActivity = activity;
+      this.activities.append(control);
+    }
     for (const [tool, label] of [["select", "Select"], ["joint-create", "Add joint"], ["translate", "Move"]]) {
       const control = button(document, label, () => this.emit({
         "event/type": "rig/editor-settings",
@@ -204,6 +224,36 @@ export class RiggingWorkspace {
     this.clearAutosave = button(document, "Clear autosave", () => this.removeAutosave());
     this.actions.append(this.undo, this.redo, this.addChild, this.duplicate, this.mirror, this.remove, this.frame, this.saveJson, this.saveEdn, this.clearAutosave);
 
+    this.bindNearest = button(document, "Bind smooth", () => this.bindWeights("nearest-segment"));
+    this.bindRigid = button(document, "Bind components", () => this.bindWeights("rigid-component"));
+    this.weightOperation = document.createElement("select");
+    this.weightOperation.setAttribute("aria-label", "Weight paint operation");
+    for (const operation of ["add", "subtract", "replace", "rigid", "smooth", "flood", "prune", "normalize"]) {
+      const option = document.createElement("option");
+      option.value = operation;
+      option.textContent = operation[0].toUpperCase() + operation.slice(1);
+      this.weightOperation.append(option);
+    }
+    this.weightRadius = input(document, "number", "Weight brush radius", this.weightSettings.radius);
+    this.weightRadius.min = "0.0001";
+    this.weightRadius.step = "0.05";
+    this.weightStrength = input(document, "number", "Weight brush strength", this.weightSettings.strength);
+    this.weightStrength.min = "0";
+    this.weightStrength.max = "1";
+    this.weightStrength.step = "0.05";
+    this.weightDiagnose = button(document, "Diagnose", () => this.diagnoseWeights());
+    const operationLabel = element(document, "label", "", "Operation");
+    operationLabel.append(this.weightOperation);
+    const radiusLabel = element(document, "label", "", "Radius");
+    radiusLabel.append(this.weightRadius);
+    const strengthLabel = element(document, "label", "", "Strength");
+    strengthLabel.append(this.weightStrength);
+    this.weightControls.append(this.bindNearest, this.bindRigid, operationLabel, radiusLabel, strengthLabel, this.weightDiagnose);
+    for (const control of [this.weightOperation, this.weightRadius, this.weightStrength]) {
+      control.addEventListener("change", () => this.syncWeightSettings(), { signal: this.abort.signal });
+      control.addEventListener("input", () => this.syncWeightSettings(), { signal: this.abort.signal });
+    }
+
     this.openInput.addEventListener("change", () => {
       const file = this.openInput.files?.[0];
       if (file) this.openFile(file);
@@ -223,6 +273,73 @@ export class RiggingWorkspace {
       patch: { snap: { ...this.state.editor.snap, mode: this.snap.value } },
     }), { signal: this.abort.signal });
     this.filter.addEventListener("input", () => this.renderTree(), { signal: this.abort.signal });
+  }
+
+  setActivity(value) {
+    this.activity = value === "weights" ? "weights" : "skeleton";
+    if (this.activity === "weights" && this.state.editor.tool !== "select") {
+      this.emit({ "event/type": "rig/editor-settings", patch: { tool: "select" } });
+    }
+    this.renderer?.setRigActivity?.(this.activity);
+    this.syncWeightSettings();
+    this.renderToolbar();
+    this.renderInspector();
+    this.renderStatus();
+    this.announce(this.activity === "weights" ? "Skin and weight painting mode" : "Skeleton authoring mode");
+    return this.activity;
+  }
+
+  syncWeightSettings() {
+    const radius = Number(this.weightRadius?.value);
+    const strength = Number(this.weightStrength?.value);
+    const next = {
+      ...this.weightSettings,
+      operation: this.weightOperation?.value ?? this.weightSettings.operation,
+      radius: Number.isFinite(radius) && radius > 0 ? radius : this.weightSettings.radius,
+      strength: Number.isFinite(strength) && strength >= 0 && strength <= 1 ? strength : this.weightSettings.strength,
+    };
+    try {
+      this.weightSettings = this.renderer?.setRigWeightSettings?.(next) ?? next;
+    } catch (error) {
+      this.setStatus(error.message || String(error), "error");
+    }
+    return this.weightSettings;
+  }
+
+  async bindWeights(strategy) {
+    try {
+      this.setStatus(`Generating ${strategy === "rigid-component" ? "rigid component" : "smooth"} weights…`);
+      const result = await this.renderer.bindRigWeights(strategy);
+      this.weightEvent = { type: "binding", status: "ready", result, evidence: result.evidence };
+      this.setStatus(`Bound ${result.evidence.vertexCount} vertices · ${result.weightSetId.slice(0, 24)}…`, "ready");
+      return result;
+    } catch (error) {
+      this.setStatus(error.message || String(error), "error");
+      return null;
+    }
+  }
+
+  async diagnoseWeights() {
+    try {
+      this.setStatus("Running bounded weight diagnostics…");
+      const evidence = await this.renderer.diagnoseRigWeights();
+      this.weightEvent = { type: "diagnostics", status: evidence.status, evidence };
+      this.renderInspector();
+      this.setStatus(`Weight diagnostics ${evidence.status}`, evidence.status === "pass" ? "ready" : "warning");
+      return evidence;
+    } catch (error) {
+      this.setStatus(error.message || String(error), "error");
+      return null;
+    }
+  }
+
+  handleRendererWeightEvent(event) {
+    this.weightEvent = event;
+    if (event.type === "error") this.setStatus(event.error?.message ?? "Weight operation failed", "error");
+    else if (event.type === "preview") this.setStatus(`${event.preview.affectedVertices} vertex weight preview`, "info");
+    else if (event.type === "paint" && event.status === "committed") this.setStatus("Committed one immutable weight artifact", "ready");
+    else if (event.type === "heatmap") this.renderInspector();
+    if (!this.destroyed) this.renderInspector();
   }
 
   handleRendererEditorEvent(event) {
@@ -444,9 +561,11 @@ export class RiggingWorkspace {
       return;
     }
     this.loadingHandle = handle;
+    const previous = this.loadedHandle;
     try {
       await this.renderer.loadRiggingAsset(handle);
       this.loadedHandle = handle;
+      if (previous && previous !== handle) this.assetHost.release(previous);
     } finally {
       this.loadingHandle = null;
     }
@@ -457,6 +576,7 @@ export class RiggingWorkspace {
     const type = event["event/type"] ?? event.type;
     if (["rig/source-opened", "rig/history-undo", "rig/history-redo", "studio/history-undo", "studio/history-redo"].includes(type)) {
       this.cancelMoveTransaction({ announce: false });
+      this.renderer?.cancelRigWeightStroke?.().catch?.(() => {});
     }
     try {
       this.state = reduceRigAuthoringEvent(this.state, event);
@@ -519,7 +639,7 @@ export class RiggingWorkspace {
       if (this.destroyed || editableTarget(event.target, this.host)) return;
       const modifier = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
-      if (RIG_NUDGE_KEYS.includes(event.key) && this.state.editor.active && !modifier) {
+      if (this.activity === "skeleton" && RIG_NUDGE_KEYS.includes(event.key) && this.state.editor.active && !modifier) {
         event.preventDefault();
         try {
           const transaction = this.beginMoveTransaction("keyboard");
@@ -541,30 +661,33 @@ export class RiggingWorkspace {
       } else if (modifier && key === "y") {
         event.preventDefault();
         this.emit({ "event/type": "rig/history-redo" });
-      } else if ((event.shiftKey && key === "a") || event.key === "Insert") {
+      } else if (this.activity === "skeleton" && ((event.shiftKey && key === "a") || event.key === "Insert")) {
         event.preventDefault();
         this.createKeyboardJoint();
-      } else if (key === "q") {
+      } else if (this.activity === "skeleton" && key === "q") {
         event.preventDefault();
         this.emit({ "event/type": "rig/editor-settings", patch: { tool: "select" } });
-      } else if (key === "a") {
+      } else if (this.activity === "skeleton" && key === "a") {
         event.preventDefault();
         this.emit({ "event/type": "rig/editor-settings", patch: { tool: "joint-create" } });
-      } else if (key === "w") {
+      } else if (this.activity === "skeleton" && key === "w") {
         event.preventDefault();
         this.emit({ "event/type": "rig/editor-settings", patch: { tool: "translate" } });
       } else if (key === "f") {
         event.preventDefault();
         this.renderer?.focusRigSelection?.();
-      } else if ((event.key === "Delete" || event.key === "Backspace") && this.state.editor.active) {
+      } else if (this.activity === "skeleton" && (event.key === "Delete" || event.key === "Backspace") && this.state.editor.active) {
         event.preventDefault();
         this.commitAction({ type: "delete", cascade: true });
-      } else if (event.shiftKey && key === "d") {
+      } else if (this.activity === "skeleton" && event.shiftKey && key === "d") {
         event.preventDefault();
         this.commitAction({ type: "duplicate" });
       } else if (event.key === "Escape") {
         event.preventDefault();
-        if (!this.cancelMoveTransaction({ render: true })) {
+        if (this.activity === "weights") {
+          this.renderer?.cancelRigWeightStroke?.().catch?.(() => {});
+          this.announce("Cancelled weight stroke preview.");
+        } else if (!this.cancelMoveTransaction({ render: true })) {
           this.emit({ "event/type": "rig/editor-select", jointIds: [], mode: "replace" });
         }
       }
@@ -584,6 +707,8 @@ export class RiggingWorkspace {
       || !this.state.document.joints.some((joint) => joint.id === this.moveTransaction.jointId)
     )) this.cancelMoveTransaction({ announce: false });
     this.renderer?.syncRigging?.(this.state.document, this.state.editor);
+    this.renderer?.setRigActivity?.(this.activity);
+    this.renderer?.setRigWeightSettings?.(this.weightSettings);
     if (this.moveTransaction) this.renderer?.previewRigJoint?.(this.moveTransaction.jointId, this.moveTransaction.current);
     const handle = activeHandle(this.state);
     if (handle && this.assetHost.has(handle)) this.loadHandle(handle).catch((error) => this.setStatus(error.message, "error"));
@@ -596,6 +721,15 @@ export class RiggingWorkspace {
 
   renderToolbar() {
     this.space.value = this.state.editor.space;
+    for (const control of this.activities.querySelectorAll("[data-rig-activity]")) {
+      const active = control.dataset.rigActivity === this.activity;
+      control.dataset.active = String(active);
+      control.setAttribute("aria-pressed", String(active));
+    }
+    this.tools.hidden = this.activity === "weights";
+    this.weightControls.hidden = this.activity !== "weights";
+    this.space.closest("label").hidden = this.activity === "weights";
+    this.snap.closest("label").hidden = this.activity === "weights";
     this.snap.value = this.state.editor.snap.mode;
     for (const control of this.tools.querySelectorAll("[data-rig-tool]")) {
       control.dataset.active = String(control.dataset.rigTool === this.state.editor.tool);
@@ -603,11 +737,15 @@ export class RiggingWorkspace {
     }
     this.undo.disabled = !this.state.history.undo.length;
     this.redo.disabled = !this.state.history.redo.length;
-    this.addChild.disabled = !this.state.session?.active;
+    this.addChild.disabled = !this.state.session?.active || this.activity === "weights";
     const selected = this.state.editor.selection.length;
-    this.duplicate.disabled = !selected;
-    this.mirror.disabled = !selected;
-    this.remove.disabled = !this.state.editor.active;
+    this.duplicate.disabled = !selected || this.activity === "weights";
+    this.mirror.disabled = !selected || this.activity === "weights";
+    this.remove.disabled = !this.state.editor.active || this.activity === "weights";
+    const canBind = Boolean(this.state.session?.active && this.state.document.joints.length);
+    this.bindNearest.disabled = !canBind;
+    this.bindRigid.disabled = !canBind;
+    this.weightDiagnose.disabled = !this.state.document.skin?.weightSetId;
     this.frame.disabled = !this.state.editor.active && !this.state.session?.active;
     const sourceReady = Boolean(this.state.session?.active?.source?.contentId);
     this.saveJson.disabled = !sourceReady;
@@ -689,6 +827,10 @@ export class RiggingWorkspace {
     const document = this.root.ownerDocument ?? globalThis.document;
     const active = this.state.document.joints.find((joint) => joint.id === this.state.editor.active) ?? null;
     this.properties.replaceChildren();
+    if (this.activity === "weights") {
+      this.renderWeightInspector(document, active);
+      return;
+    }
     if (!active) {
       this.inspectorTitle.textContent = "Rig";
       const summary = element(document, "section", "hodos-rigging-section");
@@ -799,6 +941,45 @@ export class RiggingWorkspace {
     this.properties.append(identity, transform, actions);
   }
 
+  renderWeightInspector(document, active) {
+    this.inspectorTitle.textContent = active ? `${active.id} weights` : "Skin / Weights";
+    const artifact = this.state.document.skin?.weightSetId;
+    const binding = element(document, "section", "hodos-rigging-section hodos-rigging-weight-summary");
+    binding.append(
+      element(document, "h3", "", "Accepted skin"),
+      element(document, "p", "", artifact ? `Weights ${artifact.slice(0, 32)}…` : "No accepted weight artifact"),
+      element(document, "p", "", this.state.document.bind?.inverseMatricesId
+        ? `Bind ${this.state.document.bind.inverseMatricesId.slice(0, 32)}…`
+        : "No inverse bind artifact"),
+      element(document, "p", "", active ? `Heat map: ${active.id}` : "Select a joint to view its heat map"),
+    );
+    const brush = element(document, "section", "hodos-rigging-section");
+    brush.append(
+      element(document, "h3", "", "Brush"),
+      element(document, "p", "", `${this.weightSettings.operation} · radius ${this.weightSettings.radius} · strength ${this.weightSettings.strength}`),
+      element(document, "p", "", artifact
+        ? "Drag across the model. Pointer movement previews locally; release commits one artifact."
+        : "Generate initial weights before painting."),
+    );
+    const evidence = this.weightEvent?.evidence ?? this.weightEvent?.result?.evidence ?? null;
+    const diagnostics = evidence?.diagnostics ?? evidence?.summary ?? null;
+    const diagnosticSection = element(document, "section", "hodos-rigging-section");
+    diagnosticSection.append(element(document, "h3", "", "Evidence"));
+    if (!diagnostics) diagnosticSection.append(element(document, "p", "", "Run diagnostics to inspect normalization and adjacency gradients."));
+    else {
+      for (const [label, value] of [
+        ["Affected", evidence?.affectedVertices],
+        ["Unweighted", diagnostics.unweightedVertices],
+        ["Non-normalized", diagnostics.nonNormalizedVertices],
+        ["Abrupt edges", diagnostics.abruptGradientEdges],
+        ["Maximum gradient", diagnostics.maximumAdjacencyGradient],
+      ]) {
+        if (value !== undefined && value !== null) diagnosticSection.append(element(document, "p", "", `${label}: ${typeof value === "number" ? Number(value.toFixed?.(4) ?? value) : value}`));
+      }
+    }
+    this.properties.append(binding, brush, diagnosticSection);
+  }
+
   renderStatus() {
     if (this.status.dataset.locked === "true") return;
     const outcome = this.state.lastOutcome;
@@ -806,7 +987,9 @@ export class RiggingWorkspace {
     const source = this.state.session?.active?.source;
     this.status.textContent = outcome?.status === "rejected"
       ? outcome.error?.message ?? "Rig operation rejected"
-      : `${source?.fileName ?? "No GLB"} · revision ${this.state.document.revision} · ${validation.errors.length} error(s), ${validation.warnings.length} warning(s)`;
+      : this.activity === "weights"
+        ? `${source?.fileName ?? "No GLB"} · weights ${this.state.document.skin?.weightSetId ? "attached" : "not bound"} · revision ${this.state.document.revision}`
+        : `${source?.fileName ?? "No GLB"} · revision ${this.state.document.revision} · ${validation.errors.length} error(s), ${validation.warnings.length} warning(s)`;
     this.status.dataset.tone = outcome?.status === "rejected" || validation.errors.length ? "error" : validation.warnings.length ? "warning" : "ready";
   }
 

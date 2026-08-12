@@ -37,3 +37,9 @@ artifact identities.
 Keyboard nudges and numeric edits use the same preview/commit boundary. Arrow
 keys move X/Y, Page Up/Down move Z, Alt selects the fine step, Shift selects
 the coarse step, and repeated input is coalesced into one history operation.
+
+The rigging component includes a Skin / Weights activity. Initial smooth or
+rigid-component binding, active-joint heat maps, bounded brush repair, and
+weight diagnostics all reuse the local opaque asset host. Painting movement is
+preview-only; pointer release dispatches one `rig/skin-attach` intent so
+undo/redo restores exact artifact identities.
