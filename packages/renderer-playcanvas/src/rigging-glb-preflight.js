@@ -11,6 +11,10 @@ const DEFAULT_LIMITS = Object.freeze({
   maximumJsonBytes: 16 * 1024 * 1024,
   maximumInventoryItems: 64,
   maximumIssues: 64,
+  maximumNodes: 4_096,
+  maximumMeshes: 8_192,
+  maximumPrimitives: 50_000,
+  maximumAccessors: 100_000,
   maximumPositionVertices: 5_000_000,
   maximumTopologyVertices: 300_000,
   maximumTopologyTriangles: 500_000,
@@ -89,6 +93,10 @@ function normalizeLimits(value = {}) {
   result.maximumIssues = Math.max(1, Math.floor(result.maximumIssues));
   result.maximumBytes = Math.floor(result.maximumBytes);
   result.maximumJsonBytes = Math.floor(result.maximumJsonBytes);
+  result.maximumNodes = Math.floor(result.maximumNodes);
+  result.maximumMeshes = Math.floor(result.maximumMeshes);
+  result.maximumPrimitives = Math.floor(result.maximumPrimitives);
+  result.maximumAccessors = Math.floor(result.maximumAccessors);
   result.maximumPositionVertices = Math.floor(result.maximumPositionVertices);
   result.maximumTopologyVertices = Math.floor(result.maximumTopologyVertices);
   result.maximumTopologyTriangles = Math.floor(result.maximumTopologyTriangles);
@@ -268,7 +276,7 @@ function createAccessorContext(document, binaryChunk, collector) {
     const elementBytes = component.bytes * components;
     const sparse = accessor.sparse !== undefined;
     if (sparse) {
-      collector.add("accessor/sparse", "warning", `${path}.sparse`, "Sparse accessors are inventoried but not expanded during bounded preflight", null, `sparse:${index}`);
+      collector.add("accessor/sparse", "error", `${path}.sparse`, "Sparse accessors require expansion before complete rigging preflight", null, `sparse:${index}`);
     }
 
     let zero = false;
@@ -290,7 +298,7 @@ function createAccessorContext(document, binaryChunk, collector) {
           collector.add("compression/meshopt", "error", `$.bufferViews[${viewIndex}].extensions.EXT_meshopt_compression`,
             "Meshopt-compressed buffer views require an installed decoder before geometry preflight", null, `meshopt:${viewIndex}`);
         }
-        const bufferIndex = safeIndex(bufferView.buffer ?? 0);
+        const bufferIndex = safeIndex(bufferView.buffer);
         const buffer = bufferIndex === null ? null : buffers[bufferIndex];
         if (bufferIndex === null || !plainObject(buffer)) {
           collector.add("buffer-view/buffer", "error", `$.bufferViews[${viewIndex}].buffer`, "Buffer view references an invalid buffer");
@@ -310,6 +318,8 @@ function createAccessorContext(document, binaryChunk, collector) {
             collector.add("accessor/offset", "error", path, "Accessor and buffer-view offsets must be non-negative safe integers");
           } else if (candidateStride < elementBytes || candidateStride % component.bytes !== 0) {
             collector.add("accessor/stride", "error", `$.bufferViews[${viewIndex}].byteStride`, "Buffer-view stride cannot contain the accessor element");
+          } else if ((viewOffset + accessorOffset) % component.bytes !== 0) {
+            collector.add("accessor/alignment", "error", path, "Accessor byte offset must align to its component size");
           } else {
             offset = viewOffset + accessorOffset;
             stride = candidateStride;
@@ -392,15 +402,21 @@ function multiplyMatrices(left, right) {
   return result;
 }
 
-function matrixFromTrs(node, path, collector) {
-  const translation = Array.isArray(node.translation) && node.translation.length === 3 ? node.translation : [0, 0, 0];
-  const rotation = Array.isArray(node.rotation) && node.rotation.length === 4 ? node.rotation : [0, 0, 0, 1];
-  const scale = Array.isArray(node.scale) && node.scale.length === 3 ? node.scale : [1, 1, 1];
-  const values = [...translation, ...rotation, ...scale];
-  if (!values.every((entry) => typeof entry === "number" && Number.isFinite(entry))) {
-    collector.add("node/transform-non-finite", "error", path, "Node transform contains non-finite values");
-    return { matrix: identityMatrix(), scale: [1, 1, 1], negative: false };
+function nodeVector(node, key, length, fallback, path, collector) {
+  if (node[key] === undefined) return [...fallback];
+  const value = node[key];
+  if (!Array.isArray(value) || value.length !== length
+    || !value.every((entry) => typeof entry === "number" && Number.isFinite(entry))) {
+    collector.add(`node/${key}`, "error", `${path}.${key}`, `Node ${key} must contain ${length} finite numbers`);
+    return [...fallback];
   }
+  return [...value];
+}
+
+function matrixFromTrs(node, path, collector) {
+  const translation = nodeVector(node, "translation", 3, [0, 0, 0], path, collector);
+  const rotation = nodeVector(node, "rotation", 4, [0, 0, 0, 1], path, collector);
+  const scale = nodeVector(node, "scale", 3, [1, 1, 1], path, collector);
   const length = Math.hypot(...rotation);
   if (length <= Number.EPSILON) {
     collector.add("node/quaternion", "error", `${path}.rotation`, "Node rotation quaternion cannot be zero");
@@ -456,8 +472,12 @@ function scaleFromMatrix(matrix) {
 
 function nodeLocalMatrix(node, index, collector) {
   const path = `$.nodes[${index}]`;
-  if (Array.isArray(node.matrix)) {
-    if (node.matrix.length !== 16 || !node.matrix.every((entry) => typeof entry === "number" && Number.isFinite(entry))) {
+  if (node.matrix !== undefined) {
+    if (node.translation !== undefined || node.rotation !== undefined || node.scale !== undefined) {
+      collector.add("node/matrix-trs", "error", path, "Node cannot define matrix together with translation, rotation, or scale");
+    }
+    if (!Array.isArray(node.matrix) || node.matrix.length !== 16
+      || !node.matrix.every((entry) => typeof entry === "number" && Number.isFinite(entry))) {
       collector.add("node/matrix", "error", `${path}.matrix`, "Node matrix must contain 16 finite numbers");
       return { matrix: identityMatrix(), scale: [1, 1, 1], negative: false, kind: "matrix" };
     }
@@ -620,7 +640,7 @@ function analyzeIndexedTopology({ indexDesc, vertexCount, path, accessors, colle
     if (edgeLimitReached) return;
     const minimum = Math.min(left, right);
     const maximum = Math.max(left, right);
-    const key = `${minimum}:${maximum}`;
+    const key = minimum * vertexCount + maximum;
     if (!edges.has(key) && edges.size >= limits.maximumTopologyEdges) {
       edgeLimitReached = true;
       collector.add("topology/edge-limit", "warning", path, "Non-manifold edge counting stopped at the bounded edge limit", {
@@ -915,6 +935,33 @@ function inspectAnimations(document, nodeCount, collector, maximumItems) {
   return { count: animations.length, channels, samplers, items, omitted: Math.max(0, animations.length - items.length) };
 }
 
+function enforceDocumentLimits(document, limits) {
+  const checks = [
+    ["nodes", limits.maximumNodes, "gltf/node-limit"],
+    ["meshes", limits.maximumMeshes, "gltf/mesh-limit"],
+    ["accessors", limits.maximumAccessors, "gltf/accessor-limit"],
+  ];
+  for (const [key, maximum, code] of checks) {
+    const count = safeArray(document[key]).length;
+    if (count > maximum) {
+      throw new GlbPreflightError(code, `glTF ${key} exceed the bounded limit of ${maximum}`, {
+        path: `$.${key}`,
+        details: { count, maximum },
+      });
+    }
+  }
+  let primitives = 0;
+  for (const mesh of safeArray(document.meshes)) {
+    primitives += safeArray(plainObject(mesh) ? mesh.primitives : null).length;
+    if (primitives > limits.maximumPrimitives) {
+      throw new GlbPreflightError("gltf/primitive-limit", `glTF primitives exceed the bounded limit of ${limits.maximumPrimitives}`, {
+        path: "$.meshes",
+        details: { primitives, maximum: limits.maximumPrimitives },
+      });
+    }
+  }
+}
+
 function analyzeDocument(container, contentId, options) {
   const limits = normalizeLimits(options);
   const collector = createIssueCollector(limits.maximumIssues);
@@ -923,12 +970,35 @@ function analyzeDocument(container, contentId, options) {
   const asset = plainObject(document.asset) ? document.asset : {};
   const version = typeof asset.version === "string" ? Number.parseInt(asset.version.split(".")[0], 10) : NaN;
   if (version !== 2) collector.add("gltf/version", "error", "$.asset.version", "glTF asset version must be 2.x", { version: asset.version ?? null });
-  for (const key of ["scenes", "nodes", "meshes", "materials", "skins", "animations", "buffers", "bufferViews", "accessors", "images"]) {
+  for (const key of ["scenes", "nodes", "meshes", "materials", "skins", "animations", "buffers", "bufferViews", "accessors", "images", "extensionsUsed", "extensionsRequired"]) {
     if (document[key] !== undefined && !Array.isArray(document[key])) {
       collector.add("gltf/array", "error", `$.${key}`, `${key} must be an array`);
     }
   }
+  enforceDocumentLimits(document, limits);
   const extensionsUsed = safeArray(document.extensionsUsed).filter((entry) => typeof entry === "string");
+  const extensionsRequired = safeArray(document.extensionsRequired).filter((entry) => typeof entry === "string");
+  for (const [key, values] of [["extensionsUsed", safeArray(document.extensionsUsed)], ["extensionsRequired", safeArray(document.extensionsRequired)]]) {
+    values.forEach((entry, index) => {
+      if (typeof entry !== "string" || !entry) {
+        collector.add("extension/name", "error", `$.${key}[${index}]`, "Extension names must be non-empty strings");
+      }
+    });
+  }
+  const inspectedRequiredExtensions = new Set([
+    "KHR_draco_mesh_compression",
+    "EXT_meshopt_compression",
+    "KHR_mesh_quantization",
+  ]);
+  extensionsRequired.forEach((extension, index) => {
+    if (!extensionsUsed.includes(extension)) {
+      collector.add("extension/required-not-used", "error", `$.extensionsRequired[${index}]`, "Required extension must also occur in extensionsUsed", { extension });
+    }
+    if (!inspectedRequiredExtensions.has(extension)) {
+      collector.add("extension/required-uninspected", "warning", `$.extensionsRequired[${index}]`,
+        "Required extension is preserved but is not interpreted by the rigging preflight analyzer", { extension }, `required-extension:${extension}`);
+    }
+  });
   if (extensionsUsed.includes("KHR_draco_mesh_compression")) {
     collector.add("compression/draco-required", "error", "$.extensionsUsed",
       "Draco-compressed geometry requires an installed decoder for complete rigging preflight", null, "draco-required");

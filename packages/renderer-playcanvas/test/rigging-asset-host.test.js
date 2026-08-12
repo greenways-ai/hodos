@@ -114,6 +114,8 @@ test("Blob-like local sources are accepted and asset release is deterministic", 
     hostId: "blob",
     assets: 0,
     totalBytes: 0,
+    maximumAssets: 8,
+    maximumTotalBytes: 512 * 1024 * 1024,
     destroyed: true,
   });
 });
@@ -129,6 +131,27 @@ test("host byte limits fail closed without adding an asset", async () => {
     assert.equal(result.error.code, "glb/byte-limit");
     assert.equal(result.session.status, "failed");
     assert.equal(host.evidence().assets, 0);
+  } finally {
+    host.destroy();
+  }
+});
+
+
+test("host asset and byte capacities fail without discarding the accepted session", async () => {
+  const bytes = createStylizedUnriggedGlb();
+  const host = createLocalRiggingAssetHost({
+    id: "capacity",
+    maximumAssets: 1,
+    maximumTotalBytes: bytes.byteLength * 2,
+  });
+  try {
+    const accepted = await host.open(createRiggingSession({ id: "session:capacity" }), bytes);
+    assert.equal(accepted.ok, true);
+    const rejected = await host.open(accepted.session, bytes, { fileName: "second.glb" });
+    assert.equal(rejected.ok, false);
+    assert.equal(rejected.error.code, "rig/asset-capacity");
+    assert.equal(rejected.session.active.source.handle.id, accepted.handle);
+    assert.equal(host.evidence().assets, 1);
   } finally {
     host.destroy();
   }

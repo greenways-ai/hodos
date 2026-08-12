@@ -20,6 +20,7 @@ The package also contributes `rig.asset-host/playcanvas-local` and exports:
 
 Opening an `ArrayBuffer`, typed array, `File`, or `Blob` performs no upload and
 never follows external buffer or image URLs. Raw bytes, parsed glTF JSON,
-accessor views and topology state remain behind the host handle. Portable Hodos
+accessor views and topology state remain behind the host handle. Configurable
+asset-count and total-byte limits keep the local host bounded. Portable Hodos
 state receives only source identity, bounded preflight evidence and recoverable
 session state.
