@@ -19,6 +19,9 @@
     "./rigging-overlay": "./src/rigging-skeleton-overlay.js",
     "./rigging-authoring": "./src/rigging-authoring-renderer.js",
     "./rigging-handles": "./src/rigging-translate-handles.js",
+    "./rigging-geometry": "./src/rigging-bind-geometry.js",
+    "./rigging-binding": "./src/rigging-weight-artifacts.js",
+    "./rigging-weight-task": "./src/rigging-weight-task.js",
     "./styles": "./src/world-placement.css",
     "./rigging-surface": "./src/rigging-surface-index.js"
   },

@@ -11,6 +11,8 @@ import {
   analyzeLocalGlb,
   toUint8Array,
 } from "./rigging-glb-preflight.js";
+import { RiggingWeightArtifactStore } from "./rigging-weight-artifacts.js";
+import { RiggingWeightTaskRunner } from "./rigging-weight-task.js";
 import {
   RIG_SURFACE_INDEX_PROVIDER_ID,
   RIG_SURFACE_INDEX_PROVIDER_VERSION,
@@ -96,12 +98,18 @@ export class LocalRiggingAssetHost {
     id = "playcanvas-local-rigging",
     preflight = {},
     surface = {},
+    binding = {},
+    weights = {},
+    weightWorkerFactory = null,
     maximumAssets = 8,
     maximumTotalBytes = 512 * 1024 * 1024,
   } = {}) {
     this.id = boundedText(id, "playcanvas-local-rigging", 128);
     this.preflightOptions = Object.freeze({ ...preflight });
     this.surfaceOptions = Object.freeze({ ...surface });
+    this.bindingOptions = Object.freeze({ ...binding });
+    this.weightOptions = Object.freeze({ ...weights });
+    this.weightTaskRunner = new RiggingWeightTaskRunner({ workerFactory: weightWorkerFactory });
     this.maximumAssets = positiveSafeInteger(maximumAssets, 8, "maximumAssets");
     this.maximumTotalBytes = positiveSafeInteger(maximumTotalBytes, 512 * 1024 * 1024, "maximumTotalBytes");
     this.records = new Map();
@@ -155,6 +163,14 @@ export class LocalRiggingAssetHost {
         surfaceIndex: null,
         surfacePromise: null,
         surface: surfaceIndexEvidence(null),
+        weightStore: new RiggingWeightArtifactStore({
+          source,
+          document: analysis.document,
+          binaryChunk: analysis.binaryChunk,
+          geometry: this.bindingOptions,
+          taskRunner: this.weightTaskRunner,
+          ...this.weightOptions,
+        }),
       });
       ownedBytes = null;
       return Object.freeze({
@@ -235,6 +251,34 @@ export class LocalRiggingAssetHost {
     return this.record(handle).surface;
   }
 
+  async prepareBinding(handle, options = {}) {
+    return this.record(handle).weightStore.prepareGeometry(options);
+  }
+
+  async bindRig(handle, rigDocument, options = {}) {
+    return this.record(handle).weightStore.bind(rigDocument, options);
+  }
+
+  weightEvidence(handle) {
+    return this.record(handle).weightStore.evidence();
+  }
+
+  describeWeightArtifact(handle, id) {
+    return this.record(handle).weightStore.describeWeight(id);
+  }
+
+  describeBindArtifact(handle, id) {
+    return this.record(handle).weightStore.describeBind(id);
+  }
+
+  readWeightArtifact(handle, id) {
+    return this.record(handle).weightStore.readWeight(id);
+  }
+
+  readBindArtifact(handle, id) {
+    return this.record(handle).weightStore.readBind(id);
+  }
+
   raycastSurface(handle, ray, options = {}) {
     const record = this.record(handle);
     if (!record.surfaceIndex || record.surfaceIndex.destroyed) {
@@ -256,6 +300,7 @@ export class LocalRiggingAssetHost {
     if (!record) return false;
     destroyRiggingSurfaceIndex(record.surfaceIndex);
     record.surfaceIndex = null;
+    record.weightStore?.destroy?.();
     record.bytes.fill(0);
     this.records.delete(handle);
     return true;
@@ -284,9 +329,11 @@ export class LocalRiggingAssetHost {
     for (const record of this.records.values()) {
       destroyRiggingSurfaceIndex(record.surfaceIndex);
       record.surfaceIndex = null;
+      record.weightStore?.destroy?.();
       record.bytes.fill(0);
     }
     this.records.clear();
+    this.weightTaskRunner.destroy();
     this.destroyed = true;
   }
 

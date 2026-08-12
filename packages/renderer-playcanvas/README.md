@@ -56,3 +56,18 @@ unsupported, or exceeds the configured limits. See
 
 - `@greenways/hodos-renderer-playcanvas/rigging-handles` for projected,
   touch-sized axis translation handles.
+
+## Deterministic skin binding artifacts
+
+`./rigging-geometry`, `./rigging-binding`, and `./rigging-weight-task` provide
+the operational skin boundary behind the portable Hodos rig document. Local
+triangle geometry, CSR adjacency, connected components, worker messages, weight
+buffers and inverse bind matrices remain behind the opaque asset handle.
+Accepted results expose only content-addressed `weights:sha256:*` and
+`bind:sha256:*` identities plus bounded diagnostics.
+
+The first strategies are deterministic nearest-segment smooth binding and rigid
+connected-component binding. The task runner accepts an injected module Worker
+factory and falls back to the same deterministic inline implementation when a
+Worker is unavailable. Releasing an asset zeroes all retained geometry, weights
+and inverse bind matrices.

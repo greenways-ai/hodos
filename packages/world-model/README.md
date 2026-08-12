@@ -72,3 +72,8 @@ boundary and workbench contract.
 serializers, source-identity reconciliation, and structured restore preparation.
 Workfiles retain the normalized rig, optional editor state and history limit,
 while omitting sessions, opaque handles, undo snapshots and renderer values.
+
+The rigging model also provides deterministic rigid-component initial weights
+and inverse bind matrix generation. These pure functions accept caller-owned
+typed arrays; the arrays remain host values and are never embedded in portable
+Hodos documents.
