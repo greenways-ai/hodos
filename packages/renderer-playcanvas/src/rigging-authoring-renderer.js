@@ -15,6 +15,11 @@ import {
 import { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
 import { RigSkeletonOverlay } from "./rigging-skeleton-overlay.js";
 import { RigTranslateHandles } from "./rigging-translate-handles.js";
+import { RigWeightHeatmapOverlay } from "./rigging-weight-heatmap.js";
+import {
+  RiggingWeightStrokeController,
+  normalizeRigWeightPaintSettings,
+} from "./rigging-weight-painter.js";
 
 const EPSILON = 1e-7;
 
@@ -98,6 +103,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     assetHost = null,
     onRigIntent,
     onRigEditor,
+    onRigWeights,
     surfacePick = null,
     surfaceOffset = 0,
     ...options
@@ -106,6 +112,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.assetHost = assetHost;
     this.onRigIntent = typeof onRigIntent === "function" ? onRigIntent : () => {};
     this.onRigEditor = typeof onRigEditor === "function" ? onRigEditor : () => {};
+    this.onRigWeights = typeof onRigWeights === "function" ? onRigWeights : () => {};
     this.surfacePick = typeof surfacePick === "function" ? surfacePick : null;
     this.surfaceOffset = Number.isFinite(surfaceOffset) ? surfaceOffset : 0;
     this.rigSurfaceEvidence = null;
@@ -124,6 +131,16 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
       onCancel: () => this.clearRigPreview(),
     }) : null;
     this.rigTranslateHandles?.sync(this.rigDocument, this.rigEditor);
+    this.rigActivity = "skeleton";
+    this.rigWeightSettings = normalizeRigWeightPaintSettings();
+    this.rigWeightPointer = null;
+    this.rigWeightStroke = null;
+    this.rigWeightHeatmap = this.entityOverlayRoot ? new RigWeightHeatmapOverlay({
+      app: this.app,
+      camera: this.camera,
+      canvas: this.canvas,
+      root: this.entityOverlayRoot,
+    }) : null;
     this.rigAssetRoot = new Entity("Hodos local rigging asset");
     this.app.root.addChild(this.rigAssetRoot);
     this.rigAsset = null;
@@ -144,12 +161,14 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     this.rigEditor = normalizeRigEditor(editorValue, this.rigDocument);
     this.rigOverlay.sync(this.rigDocument, this.rigEditor);
     this.rigTranslateHandles?.sync(this.rigDocument, this.rigEditor);
+    if (this.rigActivity === "weights") this.refreshRigWeightHeatmap().catch((error) => this.emitRigWeightError(error, "heatmap"));
   }
 
   setRigEditor(editorValue = {}) {
     this.rigEditor = normalizeRigEditor(editorValue, this.rigDocument);
     this.rigOverlay.sync(this.rigDocument, this.rigEditor);
     this.rigTranslateHandles?.sync(this.rigDocument, this.rigEditor);
+    if (this.rigActivity === "weights") this.refreshRigWeightHeatmap().catch((error) => this.emitRigWeightError(error, "heatmap"));
   }
 
   previewRigJoint(jointId, worldPosition) {
@@ -178,6 +197,177 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     return intent;
   }
 
+  emitRigWeightError(error, phase = "weights") {
+    const event = Object.freeze({
+      type: "error",
+      phase,
+      error: Object.freeze({
+        name: error?.name ?? "Error",
+        code: error?.code ?? null,
+        message: String(error?.message ?? error).slice(0, 1024),
+      }),
+    });
+    this.onRigWeights(event);
+    return event;
+  }
+
+  setRigActivity(value) {
+    const activity = value === "weights" ? "weights" : "skeleton";
+    if (activity === this.rigActivity) return activity;
+    this.rigActivity = activity;
+    if (activity !== "weights") {
+      this.cancelRigWeightStroke().catch(() => {});
+      this.rigWeightHeatmap?.clearSample?.();
+      this.rigWeightHeatmap?.clearBrush?.();
+    } else {
+      this.refreshRigWeightHeatmap().catch((error) => this.emitRigWeightError(error, "heatmap"));
+    }
+    this.onRigWeights(Object.freeze({ type: "activity", activity }));
+    return activity;
+  }
+
+  setRigWeightSettings(value = {}) {
+    this.rigWeightSettings = normalizeRigWeightPaintSettings({ ...this.rigWeightSettings, ...value });
+    this.onRigWeights(Object.freeze({ type: "settings", settings: this.rigWeightSettings }));
+    return this.rigWeightSettings;
+  }
+
+  activeRigWeightJointIndex() {
+    return this.rigEditor.active
+      ? this.rigDocument.joints.findIndex((joint) => joint.id === this.rigEditor.active)
+      : -1;
+  }
+
+  async refreshRigWeightHeatmap({ previewId = null, selection = null } = {}) {
+    if (this.rigActivity !== "weights" || !this.rigAssetHandle || !this.rigWeightHeatmap) return null;
+    const jointIndex = this.activeRigWeightJointIndex();
+    const weightSetId = this.rigDocument.skin?.weightSetId;
+    if (jointIndex < 0 || (!previewId && !weightSetId)) {
+      this.rigWeightHeatmap.clearSample();
+      return null;
+    }
+    const sample = previewId
+      ? this.assetHost.weightPreviewHeatmap(this.rigAssetHandle, previewId, jointIndex, { selection })
+      : this.assetHost.weightHeatmap(this.rigAssetHandle, weightSetId, jointIndex, { selection });
+    this.rigWeightHeatmap.setSample(sample);
+    this.onRigWeights(Object.freeze({
+      type: "heatmap",
+      artifactId: sample.artifactId,
+      jointId: this.rigEditor.active,
+      evidence: sample.evidence,
+    }));
+    return sample.evidence;
+  }
+
+  attachRigWeightResult(result, source = "binding") {
+    if (!result?.skin?.weightSetId || !result?.bind?.inverseMatricesId) {
+      throw new TypeError("Rig weight result must contain skin and bind artifact identities");
+    }
+    this.onRigIntent({
+      intent: {
+        type: "rig/skin-attach",
+        skin: result.skin,
+        bind: result.bind,
+        expectedRevision: this.rigDocument.revision,
+      },
+      editorAfter: null,
+    });
+    this.onRigWeights(Object.freeze({ type: source, status: "committed", result }));
+    return result;
+  }
+
+  async bindRigWeights(strategy = "nearest-segment", options = {}) {
+    if (!this.rigAssetHandle) throw new Error("Open a local GLB before binding weights");
+    if (!this.rigDocument.joints.length) throw new Error("Create at least one joint before binding weights");
+    this.onRigWeights(Object.freeze({ type: "binding", status: "running", strategy }));
+    try {
+      const result = await this.assetHost.bindRig(this.rigAssetHandle, this.rigDocument, { strategy, ...options });
+      this.attachRigWeightResult(result, "binding");
+      return result;
+    } catch (error) {
+      this.emitRigWeightError(error, "binding");
+      throw error;
+    }
+  }
+
+  async diagnoseRigWeights(options = {}) {
+    const weightSetId = this.rigDocument.skin?.weightSetId;
+    if (!this.rigAssetHandle || !weightSetId) throw new Error("Bind the rig before running weight diagnostics");
+    try {
+      const evidence = await this.assetHost.diagnoseWeights(
+        this.rigAssetHandle,
+        this.rigDocument,
+        weightSetId,
+        options,
+      );
+      this.onRigWeights(Object.freeze({ type: "diagnostics", status: evidence.status, evidence }));
+      return evidence;
+    } catch (error) {
+      this.emitRigWeightError(error, "diagnostics");
+      throw error;
+    }
+  }
+
+  ensureRigWeightStroke() {
+    if (this.rigWeightStroke) return this.rigWeightStroke;
+    if (!this.assetHost) throw new Error("Weight painting requires a local asset host");
+    this.rigWeightStroke = new RiggingWeightStrokeController({
+      assetHost: this.assetHost,
+      onPreview: (event) => {
+        this.refreshRigWeightHeatmap({ previewId: event.preview.id }).catch((error) => this.emitRigWeightError(error, "heatmap"));
+        this.onRigWeights(event);
+      },
+      onCommit: (event) => this.attachRigWeightResult(event.result, "paint"),
+      onCancel: (event) => {
+        this.refreshRigWeightHeatmap().catch(() => {});
+        this.onRigWeights(event);
+      },
+      onError: (event) => this.onRigWeights(event),
+    });
+    return this.rigWeightStroke;
+  }
+
+  rigWeightSurfacePoint(clientX, clientY) {
+    if (!this.rigAssetHandle || typeof this.assetHost?.raycastSurface !== "function") return null;
+    const rayValue = this.screenRay(clientX, clientY);
+    if (!rayValue) return null;
+    const result = this.assetHost.raycastSurface(this.rigAssetHandle, {
+      origin: arrayPoint(rayValue.origin),
+      direction: arrayPoint(rayValue.direction),
+    }, { backface: "double" });
+    return finitePoint(result?.hit?.point);
+  }
+
+  async startRigWeightStroke(event) {
+    const weightSetId = this.rigDocument.skin?.weightSetId;
+    if (!weightSetId) throw new Error("Bind the rig before painting weights");
+    const point = this.rigWeightSurfacePoint(event.clientX, event.clientY);
+    if (!point) throw new Error("The pointer did not hit locally readable triangle geometry");
+    const controller = this.ensureRigWeightStroke();
+    controller.configure({
+      handle: this.rigAssetHandle,
+      document: this.rigDocument,
+      baseWeightSetId: weightSetId,
+      jointId: this.rigEditor.active,
+      settings: this.rigWeightSettings,
+    });
+    return controller.begin(point);
+  }
+
+  moveRigWeightStroke(event) {
+    const point = this.rigWeightSurfacePoint(event.clientX, event.clientY);
+    if (!point || !this.rigWeightStroke?.isActive()) return Promise.resolve(null);
+    return this.rigWeightStroke.move(point);
+  }
+
+  finishRigWeightStroke() {
+    return this.rigWeightStroke?.finish?.() ?? Promise.resolve(null);
+  }
+
+  cancelRigWeightStroke() {
+    return this.rigWeightStroke?.cancel?.() ?? Promise.resolve(false);
+  }
+
   async loadRiggingAsset(handleValue) {
     const handle = String(handleValue || "");
     if (!this.assetHost?.has?.(handle)) throw new RangeError(`Unknown local rigging asset handle: ${handle}`);
@@ -185,6 +375,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     if (typeof globalThis.Blob !== "function" || !globalThis.URL?.createObjectURL) {
       throw new Error("Local rigging asset rendering requires Blob object URLs");
     }
+    await this.cancelRigWeightStroke();
     this.disposeRiggingAsset();
     const description = this.assetHost.describe(handle);
     const bytes = this.assetHost.readBytes(handle);
@@ -215,6 +406,7 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
       this.rigSurfaceEvidence = typeof this.assetHost?.prepareSurface === "function"
         ? await this.assetHost.prepareSurface(handle)
         : null;
+      if (this.rigActivity === "weights") await this.refreshRigWeightHeatmap();
       return instance;
     } catch (error) {
       bytes.fill(0);
@@ -242,6 +434,10 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
   }
 
   disposeRiggingAsset() {
+    this.cancelRigWeightStroke().catch(() => {});
+    this.rigWeightHeatmap?.clearSample?.();
+    this.rigWeightHeatmap?.clearBrush?.();
+    this.rigWeightPointer = null;
     this.rigAssetEntity?.destroy?.();
     if (this.rigAsset) {
       this.app.assets.remove(this.rigAsset);
@@ -265,6 +461,14 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     };
     this.canvas.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || this.rigEditor.mode !== "edit") return;
+      if (this.rigActivity === "weights") {
+        this.rigWeightPointer = event.pointerId;
+        this.canvas.setPointerCapture(event.pointerId);
+        this.rigWeightHeatmap?.setBrush(event.clientX, event.clientY, this.rigWeightSettings.radiusPixels);
+        this.startRigWeightStroke(event).catch((error) => this.emitRigWeightError(error, "paint"));
+        consume(event);
+        return;
+      }
       const tool = this.rigEditor.tool;
       const radius = event.pointerType === "touch" ? 36 : event.pointerType === "pen" ? 28 : 22;
       const picked = this.rigOverlay.pick(event.clientX, event.clientY, { radius });
@@ -303,6 +507,14 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     }, { capture: true, signal });
 
     this.canvas.addEventListener("pointermove", (event) => {
+      if (this.rigActivity === "weights") {
+        this.rigWeightHeatmap?.setBrush(event.clientX, event.clientY, this.rigWeightSettings.radiusPixels);
+        if (this.rigWeightPointer === event.pointerId) {
+          this.moveRigWeightStroke(event).catch((error) => this.emitRigWeightError(error, "paint"));
+          consume(event);
+        }
+        return;
+      }
       const drag = this.rigDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
       drag.current = this.rigPointAt(event.clientX, event.clientY, drag.anchor);
@@ -311,6 +523,14 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
     }, { capture: true, signal });
 
     const finish = (event, cancelled = false) => {
+      if (this.rigActivity === "weights" && this.rigWeightPointer === event.pointerId) {
+        this.rigWeightPointer = null;
+        this.rigWeightHeatmap?.clearBrush();
+        const operation = cancelled ? this.cancelRigWeightStroke() : this.finishRigWeightStroke();
+        operation.catch((error) => this.emitRigWeightError(error, cancelled ? "cancel" : "paint"));
+        consume(event);
+        return;
+      }
       const drag = this.rigDrag;
       if (!drag || drag.pointerId !== event.pointerId) return;
       this.rigDrag = null;
@@ -389,6 +609,9 @@ export class RiggingAuthoringRenderer extends AdvancedWorldRenderer {
 
   destroy() {
     this.disposeRiggingAsset();
+    this.rigWeightStroke?.destroy?.().catch?.(() => {});
+    this.rigWeightStroke = null;
+    this.rigWeightHeatmap?.destroy?.();
     this.rigTranslateHandles?.destroy?.();
     this.rigOverlay?.destroy?.();
     this.rigAssetRoot?.destroy?.();

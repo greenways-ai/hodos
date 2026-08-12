@@ -289,6 +289,14 @@ export class LocalRiggingAssetHost {
     return this.record(handle).weightStore.readBind(id);
   }
 
+  weightHeatmap(handle, id, jointIndex, options = {}) {
+    return this.record(handle).weightStore.heatmap(id, jointIndex, options);
+  }
+
+  weightPreviewHeatmap(handle, id, jointIndex, options = {}) {
+    return this.record(handle).weightEditor.previewHeatmap(id, jointIndex, options);
+  }
+
   async selectWeightSphere(handle, options) {
     return this.record(handle).weightEditor.selectSphere(options);
   }

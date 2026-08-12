@@ -429,3 +429,62 @@
     outline: 2px solid Highlight;
   }
 }
+
+.hodos-rigging-activities,
+.hodos-rigging-weight-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.hodos-rigging-activities button[data-active="true"] {
+  border-color: var(--rig-teal);
+  background: color-mix(in srgb, var(--rig-teal) 20%, var(--rig-surface));
+}
+
+.hodos-rigging-weight-controls label {
+  display: grid;
+  gap: 0.1rem;
+  min-inline-size: 5rem;
+  font-size: 0.68rem;
+}
+
+.hodos-rigging-weight-controls input,
+.hodos-rigging-weight-controls select {
+  min-inline-size: 5rem;
+}
+
+.hodos-rigging-weight-heatmap {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+
+.hodos-rigging-weight-summary p {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .hodos-rigging-weight-controls {
+    inline-size: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .hodos-rigging-weight-controls button,
+  .hodos-rigging-weight-controls label {
+    min-block-size: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  .hodos-rigging-weight-heatmap {
+    opacity: 0.9;
+  }
+  .hodos-rigging-activities button[data-active="true"] {
+    outline: 2px solid Highlight;
+  }
+}

@@ -8,6 +8,7 @@ import {
   buildRiggingBindGeometry,
   destroyRiggingBindGeometry,
 } from "./rigging-bind-geometry.js";
+import { createRigWeightHeatmapSample } from "./rigging-weight-heatmap.js";
 import {
   RIG_WEIGHT_TASK_PROVIDER_ID,
   RIG_WEIGHT_TASK_PROVIDER_VERSION,
@@ -392,6 +393,25 @@ export class RiggingWeightArtifactStore {
     const artifact = this.binds.get(id);
     if (!artifact) throw artifactError("rig/bind-artifact", `Unknown bind artifact: ${id}`);
     return artifact.inverseBindMatrices.slice();
+  }
+
+  heatmap(id, jointIndex, options = {}) {
+    this.assertActive();
+    const artifact = this.weights.get(id);
+    if (!artifact) throw artifactError("rig/weight-artifact", `Unknown weight artifact: ${id}`);
+    if (!this.geometry || this.geometry.destroyed) {
+      throw artifactError("rig/binding-geometry", "Binding geometry is not ready for heat-map sampling");
+    }
+    return createRigWeightHeatmapSample({
+      artifactId: artifact.id,
+      positions: this.geometry.positions,
+      jointIndices: artifact.jointIndices,
+      weights: artifact.weights,
+      vertexCount: artifact.vertexCount,
+      maxInfluences: artifact.maxInfluences,
+      jointIndex,
+      ...options,
+    });
   }
 
   evidence() {
