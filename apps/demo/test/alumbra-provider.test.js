@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   ALUMBRA_PROVIDER_HOST,
   ALUMBRA_PROVIDER_ID,
+  ALUMBRA_PROVIDER_RELEASE,
   PEACOCK_BALLROOM_ACTIVITY_ID,
   PEACOCK_BALLROOM_PACKAGE,
   PEACOCK_BALLROOM_STATES,
@@ -42,6 +43,8 @@ test("builds only the installed Hodos Greenways provider URL", () => {
   assert.equal(url.pathname, "/hodos/alumbra/apps/lab/peacock-ballroom.html");
   assert.equal(url.searchParams.get("state"), "ballroom/gallery-overlook");
   assert.equal(url.searchParams.get("embed"), "hodos");
+  assert.equal(url.searchParams.get("release"), ALUMBRA_PROVIDER_RELEASE);
+  assert.equal(ALUMBRA_PROVIDER_RELEASE, "3eb7d05d047c8600c64b709d33e0542c74a98789");
   assert.equal(peacockBallroomProviderUrl("ballroom/missing").includes("state=ballroom%2Fday"), true);
   assert.throws(
     () => peacockBallroomProviderUrl("ballroom/day", "https://example.test/world"),
@@ -56,6 +59,7 @@ test("builds only the installed Hodos Greenways provider URL", () => {
 test("registers the exact Peacock Ballroom provider activity and states", () => {
   const registration = createAlumbraWorldProviderRegistration({document: new FakeDocument()});
   assert.equal(registration.providerId, ALUMBRA_PROVIDER_ID);
+  assert.equal(registration.metadata.release, ALUMBRA_PROVIDER_RELEASE);
   assert.deepEqual(registration.activities[PEACOCK_BALLROOM_ACTIVITY_ID], {
     package: PEACOCK_BALLROOM_PACKAGE,
     defaultState: "ballroom/day",
@@ -84,8 +88,11 @@ test("allocates one iframe controller and releases it deterministically", () => 
   assert.equal(root.children.length, 1);
   const frame = root.children[0].children[0];
   assert.equal(frame.tagName, "IFRAME");
-  assert.equal(new URL(frame.src).searchParams.get("state"), "ballroom/mosaic-floor");
+  const frameUrl = new URL(frame.src);
+  assert.equal(frameUrl.searchParams.get("state"), "ballroom/mosaic-floor");
+  assert.equal(frameUrl.searchParams.get("release"), ALUMBRA_PROVIDER_RELEASE);
   assert.equal(controller.snapshot().status, "loading");
+  assert.equal(controller.snapshot().release, ALUMBRA_PROVIDER_RELEASE);
   frame.dispatch("load");
   assert.equal(controller.snapshot().status, "ready");
   assert.equal(controller.snapshot().loads, 1);

@@ -9,6 +9,7 @@ export const PEACOCK_BALLROOM_STATES = Object.freeze([
 export const PEACOCK_BALLROOM_DEFAULT_STATE = PEACOCK_BALLROOM_STATES[0];
 export const ALUMBRA_PROVIDER_ORIGIN = "https://oss.greenways.ai";
 export const ALUMBRA_PROVIDER_HOST = `${ALUMBRA_PROVIDER_ORIGIN}/hodos/alumbra/apps/lab/peacock-ballroom.html`;
+export const ALUMBRA_PROVIDER_RELEASE = "3eb7d05d047c8600c64b709d33e0542c74a98789";
 
 const deepFreeze = (value) => {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
@@ -26,6 +27,7 @@ export function peacockBallroomProviderUrl(state, baseUrl = ALUMBRA_PROVIDER_HOS
   }
   url.searchParams.set("state", selected);
   url.searchParams.set("embed", "hodos");
+  url.searchParams.set("release", ALUMBRA_PROVIDER_RELEASE);
   return url.href;
 }
 
@@ -48,6 +50,7 @@ export function createAlumbraWorldProviderRegistration({
     metadata: Object.freeze({
       label: "Alumbra",
       version: "0.1.0",
+      release: ALUMBRA_PROVIDER_RELEASE,
       source: "greenways-ai/alumbra",
     }),
     factory({root, launch}) {
@@ -83,6 +86,7 @@ export function createAlumbraWorldProviderRegistration({
             activityId: launch.activityId,
             package: launch.package,
             state: launch.state,
+            release: ALUMBRA_PROVIDER_RELEASE,
             loads,
           });
         },
