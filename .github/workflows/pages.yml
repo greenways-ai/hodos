@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: greenways-ai/alumbra
-          ref: 419e02ebe06d90a43ae4510579e3acfaf6d4738e
+          ref: 3eb7d05d047c8600c64b709d33e0542c74a98789
           path: .alumbra-provider
       - uses: actions/setup-node@v4
         with:
