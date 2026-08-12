@@ -4,7 +4,11 @@ import {
   createRigAuthoringState,
   createRiggingSession,
   flattenRigHierarchy,
+  prepareRigWorkfileRestore,
   reduceRigAuthoringEvent,
+  serializeRigWorkfileEdn,
+  serializeRigWorkfileJson,
+  createRigWorkfile,
   rigJointSubtree,
   rigRestWorldTransforms,
 } from "@greenways/hodos-world-model/rigging";
@@ -12,6 +16,10 @@ import {
   createLocalRiggingAssetHost,
   RiggingAuthoringRenderer,
 } from "@greenways/hodos-renderer-playcanvas";
+import {
+  createRigWorkfileAutosave,
+  createWebStorageRigWorkfileProvider,
+} from "./rigging-workfile-browser.js";
 
 function element(document, tag, className = "", text = "") {
   const node = document.createElement(tag);
@@ -49,6 +57,21 @@ function editableTarget(target, host = globalThis) {
     || target?.isContentEditable);
 }
 
+function resolveWorkfileProvider(value, host) {
+  if (value === null) return null;
+  if (value && typeof value.get === "function" && typeof value.set === "function" && typeof value.delete === "function") return value;
+  const storage = value === undefined ? (() => {
+    try { return host.localStorage ?? null; } catch { return null; }
+  })() : value;
+  if (!storage) return null;
+  return createWebStorageRigWorkfileProvider(storage);
+}
+
+function safeDownloadName(value, extension) {
+  const stem = String(value || "rig").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "") || "rig";
+  return `${stem}.${extension}`;
+}
+
 function input(document, type, label, value = "") {
   const node = document.createElement("input");
   node.type = type;
@@ -65,6 +88,10 @@ export class RiggingWorkspace {
     assetHost = null,
     createRenderer = null,
     rendererOptions = {},
+    workfileStorage = undefined,
+    autosave = true,
+    autosaveDelay = 750,
+    maximumWorkfileBytes = undefined,
     host = globalThis,
   } = {}) {
     if (!root) throw new TypeError("RiggingWorkspace requires a root element");
@@ -79,6 +106,14 @@ export class RiggingWorkspace {
     this.loadingHandle = null;
     this.destroyed = false;
     this.abort = new AbortController();
+    this.maximumWorkfileBytes = maximumWorkfileBytes;
+    const provider = autosave ? resolveWorkfileProvider(workfileStorage, host) : null;
+    this.autosave = provider ? createRigWorkfileAutosave({
+      provider,
+      delay: autosaveDelay,
+      maximumBytes: maximumWorkfileBytes,
+      timers: host,
+    }) : null;
     this.renderShell();
     const factory = typeof createRenderer === "function"
       ? createRenderer
@@ -101,9 +136,11 @@ export class RiggingWorkspace {
       <header class="hodos-rigging-toolbar">
         <div class="hodos-rigging-brand"><span>HODOS</span><strong>Rigging</strong></div>
         <label class="hodos-rigging-open">Open GLB<input type="file" accept=".glb,model/gltf-binary" data-rig-open></label>
+        <label class="hodos-rigging-open">Open rig<input type="file" accept=".json,.rig.json,application/json" data-rig-workfile-open></label>
         <div class="hodos-rigging-tools" data-rig-tools></div>
         <label>Space<select data-rig-space><option value="world">World</option><option value="local">Local</option></select></label>
         <label>Snap<select data-rig-snap><option value="surface">Surface</option><option value="depth">Depth</option><option value="grid">Grid</option><option value="none">None</option></select></label>
+        <label>Rig mismatch<select data-rig-mismatch><option value="reject">Require same model</option><option value="rebind">Rebind skeleton</option></select></label>
         <div class="hodos-rigging-actions" data-rig-actions></div>
       </header>
       <aside class="hodos-rigging-outliner">
@@ -121,6 +158,8 @@ export class RiggingWorkspace {
       </aside>
       <footer class="hodos-rigging-status"><span data-rig-status></span><span>Q Select · A Add joint · W Move · F Frame · ⌘/Ctrl-Z Undo</span></footer>`;
     this.openInput = this.root.querySelector("[data-rig-open]");
+    this.workfileInput = this.root.querySelector("[data-rig-workfile-open]");
+    this.mismatchPolicy = this.root.querySelector("[data-rig-mismatch]");
     this.tools = this.root.querySelector("[data-rig-tools]");
     this.space = this.root.querySelector("[data-rig-space]");
     this.snap = this.root.querySelector("[data-rig-snap]");
@@ -148,12 +187,20 @@ export class RiggingWorkspace {
     this.mirror = button(document, "Mirror X", () => this.commitAction({ type: "mirror", axis: "x" }));
     this.remove = button(document, "Delete subtree", () => this.commitAction({ type: "delete", cascade: true }));
     this.frame = button(document, "Frame", () => this.renderer?.focusRigSelection?.());
-    this.actions.append(this.undo, this.redo, this.duplicate, this.mirror, this.remove, this.frame);
+    this.saveJson = button(document, "Save JSON", () => this.downloadWorkfile("json"));
+    this.saveEdn = button(document, "Save EDN", () => this.downloadWorkfile("edn"));
+    this.clearAutosave = button(document, "Clear autosave", () => this.removeAutosave());
+    this.actions.append(this.undo, this.redo, this.duplicate, this.mirror, this.remove, this.frame, this.saveJson, this.saveEdn, this.clearAutosave);
 
     this.openInput.addEventListener("change", () => {
       const file = this.openInput.files?.[0];
       if (file) this.openFile(file);
       this.openInput.value = "";
+    }, { signal: this.abort.signal });
+    this.workfileInput.addEventListener("change", () => {
+      const file = this.workfileInput.files?.[0];
+      if (file) this.openWorkfile(file);
+      this.workfileInput.value = "";
     }, { signal: this.abort.signal });
     this.space.addEventListener("change", () => this.emit({
       "event/type": "rig/editor-settings",
@@ -195,9 +242,84 @@ export class RiggingWorkspace {
       return result;
     }
     await this.loadHandle(result.handle);
+    await this.restoreAutosave(result.source.contentId);
     const summary = result.preflight.summary;
     this.setStatus(`${file.name || "GLB"} · ${summary.status} · ${result.preflight.geometry.vertices} vertices`, summary.errors ? "error" : summary.warnings ? "warning" : "ready");
     return result;
+  }
+
+  currentWorkfile() {
+    return createRigWorkfile(this.state, { maximumBytes: this.maximumWorkfileBytes });
+  }
+
+  downloadWorkfile(format = "json") {
+    try {
+      const workfile = this.currentWorkfile();
+      const text = format === "edn"
+        ? serializeRigWorkfileEdn(workfile, { maximumBytes: this.maximumWorkfileBytes })
+        : serializeRigWorkfileJson(workfile, { maximumBytes: this.maximumWorkfileBytes });
+      const BlobCtor = this.host.Blob ?? globalThis.Blob;
+      const URLApi = this.host.URL ?? globalThis.URL;
+      if (!BlobCtor || !URLApi?.createObjectURL) throw new Error("Browser download APIs are unavailable");
+      const url = URLApi.createObjectURL(new BlobCtor([text], { type: format === "edn" ? "application/edn" : "application/json" }));
+      const anchor = this.root.ownerDocument.createElement("a");
+      anchor.href = url;
+      anchor.download = safeDownloadName(this.state.document.id, format === "edn" ? "rig.edn" : "rig.json");
+      anchor.hidden = true;
+      this.root.append(anchor);
+      anchor.click();
+      anchor.remove();
+      queueMicrotask(() => URLApi.revokeObjectURL(url));
+      this.setStatus(`Saved ${format.toUpperCase()} rig workfile`, "ready");
+    } catch (error) {
+      this.setStatus(error.message || String(error), "error");
+    }
+  }
+
+  async openWorkfile(file) {
+    try {
+      const text = await file.text();
+      const prepared = prepareRigWorkfileRestore(this.state, text, {
+        mismatchPolicy: this.mismatchPolicy.value,
+        maximumBytes: this.maximumWorkfileBytes,
+      });
+      if (!prepared.ok) {
+        this.setStatus(prepared.error.message, "error");
+        return prepared;
+      }
+      this.emit(prepared.event);
+      this.setStatus(prepared.source.rebound ? prepared.warnings[0].message : `Restored ${file.name || "rig workfile"}`, prepared.source.rebound ? "warning" : "ready");
+      return prepared;
+    } catch (error) {
+      this.setStatus(error.message || String(error), "error");
+      return { ok: false, error };
+    }
+  }
+
+  async restoreAutosave(contentId) {
+    if (!this.autosave) return null;
+    try {
+      const workfile = await this.autosave.load(contentId);
+      if (!workfile) return null;
+      const prepared = prepareRigWorkfileRestore(this.state, workfile, {
+        mismatchPolicy: "reject",
+        maximumBytes: this.maximumWorkfileBytes,
+      });
+      if (!prepared.ok) return prepared;
+      this.emit(prepared.event);
+      this.setStatus("Restored the matching local autosave", "ready");
+      return prepared;
+    } catch (error) {
+      this.setStatus(`Autosave restore failed: ${error.message || error}`, "warning");
+      return null;
+    }
+  }
+
+  async removeAutosave() {
+    const contentId = this.state.session?.active?.source?.contentId;
+    if (!this.autosave || !contentId) return this.setStatus("No active source autosave to clear", "warning");
+    await this.autosave.remove(contentId);
+    this.setStatus("Cleared the local rig autosave", "ready");
   }
 
   async loadHandle(handle) {
@@ -222,6 +344,7 @@ export class RiggingWorkspace {
       this.update(this.state);
       this.dispatch?.(event);
       this.onChange?.(this.state, event);
+      if ((event["event/type"] ?? event.type) !== "rig/source-opened") this.autosave?.schedule(this.state);
       return this.state;
     } catch (error) {
       this.setStatus(error.message || String(error), "error");
@@ -318,6 +441,10 @@ export class RiggingWorkspace {
     this.mirror.disabled = !selected;
     this.remove.disabled = !this.state.editor.active;
     this.frame.disabled = !this.state.editor.active && !this.state.session?.active;
+    const sourceReady = Boolean(this.state.session?.active?.source?.contentId);
+    this.saveJson.disabled = !sourceReady;
+    this.saveEdn.disabled = !sourceReady;
+    this.clearAutosave.disabled = !sourceReady || !this.autosave;
   }
 
   renderTree() {
@@ -514,6 +641,7 @@ export class RiggingWorkspace {
     clearTimeout(this.statusTimer);
     this.abort.abort();
     this.renderer?.destroy?.();
+    this.autosave?.destroy();
     if (this.ownsAssetHost) this.assetHost.destroy();
     this.root.replaceChildren();
   }
@@ -526,5 +654,6 @@ export function createRiggingWorkspaceHost(options = {}) {
     dispatch,
     assetHost: options.assetHost ?? services?.rigging?.assetHost,
     createRenderer: options.createRenderer ?? services?.rigging?.createRenderer,
+    workfileStorage: options.workfileStorage ?? services?.rigging?.workfileStorage,
   });
 }

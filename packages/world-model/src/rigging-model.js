@@ -18,3 +18,4 @@ export * from "./rigging-weights.js";
 export * from "./rigging-intents.js";
 export * from "./rigging-preflight.js";
 export * from "./rigging-editor.js";
+export * from "./rigging-workfile.js";

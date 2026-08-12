@@ -24,3 +24,12 @@ The package also contributes `rig.ui/authoring` and exports
 The workspace can own its local state or dispatch the declared
 `HODOS_RIGGING_AUTHORING_EVENTS` through a Hodos component host. Model bytes and
 PlayCanvas entities remain outside the component model.
+
+## Rig workfile save and autosave
+
+The rigging workspace can open and download deterministic portable rig
+workfiles. Matching local autosaves are restored only after the user reopens the
+source GLB. Storage is injected through a small `get`/`set`/`delete` provider;
+the package includes Web Storage and in-memory adapters. An explicit rebind
+policy preserves skeleton structure while clearing mesh-specific skin and bind
+artifact identities.
