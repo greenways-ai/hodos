@@ -53,3 +53,6 @@ The authoring renderer uses the host raycast for `surface` placement and falls
 back to source bounds or depth when geometry is compressed, external,
 unsupported, or exceeds the configured limits. See
 `docs/rigging-surface-picking.md`.
+
+- `@greenways/hodos-renderer-playcanvas/rigging-handles` for projected,
+  touch-sized axis translation handles.

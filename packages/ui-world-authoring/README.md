@@ -33,3 +33,7 @@ source GLB. Storage is injected through a small `get`/`set`/`delete` provider;
 the package includes Web Storage and in-memory adapters. An explicit rebind
 policy preserves skeleton structure while clearing mesh-specific skin and bind
 artifact identities.
+
+Keyboard nudges and numeric edits use the same preview/commit boundary. Arrow
+keys move X/Y, Page Up/Down move Z, Alt selects the fine step, Shift selects
+the coarse step, and repeated input is coalesced into one history operation.

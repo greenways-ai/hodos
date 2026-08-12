@@ -345,3 +345,87 @@
 @media (prefers-reduced-motion: reduce) {
   .hodos-rigging-workspace * { scroll-behavior: auto !important; }
 }
+
+
+.hodos-rigging-live {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.hodos-rigging-viewport canvas {
+  touch-action: none;
+}
+
+.hodos-rigging-translate-handles {
+  position: absolute;
+  z-index: 8;
+  inline-size: 0;
+  block-size: 0;
+  pointer-events: none;
+}
+
+.hodos-rigging-translate-handle {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  translate: -50% -50%;
+  padding: 0;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  color: white;
+  background: color-mix(in srgb, currentColor 34%, #07110d);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+  font: 700 0.72rem/1 ui-sans-serif, system-ui, sans-serif;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.hodos-rigging-translate-handle[data-axis="x"] { color: #f07878; }
+.hodos-rigging-translate-handle[data-axis="y"] { color: #75d58b; }
+.hodos-rigging-translate-handle[data-axis="z"] { color: #7ea9ff; }
+
+.hodos-rigging-translate-handle:focus-visible {
+  outline: 3px solid #fff1b5;
+  outline-offset: 3px;
+}
+
+.hodos-rigging-vector input:focus {
+  border-color: var(--rig-teal);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rig-teal) 24%, transparent);
+}
+
+@media (pointer: coarse) {
+  .hodos-rigging-translate-handle {
+    inline-size: 52px;
+    block-size: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hodos-rigging-translate-handle,
+  .hodos-rigging-tree-row,
+  .hodos-rigging-workspace button {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .hodos-rigging-translate-handle {
+    color: ButtonText !important;
+    background: ButtonFace !important;
+    border-color: ButtonText !important;
+    forced-color-adjust: auto;
+  }
+  .hodos-rigging-tree-row[aria-selected="true"],
+  .hodos-rigging-tree-row[data-active="true"] {
+    outline: 2px solid Highlight;
+  }
+}
