@@ -23,3 +23,4 @@ export * from "./rigging-editor.js";
 export * from "./rigging-input.js";
 export * from "./rigging-workfile.js";
 export * from "./rigging-pose.js";
+export * from "./rigging-ik-contract.js";

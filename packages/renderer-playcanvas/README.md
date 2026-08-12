@@ -112,3 +112,17 @@ weights over the accepted PlayCanvas model. `./rigging-weight-painter` converts
 triangle-surface pointer hits into opaque sphere selections, accumulates one
 host-local stroke preview, and commits one immutable weight artifact on release.
 Neither full weight buffers nor preview selections enter portable Hodos state.
+
+## Bounded inverse kinematics
+
+`@greenways/hodos-renderer-playcanvas/rigging-ik` exports a separate add-on that
+requires the explicit `rig.ik` host capability. It contributes
+`rig.ik/playcanvas-local` without making the normal world renderer depend on IK
+authority.
+
+The reference provider implements deterministic pole-aware analytic two-bone IK
+and a bounded general-chain FABRIK solver. It resolves arbitrary named chains
+from portable pose suites, applies authored swing/twist and per-axis limits,
+supports `AbortSignal` cancellation, and returns only a sparse pose proposal plus
+compact convergence evidence. Solver working arrays, iteration state and
+renderer transforms remain provider-owned. See `docs/rigging-ik-provider.md`.
