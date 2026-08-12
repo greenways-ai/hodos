@@ -27,6 +27,7 @@
     "./rigging-weight-painter": "./src/rigging-weight-painter.js",
     "./rigging-weight-selections": "./src/rigging-weight-selections.js",
     "./rigging-weight-task": "./src/rigging-weight-task.js",
+    "./rigging-ik": "./src/rigging-ik-addon.js",
     "./styles": "./src/world-placement.css",
     "./rigging-surface": "./src/rigging-surface-index.js"
   },

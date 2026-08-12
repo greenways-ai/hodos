@@ -102,3 +102,19 @@ kernel:
 Pose values contain no animation mixers, solver buffers, renderer objects,
 weights or deformed vertices. See `docs/rigging-pose-kernel.md` for the exact
 transform, limit, suite and semantic editing contracts.
+
+## Portable inverse-kinematics boundary
+
+The rigging export now also defines bounded `hodos.rig-ik-request/0-alpha`,
+`hodos.rig-ik-proposal/0-alpha`, `hodos.rig-ik-evidence/0-alpha`, and
+`hodos.rig-ik-acceptance/0-alpha` values. Requests select an arbitrary named pose
+suite chain and exact rig/pose revisions. Successful proposals contain only
+sparse normalized local rotation deltas, while evidence records provider
+identity, reach/convergence classification, effective resource bounds and
+bounded limit diagnostics.
+
+`applyRigIkProposal` is the sole portable acceptance boundary: it rejects stale
+rigs and poses and advances the pose exactly once. Solver iteration arrays,
+cancellation state and renderer transforms remain behind a host provider. See
+`docs/rigging-ik-provider.md` for the reference analytic two-bone and bounded
+FABRIK contracts.
