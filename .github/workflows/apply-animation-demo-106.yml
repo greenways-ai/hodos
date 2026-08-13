@@ -53,6 +53,17 @@ jobs:
           base64 --decode "$RUNNER_TEMP/animation-demo-106.b64" > "$RUNNER_TEMP/animation-demo-106.tar.gz"
           echo "dacb89775338530e75eb5f85b4901ee191d8d58043d1f7a8e0998e2dd5e843be  $RUNNER_TEMP/animation-demo-106.tar.gz" | sha256sum --check -
           tar -xzf "$RUNNER_TEMP/animation-demo-106.tar.gz"
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("apps/demo/test/mixamo-animation-demo-model.test.js")
+          text = path.read_text()
+          old = 'from "./mixamo-animation-demo-model.js";'
+          new = 'from "../src/mixamo-animation-demo-model.js";'
+          if text.count(old) != 1:
+              raise SystemExit("expected exactly one Animation Lab model import to repair")
+          path.write_text(text.replace(old, new))
+          PY
           rm -f .github/animation-demo-106.tar.gz .github/animation-demo-106.part* .github/workflows/apply-animation-demo-106.yml
 
       - name: Check the authored sources
