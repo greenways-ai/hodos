@@ -25,6 +25,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cat <<'CHECKSUMS' | sha256sum --check -
+          12771a9435f2741f7c5b9010ee752b3d229b41e76e3831b1a27870881cc119a0  .github/animation-demo-106.part00
+          4f4ebeb7b0576de61543313c7e9c86504ea50886fc5c6e5708b670defa6bf36d  .github/animation-demo-106.part01
+          4043be819be8001051ed22d132e08d388fa864dca5905977735fbafcc5128dbe  .github/animation-demo-106.part02
+          584105d7b23efaf05b962c5ee3ffdeaf0a30a3ebc8bcfe2cf55a9cb2490cfb23  .github/animation-demo-106.part03
+          7d1f34829268bfbb8291f0f155afd585eb746917c684350a7153dc89b5743705  .github/animation-demo-106.part04
+          b71b5aa7e217a52d06bfcf44b08b312ebae42e2bfcb4031fe6bc946fbbc032e0  .github/animation-demo-106.part05
+          3d4e2b647463b2ca9991ef7eb032171aca9390249916cff16909a211ad7ed2e1  .github/animation-demo-106.part06
+          79b406beb0971089e5c1c4d79c19423bc87f301e6320484a050037d21467d78a  .github/animation-demo-106.part07
+          34b42dfb593da2358133e5c4e9addd93faf273bd98be63bab8d24cde444b6a74  .github/animation-demo-106.part08
+          CHECKSUMS
           parts=(.github/animation-demo-106.part*)
           test "${#parts[@]}" -eq 9
           cat "${parts[@]}" > "$RUNNER_TEMP/animation-demo-106.b64"
