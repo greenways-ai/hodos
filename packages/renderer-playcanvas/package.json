@@ -16,6 +16,7 @@
     "./enhancer": "./src/world-renderer-enhancer.js",
     "./sequence": "./src/sequence-host.js",
     "./mixamo": "./src/mixamo-character-loader.js",
+    "./mixamo-animation": "./src/mixamo-animation-workbench.js",
     "./rigging-assets": "./src/rigging-asset-host.js",
     "./rigging-preflight": "./src/rigging-glb-preflight.js",
     "./rigging-overlay": "./src/rigging-skeleton-overlay.js",
