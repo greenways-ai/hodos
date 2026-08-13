@@ -15,7 +15,7 @@ import { hodosWorldModelAddon } from "@greenways/hodos-world-model";
 
 test("source and renderer add-ons compose without creating a browser viewer", async () => {
   const host = createHodosHost({
-    capabilities: ["network.github", "sequence.execute", "world.render"],
+    capabilities: ["character.animation", "network.github", "sequence.execute", "world.render"],
   });
   host.register(
     hodosCoreAddon,
