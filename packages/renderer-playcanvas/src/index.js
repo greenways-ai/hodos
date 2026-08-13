@@ -5,7 +5,7 @@ import {
   PlayCanvasMixamoCharacterHost,
   createPlayCanvasMixamoCharacterHost,
   inspectPlayCanvasMixamoCharacter,
-} from "./mixamo-character-host.js";
+} from "./mixamo-character-loader.js";
 import {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
@@ -49,7 +49,7 @@ import {
 import { WorldRenderer } from "./world-renderer.js";
 
 export { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
-export * from "./mixamo-character-host.js";
+export * from "./mixamo-character-loader.js";
 export {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
