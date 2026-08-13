@@ -4,8 +4,9 @@ on:
   push:
     branches: [agent/mixamo-animation-demo-106]
     paths:
-      - .github/animation-demo-106.tar.gz
+      - .github/animation-demo-106.part*
       - .github/workflows/apply-animation-demo-106.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: agent/mixamo-animation-demo-106
           fetch-depth: 0
@@ -24,9 +25,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "dacb89775338530e75eb5f85b4901ee191d8d58043d1f7a8e0998e2dd5e843be  .github/animation-demo-106.tar.gz" | sha256sum --check -
-          tar -xzf .github/animation-demo-106.tar.gz
-          rm .github/animation-demo-106.tar.gz .github/workflows/apply-animation-demo-106.yml
+          parts=(.github/animation-demo-106.part*)
+          test "${#parts[@]}" -eq 9
+          cat "${parts[@]}" > "$RUNNER_TEMP/animation-demo-106.b64"
+          base64 --decode "$RUNNER_TEMP/animation-demo-106.b64" > "$RUNNER_TEMP/animation-demo-106.tar.gz"
+          echo "dacb89775338530e75eb5f85b4901ee191d8d58043d1f7a8e0998e2dd5e843be  $RUNNER_TEMP/animation-demo-106.tar.gz" | sha256sum --check -
+          tar -xzf "$RUNNER_TEMP/animation-demo-106.tar.gz"
+          rm -f .github/animation-demo-106.tar.gz .github/animation-demo-106.part* .github/workflows/apply-animation-demo-106.yml
 
       - name: Check the authored sources
         shell: bash
