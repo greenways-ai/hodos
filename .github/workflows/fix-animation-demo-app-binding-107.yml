@@ -31,7 +31,7 @@ jobs:
               ("function addPrimitive(parent, {", "function addPrimitive(app, parent, {", 1),
               ("  const entity = new Entity(name);", "  const entity = new Entity(name, app);", 1),
               ("function decorateProceduralMannequin(root, joints) {", "function decorateProceduralMannequin(app, root, joints) {", 1),
-              ("addPrimitive(joints.", "addPrimitive(app, joints.", 16),
+              ("addPrimitive(joints.", "addPrimitive(app, joints.", 17),
               (
                   "} = {}) {\n  const root = new Entity(name);\n  const armature = new Entity(\"Armature\");",
                   "} = {}) {\n  if (!app) throw new TypeError(\"Procedural Mixamo mannequin requires a PlayCanvas app\");\n  const root = new Entity(name, app);\n  const armature = new Entity(\"Armature\", app);",
