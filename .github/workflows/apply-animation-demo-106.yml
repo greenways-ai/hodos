@@ -1,0 +1,51 @@
+name: Apply animation demo 106
+
+on:
+  push:
+    branches: [agent/mixamo-animation-demo-106]
+    paths:
+      - .github/animation-demo-106.tar.gz
+      - .github/workflows/apply-animation-demo-106.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/mixamo-animation-demo-106
+          fetch-depth: 0
+
+      - name: Verify and apply the reviewed payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "dacb89775338530e75eb5f85b4901ee191d8d58043d1f7a8e0998e2dd5e843be  .github/animation-demo-106.tar.gz" | sha256sum --check -
+          tar -xzf .github/animation-demo-106.tar.gz
+          rm .github/animation-demo-106.tar.gz .github/workflows/apply-animation-demo-106.yml
+
+      - name: Check the authored sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check packages/renderer-playcanvas/src/mixamo-animation-workbench.js
+          node --check packages/renderer-playcanvas/test/mixamo-animation-workbench.test.js
+          node --check packages/renderer-playcanvas/src/index.js
+          node --check apps/demo/src/mixamo-animation-entry.js
+          node --check apps/demo/src/mixamo-animation-demo-model.js
+          node --test apps/demo/test/mixamo-animation-demo-model.test.js
+          node -e 'JSON.parse(require("fs").readFileSync("apps/demo/package.json", "utf8")); JSON.parse(require("fs").readFileSync("packages/renderer-playcanvas/package.json", "utf8"))'
+
+      - name: Commit the demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Add browser Mixamo animation demo"
+          git push origin HEAD:agent/mixamo-animation-demo-106
