@@ -13,6 +13,10 @@ import {
 } from "../src/mixamo-animation-workbench.js";
 import { inspectPlayCanvasMixamoCharacter } from "../src/mixamo-character-loader.js";
 
+function testApp() {
+  return { _entityIndex: Object.create(null) };
+}
+
 function renameMixamoJoints(root, transform) {
   const visit = (node) => {
     if (node.name.startsWith("mixamorig:")) node.name = transform(node.name.slice("mixamorig:".length));
@@ -22,7 +26,7 @@ function renameMixamoJoints(root, transform) {
 }
 
 test("the procedural mannequin is a rights-clean Mixamo-compatible character", () => {
-  const mannequin = createProceduralMixamoMannequin(null, {
+  const mannequin = createProceduralMixamoMannequin(testApp(), {
     attach: false,
     visuals: false,
     animation: false,
@@ -39,7 +43,7 @@ test("the procedural mannequin is a rights-clean Mixamo-compatible character", (
 });
 
 test("pose keys compile to real PlayCanvas rotation curves", () => {
-  const mannequin = createProceduralMixamoMannequin(null, {
+  const mannequin = createProceduralMixamoMannequin(testApp(), {
     attach: false,
     visuals: false,
     animation: false,
@@ -67,12 +71,12 @@ test("pose keys compile to real PlayCanvas rotation curves", () => {
 });
 
 test("same-family retargeting remaps joint paths and makes root motion explicit", () => {
-  const source = createProceduralMixamoMannequin(null, {
+  const source = createProceduralMixamoMannequin(testApp(), {
     attach: false,
     visuals: false,
     animation: false,
   });
-  const target = createProceduralMixamoMannequin(null, {
+  const target = createProceduralMixamoMannequin(testApp(), {
     attach: false,
     visuals: false,
     animation: false,

@@ -134,7 +134,7 @@ function material(color, { metalness = 0.05, gloss = 0.55 } = {}) {
   return output;
 }
 
-function addPrimitive(parent, {
+function addPrimitive(app, parent, {
   name,
   type = "box",
   position = [0, 0, 0],
@@ -143,7 +143,7 @@ function addPrimitive(parent, {
   surface,
   castShadows = true,
 } = {}) {
-  const entity = new Entity(name);
+  const entity = new Entity(name, app);
   parent.addChild(entity);
   entity.setLocalPosition(...position);
   entity.setLocalEulerAngles(...rotation);
@@ -180,27 +180,27 @@ const PROCEDURAL_JOINTS = Object.freeze([
   ["RightFoot", "RightLeg", [0, -0.43, 0.04]],
 ]);
 
-function decorateProceduralMannequin(root, joints) {
+function decorateProceduralMannequin(app, root, joints) {
   const stone = material([0.72, 0.76, 0.72], { metalness: 0.1, gloss: 0.7 });
   const emerald = material([0.04, 0.28, 0.2], { metalness: 0.12, gloss: 0.72 });
   const gold = material([0.9, 0.62, 0.12], { metalness: 0.35, gloss: 0.8 });
-  addPrimitive(joints.Hips, { name: "hips-shell", scale: [0.25, 0.14, 0.16], surface: emerald });
-  addPrimitive(joints.Spine, { name: "torso-lower", position: [0, 0.11, 0], scale: [0.2, 0.22, 0.13], surface: stone });
-  addPrimitive(joints.Spine1, { name: "torso-upper", position: [0, 0.1, 0], scale: [0.25, 0.2, 0.14], surface: stone });
-  addPrimitive(joints.Neck, { name: "neck-shell", position: [0, 0.08, 0], scale: [0.07, 0.12, 0.07], surface: gold });
-  addPrimitive(joints.Head, { name: "head-shell", position: [0, 0.1, 0], type: "sphere", scale: [0.15, 0.18, 0.15], surface: stone });
-  addPrimitive(joints.LeftShoulder, { name: "left-upper-arm", position: [-0.15, 0, 0], scale: [0.31, 0.08, 0.08], surface: emerald });
-  addPrimitive(joints.LeftArm, { name: "left-forearm", position: [-0.17, 0, 0], scale: [0.34, 0.07, 0.07], surface: stone });
-  addPrimitive(joints.LeftForeArm, { name: "left-hand", position: [-0.15, 0, 0], scale: [0.22, 0.08, 0.1], surface: gold });
-  addPrimitive(joints.RightShoulder, { name: "right-upper-arm", position: [0.15, 0, 0], scale: [0.31, 0.08, 0.08], surface: emerald });
-  addPrimitive(joints.RightArm, { name: "right-forearm", position: [0.17, 0, 0], scale: [0.34, 0.07, 0.07], surface: stone });
-  addPrimitive(joints.RightForeArm, { name: "right-hand", position: [0.15, 0, 0], scale: [0.22, 0.08, 0.1], surface: gold });
-  addPrimitive(joints.LeftUpLeg, { name: "left-thigh", position: [0, -0.21, 0], scale: [0.11, 0.43, 0.12], surface: emerald });
-  addPrimitive(joints.LeftLeg, { name: "left-shin", position: [0, -0.21, 0], scale: [0.09, 0.42, 0.1], surface: stone });
-  addPrimitive(joints.LeftFoot, { name: "left-foot-shell", position: [0, -0.03, 0.09], scale: [0.12, 0.08, 0.28], surface: gold });
-  addPrimitive(joints.RightUpLeg, { name: "right-thigh", position: [0, -0.21, 0], scale: [0.11, 0.43, 0.12], surface: emerald });
-  addPrimitive(joints.RightLeg, { name: "right-shin", position: [0, -0.21, 0], scale: [0.09, 0.42, 0.1], surface: stone });
-  addPrimitive(joints.RightFoot, { name: "right-foot-shell", position: [0, -0.03, 0.09], scale: [0.12, 0.08, 0.28], surface: gold });
+  addPrimitive(app, joints.Hips, { name: "hips-shell", scale: [0.25, 0.14, 0.16], surface: emerald });
+  addPrimitive(app, joints.Spine, { name: "torso-lower", position: [0, 0.11, 0], scale: [0.2, 0.22, 0.13], surface: stone });
+  addPrimitive(app, joints.Spine1, { name: "torso-upper", position: [0, 0.1, 0], scale: [0.25, 0.2, 0.14], surface: stone });
+  addPrimitive(app, joints.Neck, { name: "neck-shell", position: [0, 0.08, 0], scale: [0.07, 0.12, 0.07], surface: gold });
+  addPrimitive(app, joints.Head, { name: "head-shell", position: [0, 0.1, 0], type: "sphere", scale: [0.15, 0.18, 0.15], surface: stone });
+  addPrimitive(app, joints.LeftShoulder, { name: "left-upper-arm", position: [-0.15, 0, 0], scale: [0.31, 0.08, 0.08], surface: emerald });
+  addPrimitive(app, joints.LeftArm, { name: "left-forearm", position: [-0.17, 0, 0], scale: [0.34, 0.07, 0.07], surface: stone });
+  addPrimitive(app, joints.LeftForeArm, { name: "left-hand", position: [-0.15, 0, 0], scale: [0.22, 0.08, 0.1], surface: gold });
+  addPrimitive(app, joints.RightShoulder, { name: "right-upper-arm", position: [0.15, 0, 0], scale: [0.31, 0.08, 0.08], surface: emerald });
+  addPrimitive(app, joints.RightArm, { name: "right-forearm", position: [0.17, 0, 0], scale: [0.34, 0.07, 0.07], surface: stone });
+  addPrimitive(app, joints.RightForeArm, { name: "right-hand", position: [0.15, 0, 0], scale: [0.22, 0.08, 0.1], surface: gold });
+  addPrimitive(app, joints.LeftUpLeg, { name: "left-thigh", position: [0, -0.21, 0], scale: [0.11, 0.43, 0.12], surface: emerald });
+  addPrimitive(app, joints.LeftLeg, { name: "left-shin", position: [0, -0.21, 0], scale: [0.09, 0.42, 0.1], surface: stone });
+  addPrimitive(app, joints.LeftFoot, { name: "left-foot-shell", position: [0, -0.03, 0.09], scale: [0.12, 0.08, 0.28], surface: gold });
+  addPrimitive(app, joints.RightUpLeg, { name: "right-thigh", position: [0, -0.21, 0], scale: [0.11, 0.43, 0.12], surface: emerald });
+  addPrimitive(app, joints.RightLeg, { name: "right-shin", position: [0, -0.21, 0], scale: [0.09, 0.42, 0.1], surface: stone });
+  addPrimitive(app, joints.RightFoot, { name: "right-foot-shell", position: [0, -0.03, 0.09], scale: [0.12, 0.08, 0.28], surface: gold });
   root.tags?.add?.("hodos-animation-demo");
 }
 
@@ -210,12 +210,13 @@ export function createProceduralMixamoMannequin(app, {
   visuals = true,
   animation = true,
 } = {}) {
-  const root = new Entity(name);
-  const armature = new Entity("Armature");
+  if (!app) throw new TypeError("Procedural Mixamo mannequin requires a PlayCanvas app");
+  const root = new Entity(name, app);
+  const armature = new Entity("Armature", app);
   root.addChild(armature);
   const joints = {};
   for (const [joint, parent, position] of PROCEDURAL_JOINTS) {
-    const entity = new Entity(`mixamorig:${joint}`);
+    const entity = new Entity(`mixamorig:${joint}`, app);
     entity.setLocalPosition(...position);
     (parent ? joints[parent] : armature).addChild(entity);
     joints[joint] = entity;
@@ -224,7 +225,7 @@ export function createProceduralMixamoMannequin(app, {
     if (!app?.root?.addChild) throw new TypeError("Procedural Mixamo mannequin requires a PlayCanvas app when attach is enabled");
     app.root.addChild(root);
   }
-  if (visuals) decorateProceduralMannequin(root, joints);
+  if (visuals) decorateProceduralMannequin(app, root, joints);
   if (animation) {
     if (typeof root.addComponent !== "function") throw new TypeError("Procedural Mixamo mannequin cannot create an AnimComponent");
     root.addComponent("anim", { activate: false, speed: 1 });
