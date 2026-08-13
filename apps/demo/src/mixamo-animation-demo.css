@@ -1,0 +1,735 @@
+:root {
+  --animation-header-height: 56px;
+  --animation-toolbar-height: 78px;
+  --animation-panel-width: min(340px, calc(100vw - 32px));
+  --animation-paper: color-mix(in srgb, #f5f0e5 94%, transparent);
+  --animation-paper-dark: color-mix(in srgb, #14201b 94%, transparent);
+  --animation-green: #103f31;
+  --animation-green-bright: #1e7058;
+  --animation-gold: #c78b2a;
+  --animation-ink: #17251f;
+  --animation-border: color-mix(in srgb, #183a30 22%, transparent);
+}
+
+body {
+  overflow: hidden;
+}
+
+#hodos-animation-demo {
+  position: fixed;
+  inset: var(--animation-header-height) 0 0;
+  min-height: 0;
+  background: #07100d;
+  color: var(--animation-ink);
+  isolation: isolate;
+}
+
+.animation-lab {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.animation-stage {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+  background: radial-gradient(circle at 50% 42%, #183328, #07100d 64%);
+}
+
+.animation-toolbar {
+  position: absolute;
+  z-index: 8;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  min-height: var(--animation-toolbar-height);
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto auto;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+  color: #f4f0e7;
+  background: color-mix(in srgb, #07100d 84%, transparent);
+  border: 1px solid color-mix(in srgb, #cde8db 20%, transparent);
+  border-radius: 18px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.animation-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 12px;
+  color: #d7e5de;
+  border: 1px solid rgb(255 255 255 / 0.13);
+  border-radius: 999px;
+  text-decoration: none;
+  font: 700 0.76rem/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.animation-toolbar-title p,
+.animation-panel header p,
+.animation-sequence-tray header p,
+.animation-fatal > p {
+  margin: 0 0 4px;
+  color: #bd934c;
+  font: 800 0.68rem/1.2 system-ui, sans-serif;
+  letter-spacing: 0.14em;
+}
+
+.animation-toolbar-title h1 {
+  margin: 0;
+  color: #fffaf0;
+  font: 600 clamp(1.3rem, 2vw, 1.85rem)/1.05 Georgia, serif;
+}
+
+.animation-character-summary {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  min-width: 150px;
+}
+
+.animation-character-summary span {
+  max-width: 240px;
+  overflow: hidden;
+  color: #e8f0eb;
+  font: 700 0.78rem/1.2 system-ui, sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.animation-character-summary strong {
+  color: #91b9aa;
+  font: 600 0.68rem/1.2 system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.animation-toolbar button,
+.animation-panel button,
+.animation-sequence-tray button,
+.animation-mobile-tabs button {
+  min-height: 40px;
+  padding: 0 13px;
+  color: var(--animation-green);
+  background: #f6f1e7;
+  border: 1px solid color-mix(in srgb, var(--animation-green) 22%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+  font: 750 0.76rem/1 system-ui, sans-serif;
+}
+
+.animation-toolbar button:hover,
+.animation-panel button:hover,
+.animation-sequence-tray button:hover,
+.animation-mobile-tabs button:hover {
+  border-color: color-mix(in srgb, var(--animation-green) 60%, transparent);
+  transform: translateY(-1px);
+}
+
+.animation-toolbar button:focus-visible,
+.animation-panel button:focus-visible,
+.animation-sequence-tray button:focus-visible,
+.animation-mobile-tabs button:focus-visible,
+.animation-panel input:focus-visible,
+.animation-panel select:focus-visible {
+  outline: 3px solid color-mix(in srgb, #f3b74f 76%, transparent);
+  outline-offset: 2px;
+}
+
+.animation-primary {
+  color: #fffaf0 !important;
+  background: var(--animation-green) !important;
+  border-color: var(--animation-green) !important;
+}
+
+.animation-toolbar-action {
+  color: #fff7e5 !important;
+  background: rgb(255 255 255 / 0.08) !important;
+  border-color: rgb(255 255 255 / 0.18) !important;
+}
+
+.animation-panel,
+.animation-sequence-tray {
+  position: absolute;
+  z-index: 7;
+  overflow: auto;
+  color: var(--animation-ink);
+  background: var(--animation-paper);
+  border: 1px solid rgb(255 255 255 / 0.46);
+  border-radius: 18px;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 0.32);
+  backdrop-filter: blur(18px);
+  scrollbar-width: thin;
+}
+
+[data-theme="dark"] .animation-panel,
+[data-theme="dark"] .animation-sequence-tray {
+  color: #eef4ef;
+  background: var(--animation-paper-dark);
+  border-color: rgb(255 255 255 / 0.12);
+  --animation-border: rgb(255 255 255 / 0.13);
+}
+
+.animation-panel {
+  top: calc(24px + var(--animation-toolbar-height));
+  bottom: 22px;
+  width: var(--animation-panel-width);
+  padding: 18px;
+}
+
+.animation-panel--library {
+  left: 14px;
+}
+
+.animation-panel--pose {
+  right: 14px;
+}
+
+.animation-panel header,
+.animation-sequence-tray header {
+  margin-bottom: 16px;
+}
+
+.animation-panel header h2,
+.animation-sequence-tray header h2 {
+  margin: 0;
+  color: inherit;
+  font: 600 1.42rem/1.05 Georgia, serif;
+}
+
+.animation-panel header > span {
+  display: block;
+  margin-top: 8px;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  font: 500 0.77rem/1.45 system-ui, sans-serif;
+}
+
+.animation-file-control {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 13px;
+  border: 1px dashed color-mix(in srgb, var(--animation-green-bright) 52%, transparent);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.animation-file-control strong,
+.animation-field > span,
+.animation-playback-controls label > span,
+.animation-rotation-grid label > span {
+  font: 760 0.76rem/1.2 system-ui, sans-serif;
+}
+
+.animation-file-control span {
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font: 500 0.68rem/1.35 system-ui, sans-serif;
+}
+
+.animation-file-control input[type="file"] {
+  width: 100%;
+  margin-top: 7px;
+  font: 600 0.68rem/1.2 system-ui, sans-serif;
+}
+
+.animation-field,
+.animation-playback-controls label,
+.animation-rotation-grid label {
+  display: grid;
+  gap: 7px;
+  margin: 11px 0;
+}
+
+.animation-field select,
+.animation-field input[type="number"] {
+  min-height: 40px;
+  width: 100%;
+  padding: 0 10px;
+  color: inherit;
+  background: color-mix(in srgb, #fff 72%, transparent);
+  border: 1px solid var(--animation-border);
+  border-radius: 9px;
+  font: 650 0.78rem/1 system-ui, sans-serif;
+}
+
+[data-theme="dark"] .animation-field select,
+[data-theme="dark"] .animation-field input[type="number"] {
+  background: rgb(255 255 255 / 0.06);
+}
+
+.animation-playback-controls {
+  margin: 16px 0;
+  padding: 13px;
+  background: color-mix(in srgb, var(--animation-green) 7%, transparent);
+  border: 1px solid var(--animation-border);
+  border-radius: 12px;
+}
+
+.animation-playback-controls label > span,
+.animation-rotation-grid label > span,
+.animation-time-field > span {
+  display: flex;
+  justify-content: space-between;
+}
+
+.animation-playback-controls output,
+.animation-rotation-grid output,
+.animation-time-field output {
+  color: var(--animation-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.animation-playback-controls > div,
+.animation-button-grid,
+.animation-sequence-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.animation-clip-list {
+  display: grid;
+  gap: 8px;
+}
+
+.animation-clip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--animation-border);
+  border-radius: 11px;
+}
+
+.animation-clip[data-selected="true"] {
+  background: color-mix(in srgb, var(--animation-green-bright) 10%, transparent);
+  border-color: color-mix(in srgb, var(--animation-green-bright) 58%, transparent);
+}
+
+.animation-clip[data-playing="true"] {
+  box-shadow: inset 3px 0 var(--animation-gold);
+}
+
+.animation-clip > div:first-child {
+  min-width: 0;
+}
+
+.animation-clip strong,
+.animation-clip span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.animation-clip strong {
+  font: 760 0.78rem/1.25 system-ui, sans-serif;
+}
+
+.animation-clip span {
+  margin-top: 3px;
+  color: color-mix(in srgb, currentColor 60%, transparent);
+  font: 550 0.65rem/1.25 system-ui, sans-serif;
+}
+
+.animation-clip > div:last-child {
+  display: flex;
+  gap: 5px;
+}
+
+.animation-clip button {
+  min-height: 32px;
+  padding: 0 9px;
+  font-size: 0.66rem;
+}
+
+.animation-rotation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.animation-rotation-grid label {
+  min-width: 0;
+}
+
+.animation-rotation-grid input[type="range"] {
+  width: 100%;
+}
+
+.animation-quick-author {
+  width: 100%;
+  margin-top: 9px;
+  color: #67420b !important;
+  background: #f4d99d !important;
+  border-color: #c78b2a !important;
+}
+
+.animation-pose-keys,
+.animation-sequence-list {
+  display: flex;
+  gap: 7px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.animation-pose-keys {
+  flex-wrap: wrap;
+}
+
+.animation-pose-keys li {
+  display: grid;
+  gap: 2px;
+  min-width: 70px;
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--animation-green-bright) 9%, transparent);
+  border: 1px solid var(--animation-border);
+  border-radius: 9px;
+}
+
+.animation-pose-keys strong {
+  font: 750 0.73rem/1.1 system-ui, sans-serif;
+}
+
+.animation-pose-keys span {
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font: 550 0.62rem/1.1 system-ui, sans-serif;
+}
+
+.animation-sequence-tray {
+  left: calc(var(--animation-panel-width) + 28px);
+  right: calc(var(--animation-panel-width) + 28px);
+  bottom: 22px;
+  min-height: 118px;
+  padding: 14px 16px;
+}
+
+.animation-sequence-tray header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.animation-sequence-tray header > span {
+  color: var(--animation-gold);
+  font: 760 0.7rem/1.2 system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.animation-sequence-actions {
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+}
+
+.animation-sequence-actions button {
+  min-height: 34px;
+}
+
+.animation-sequence-list {
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+
+.animation-sequence-list li {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto minmax(100px, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 230px;
+  padding: 8px 9px;
+  border: 1px solid var(--animation-border);
+  border-radius: 10px;
+}
+
+.animation-sequence-list li[data-current="true"] {
+  background: color-mix(in srgb, var(--animation-gold) 15%, transparent);
+  border-color: color-mix(in srgb, var(--animation-gold) 60%, transparent);
+}
+
+.animation-sequence-list li > span {
+  color: var(--animation-gold);
+  font: 800 0.65rem/1 system-ui, sans-serif;
+}
+
+.animation-sequence-list strong {
+  font: 730 0.72rem/1.1 system-ui, sans-serif;
+}
+
+.animation-sequence-list small {
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  font: 550 0.6rem/1.1 system-ui, sans-serif;
+}
+
+.animation-sequence-list button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+}
+
+.animation-notice {
+  position: absolute;
+  z-index: 10;
+  top: calc(24px + var(--animation-toolbar-height));
+  left: 50%;
+  max-width: min(480px, calc(100vw - 48px));
+  padding: 9px 14px;
+  color: #f5f5eb;
+  background: color-mix(in srgb, var(--animation-green) 90%, transparent);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  border-radius: 999px;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.28);
+  transform: translateX(-50%);
+  font: 650 0.73rem/1.3 system-ui, sans-serif;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.animation-notice[data-error="true"] {
+  color: #fff4f0;
+  background: color-mix(in srgb, #7c201b 92%, transparent);
+}
+
+.animation-private-note {
+  position: absolute;
+  z-index: 5;
+  right: calc(var(--animation-panel-width) + 32px);
+  bottom: 154px;
+  padding: 7px 10px;
+  color: rgb(236 244 238 / 0.72);
+  background: rgb(3 12 9 / 0.5);
+  border-radius: 999px;
+  font: 620 0.62rem/1 system-ui, sans-serif;
+  backdrop-filter: blur(8px);
+}
+
+.animation-empty {
+  margin: 0;
+  color: color-mix(in srgb, currentColor 57%, transparent);
+  font: 550 0.7rem/1.4 system-ui, sans-serif;
+}
+
+.animation-lab[data-busy="true"]::after {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  content: "";
+  cursor: progress;
+  pointer-events: none;
+  background: rgb(4 10 8 / 0.12);
+}
+
+.animation-mobile-tabs {
+  display: none;
+}
+
+.animation-fatal {
+  display: grid;
+  place-content: center;
+  min-height: 100%;
+  padding: 32px;
+  color: #f5f0e5;
+  background: #07100d;
+  text-align: center;
+}
+
+.animation-fatal a {
+  color: #bdd9cd;
+}
+
+.animation-fatal h1 {
+  margin: 6px 0 16px;
+  font: 600 2rem/1.1 Georgia, serif;
+}
+
+.animation-fatal pre {
+  max-width: 700px;
+  padding: 16px;
+  overflow: auto;
+  color: #ffd8cf;
+  background: #25100d;
+  border-radius: 12px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1100px) {
+  :root {
+    --animation-panel-width: min(300px, calc(100vw - 32px));
+  }
+
+  .animation-toolbar {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .animation-character-summary {
+    display: none;
+  }
+
+  .animation-sequence-tray {
+    left: calc(var(--animation-panel-width) + 24px);
+    right: calc(var(--animation-panel-width) + 24px);
+  }
+}
+
+@media (max-width: 820px) {
+  :root {
+    --animation-toolbar-height: 66px;
+  }
+
+  .animation-toolbar {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    grid-template-columns: auto 1fr auto;
+    min-height: 58px;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 14px;
+  }
+
+  .animation-back {
+    width: 42px;
+    min-height: 42px;
+    overflow: hidden;
+    padding: 0;
+    color: transparent;
+  }
+
+  .animation-back::after {
+    display: grid;
+    place-content: center;
+    color: #e8f0eb;
+    content: "←";
+    font-size: 1rem;
+  }
+
+  .animation-toolbar-title p {
+    display: none;
+  }
+
+  .animation-toolbar-title h1 {
+    font-size: 1.2rem;
+  }
+
+  .animation-toolbar-action {
+    max-width: 104px;
+    padding: 0 9px !important;
+    font-size: 0.66rem !important;
+  }
+
+  .animation-mobile-tabs {
+    position: absolute;
+    z-index: 9;
+    top: 78px;
+    left: 10px;
+    right: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 5px;
+    background: rgb(7 16 13 / 0.84);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+  }
+
+  .animation-mobile-tabs button {
+    min-height: 36px;
+    color: #d9e6df;
+    background: transparent;
+    border-color: transparent;
+  }
+
+  .animation-mobile-tabs button[aria-pressed="true"] {
+    color: #193c30;
+    background: #f3ecdf;
+  }
+
+  .animation-panel,
+  .animation-sequence-tray {
+    top: auto;
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    display: none;
+    width: auto;
+    max-height: min(54vh, 560px);
+    padding: 15px;
+    border-radius: 16px;
+  }
+
+  .animation-lab[data-mobile-panel="library"] [data-panel="library"],
+  .animation-lab[data-mobile-panel="pose"] [data-panel="pose"],
+  .animation-lab[data-mobile-panel="sequence"] [data-panel="sequence"] {
+    display: block;
+  }
+
+  .animation-sequence-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .animation-sequence-list {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .animation-sequence-list li {
+    min-width: 0;
+  }
+
+  .animation-notice {
+    top: 125px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .animation-private-note {
+    top: 165px;
+    right: 12px;
+    bottom: auto;
+    left: 12px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 470px) {
+  .animation-rotation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .animation-panel header > span {
+    display: none;
+  }
+
+  .animation-clip {
+    grid-template-columns: 1fr;
+  }
+
+  .animation-clip > div:last-child {
+    justify-content: stretch;
+  }
+
+  .animation-clip button {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animation-toolbar button,
+  .animation-panel button,
+  .animation-sequence-tray button {
+    transition: none;
+  }
+}

@@ -7,6 +7,13 @@ import {
   inspectPlayCanvasMixamoCharacter,
 } from "./mixamo-character-loader.js";
 import {
+  PlayCanvasMixamoAnimationWorkbench,
+  createMixamoPoseTrack,
+  createPlayCanvasMixamoAnimationWorkbench,
+  createProceduralMixamoMannequin,
+  retargetMixamoAnimationTrack,
+} from "./mixamo-animation-workbench.js";
+import {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
 } from "./rigging-asset-host.js";
@@ -50,6 +57,7 @@ import { WorldRenderer } from "./world-renderer.js";
 
 export { AdvancedWorldRenderer } from "./advanced-world-renderer.js";
 export * from "./mixamo-character-loader.js";
+export * from "./mixamo-animation-workbench.js";
 export {
   LocalRiggingAssetHost,
   createLocalRiggingAssetHost,
@@ -101,6 +109,11 @@ export const hodosPlayCanvasRendererAddon = defineAddon({
       Host: PlayCanvasMixamoCharacterHost,
       create: createPlayCanvasMixamoCharacterHost,
       inspect: inspectPlayCanvasMixamoCharacter,
+      AnimationWorkbench: PlayCanvasMixamoAnimationWorkbench,
+      createAnimationWorkbench: createPlayCanvasMixamoAnimationWorkbench,
+      createPoseTrack: createMixamoPoseTrack,
+      createProceduralCharacter: createProceduralMixamoMannequin,
+      retargetTrack: retargetMixamoAnimationTrack,
     }));
     context.contribute("rig.asset-host", "playcanvas-local", Object.freeze({
       Host: LocalRiggingAssetHost,

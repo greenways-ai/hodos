@@ -3,22 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d0e10">
-  <meta name="description" content="Reference implementation of the Hodos open world ABI, connecting repository worlds, the Hara kernel and browser capabilities.">
-  <meta property="og:title" content="Hodos Reference Demo">
-  <meta property="og:description" content="Reference implementation of the Hodos open world ABI, connecting repository worlds, the Hara kernel and browser capabilities.">
+  <meta name="theme-color" content="#07100d">
+  <meta name="description" content="Create, import, blend, pose, and sequence Mixamo-compatible character animations locally in the Hodos browser Animation Lab.">
+  <meta property="og:title" content="Hodos Animation Lab">
+  <meta property="og:description" content="A rights-clean browser demo for Mixamo-compatible character animation, local GLB imports, pose keys, clip baking, and sequences.">
   <meta property="og:image" content="https://oss.greenways.ai/hodos/demo/demo-world-editor.png">
-  <meta property="og:image:alt" content="Live Hodos World Editor rendering a repository-defined world with authoring panels">
+  <meta property="og:image:alt" content="Hodos browser authoring tools">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://oss.greenways.ai/hodos/demo/demo-world-editor.png">
-  <meta name="twitter:image:alt" content="Live Hodos World Editor rendering a repository-defined world with authoring panels">
-  <title>Hodos Reference Demo</title>
+  <title>Hodos Animation Lab</title>
   <link rel="icon" href="./sigil.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./hodos.css">
-  <link rel="stylesheet" href="./provider.css">
   <link rel="stylesheet" href="./oss-header.css">
   <link rel="stylesheet" href="./hodos-visual-language.css">
   <link rel="stylesheet" href="./hodos-demo-media.css">
+  <link rel="stylesheet" href="./animation.css">
 </head>
 <body>
   <header class="gw-doc-header" data-gw-doc-header>
@@ -33,23 +30,23 @@
         <a href="https://oss.greenways.ai/visual-language/">Visual Language</a>
       </nav>
     </details>
-    <a class="gw-doc-header__title" href="../">Hodos</a>
+    <a class="gw-doc-header__title" href="./">Hodos</a>
     <span class="gw-doc-header__space"></span>
-    <a class="gw-doc-header__link" href="./animation.html">Animation Lab</a>
+    <a class="gw-doc-header__link" href="./">Reference demo</a>
     <a class="gw-doc-header__link" href="../spec/">Specification</a>
-    <button class="gw-doc-header__control" type="button" data-gw-search-open aria-label="Search Hodos reference demo">⌕</button>
+    <button class="gw-doc-header__control" type="button" data-gw-search-open aria-label="Search Hodos Animation Lab">⌕</button>
     <button class="gw-doc-header__control" type="button" data-gw-theme-toggle aria-label="Toggle colour theme">◐</button>
   </header>
-  <main id="hodos-app"></main>
+  <main id="hodos-animation-demo"></main>
   <dialog class="gw-search-dialog" data-gw-search-dialog aria-label="Search Hodos">
     <form method="dialog" class="gw-search-dialog__bar">
       <label><span>Search</span><input type="search" data-gw-search-input autocomplete="off" placeholder="Search Hodos"></label>
       <button class="gw-doc-header__control" value="close" aria-label="Close search">×</button>
     </form>
     <nav class="gw-search-dialog__results" data-gw-search-results>
-      <a data-gw-search-item data-search-text="hodos reference demo worlds gaussian splat editor studio rigging skeleton local glb peacock ballroom alumbra" href="./"><strong>Reference demo</strong><span>Open worlds, provider-backed applications, the editor, Studio, client-side rigging, and the Hara-backed interaction surfaces.</span></a>
       <a data-gw-search-item data-search-text="animation lab mixamo glb character clips pose keyframes sequence" href="./animation.html"><strong>Animation Lab</strong><span>Import local characters and motions, edit poses, bake clips, and compose a sequence.</span></a>
-      <a data-gw-search-item data-search-text="hodos specification world host abi capabilities engagement conformance" href="../spec/"><strong>Hodos specification</strong><span>Read the open world format, host ABI, capability and engagement contracts.</span></a>
+      <a data-gw-search-item data-search-text="hodos reference demo worlds gaussian splat editor studio rigging" href="./"><strong>Reference demo</strong><span>Open worlds, Studio, client-side rigging, and Hara-backed interaction surfaces.</span></a>
+      <a data-gw-search-item data-search-text="hodos specification world host abi capabilities engagement conformance" href="../spec/"><strong>Hodos specification</strong><span>Read the open world format, host ABI, capability, and engagement contracts.</span></a>
       <a data-gw-search-item data-search-text="source github repository issues" href="https://github.com/greenways-ai/hodos"><strong>Source repository</strong><span>Inspect the implementation, packages, releases, and open work.</span></a>
     </nav>
   </dialog>
@@ -95,26 +92,8 @@
           item.hidden = term.length > 0 && !item.dataset.searchText.includes(term);
         });
       });
-
-      const app = document.querySelector("#hodos-app");
-      const labelDemoHero = () => {
-        const hero = app?.querySelector(".welcome-hero-art");
-        if (!hero) return false;
-        hero.setAttribute(
-          "aria-label",
-          "A live capture of the Hodos World Editor rendering a repository-defined world with scene and authoring controls",
-        );
-        return true;
-      };
-      if (!labelDemoHero() && app) {
-        const observer = new MutationObserver(() => {
-          if (labelDemoHero()) observer.disconnect();
-        });
-        observer.observe(app, { childList: true, subtree: true });
-      }
     })();
   </script>
-  <script type="module" src="./hodos.js"></script>
-  <script type="module" src="./provider.js"></script>
+  <script type="module" src="./animation.js"></script>
 </body>
 </html>
