@@ -25,6 +25,17 @@ function renameMixamoJoints(root, transform) {
   visit(root);
 }
 
+test("the procedural mannequin requires an explicit PlayCanvas app", () => {
+  assert.throws(
+    () => createProceduralMixamoMannequin(null, {
+      attach: false,
+      visuals: false,
+      animation: false,
+    }),
+    /requires a PlayCanvas app/,
+  );
+});
+
 test("the procedural mannequin is a rights-clean Mixamo-compatible character", () => {
   const mannequin = createProceduralMixamoMannequin(testApp(), {
     attach: false,
