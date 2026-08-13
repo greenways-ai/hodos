@@ -63,8 +63,8 @@ jobs:
               raise SystemExit(f"{tests}: expected one helper insertion anchor")
           text = text.replace(anchor, helper + anchor)
           old = "createProceduralMixamoMannequin(null, {"
-          if text.count(old) != 3:
-              raise SystemExit(f"{tests}: expected three null-app mannequin calls")
+          if text.count(old) != 4:
+              raise SystemExit(f"{tests}: expected four null-app mannequin calls")
           text = text.replace(old, "createProceduralMixamoMannequin(testApp(), {")
           tests.write_text(text)
 
