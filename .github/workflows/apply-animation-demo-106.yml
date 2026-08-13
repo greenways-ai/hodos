@@ -25,6 +25,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path(".github/animation-demo-106.part03")
+          text = path.read_text()
+          old = "H3Qouvrir"
+          new = "H3Qouvoir"
+          if text.count(old) != 1:
+              raise SystemExit("expected exactly one known transport typo in part03")
+          path.write_text(text.replace(old, new))
+          PY
           cat <<'CHECKSUMS' | sha256sum --check -
           12771a9435f2741f7c5b9010ee752b3d229b41e76e3831b1a27870881cc119a0  .github/animation-demo-106.part00
           4f4ebeb7b0576de61543313c7e9c86504ea50886fc5c6e5708b670defa6bf36d  .github/animation-demo-106.part01
